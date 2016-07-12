@@ -1,0 +1,17 @@
+.sidebar-menu>li.default>a {
+      border-left-color: transparent;
+}
+
+.subcontent {
+    padding: 1em;
+}
+
+.list th, .list td {
+    padding: 1em;
+}
+
+.checkbox-list {
+    height: 100%;
+    border: none;
+    list-style: none;
+}

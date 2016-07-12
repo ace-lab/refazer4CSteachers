@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Bootstrap 101 Template</title>
+
+    <link href="/static/css/helper.css" rel="stylesheet">
+    <link href="/static/css/main.css" rel="stylesheet">
+    <link href="/static/css/highlight.css" rel="stylesheet">
+    <link href="/static/css/code.css" rel="stylesheet">
+    <!-- Bootstrap -->
+    <link href="/static/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/lib/swal/sweetalert.min.css" rel="stylesheet">
+    <link href="/static/css/swal-theme.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <style>
+    pre{
+      font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
+      margin-bottom: 10px;
+      overflow: auto;
+      width: auto;
+      padding: 5px;
+      background-color: #eee;
+      width: 650px!ie7;
+      padding-bottom: 20px!ie7;
+      max-height: 600px;
+    }
+    </style>
+  </head>
+
+  {% macro line_number(i) %}
+    <td class="line-number" data-line-number="{{ '' if i is none else i }}"></td>
+  {% endmacro %}
+
+  <body>
+    <div class="row">
+      <div class="col-md-2">
+        <div class="list-group">
+          {% for i in range(clusters|length) %}
+            <a href="{{i}}" class="list-group-item">
+
+              <span class="badge">{{ clusters[i][1] }}</span>
+              Cluster {{ i+1 }}
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-md-7">
+        <div style="overflow-y: scroll; height: 1000px;">
+          {% for lines in files %}
+             <div class="source-file table-responsive"
+                data-filename='example'>
+                <table class="highlight">
+                  <thead>
+                    <tr>
+                      <th class="source-file-header" colspan=3>
+                          <div class="source-file-name fixed-width-font">example</div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for line in lines %}
+                      <tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
+                        {% if line.is_diff %}
+                          {{ line_number(line.line_before) }}
+                        {% endif %}
+                        {{ line_number(line.line_after) }}
+                        <td>
+                          {% if line.line_after %}
+                            <span class="comment-add"><i class="fa fa-plus"></i></span>
+                          {% endif %}
+                          <span class="highlight-source">{{ line.contents | safe }}</span>
+                        </td>
+                      </tr>
+                      {% if line.comments %}
+                        <tr data-line={{ line.line_after }}>
+                          <td class="comment-container" colspan=3>
+                            {% for comment in line.comments %}
+                              {{ render_comment(comment) }}
+                            {% endfor %}
+                          </td>
+                        </tr>
+                      {% endif %}
+                    {% endfor %}
+                  </tbody>
+                </table>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+
+
+
+        <!-- <div class="panel panel-info">
+
+          <div class="panel-heading">Before</div>
+          <div class="panel-body">
+            <pre><code>{{beforeExample}}</code></pre>
+          </div>
+        </div>
+        <div class="panel panel-warning">
+
+          <div class="panel-heading">After</div>
+          <div class="panel-body">
+            <pre><code>{{afterExample}}</code></pre>
+          </div>
+        </div> -->
+
+      <div class="col-md-3">
+        <h3>Rule</h3>
+        <p id="demo">{{ rule }}</p>
+        <hr>
+        <h3>Feedback</h3>
+        <div class="checkbox">
+          <label>
+            <input type="checkbox" value="">
+            Tip #1
+          </label>
+        </div>
+        <div class="checkbox">
+          <label>
+            <input type="checkbox" value="">
+            Tip #2
+          </label>
+        </div>
+        <button type="button" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+
+    <script>
+    function changeRule(newRule) {
+      console.log(typeof(newRule));
+      document.getElementById("demo").innerHTML = newRule;
+    }
+    </script>
+
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="/static/lib/jquery/jquery.min.js"></script>
+    <script src="/static/lib/swal/sweetalert.min.js"></script>
+    <script src="/static/lib/markdown/markdown.js"></script>
+    <script src="/static/js/main.js"></script>
+    <script src="/static/lib/bootstrap/js/bootstrap.min.js"></script>
+  </body>
+</html>

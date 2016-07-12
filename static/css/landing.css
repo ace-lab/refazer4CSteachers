@@ -1,0 +1,52 @@
+.home header {
+    width: 100%;
+    padding: 1.5em 3em;
+    position: relative;
+}
+
+.button {
+  background: #468dc6;
+}
+
+header .btn {
+  line-height: 150%;
+  font-size: 1.35em;
+  font-weight: 300;
+  color: #666;
+}
+
+.landing {
+  padding-bottom: 100px;
+}
+.footer {
+  padding-left: 50px;
+  padding-right: 50px
+}
+.footer-section {
+  padding-top: 10px;
+}
+
+.container {
+  margin-top: 0px;
+}
+
+.btn:hover{
+	background-color:#DDDDDD;
+}
+
+.btn.round{
+	-webkit-border-radius: 3px;
+	-moz-border-radius: 3px;
+	border-radius: 3px;
+}
+
+.btn.pill{
+  -webkit-border-radius: 16px;
+  -moz-border-radius: 16px;
+  border-radius: 16px;
+}
+
+.privacy {
+  text-align: left;
+  padding-top: 0;
+}
