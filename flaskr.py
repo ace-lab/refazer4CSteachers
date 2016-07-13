@@ -36,7 +36,7 @@ def prepare(question_number):
                 fix = fix.replace('\\', '')
             dict[fix] = dict.get(fix, 0) + 1
             emp = codes.get(fix, [])
-            emp.append( (i['before'], i['after']))
+            emp.append( (i['before'], i['SynthesizedAfter']))
             codes[fix] = codes.get(fix, emp)
 
     for x in dict.keys():
