@@ -14,29 +14,27 @@ codes = {}
 
 @app.route('/')
 def show_entries():
-    # db = get_db()
-    # cur = db.execute('select title, text from entries order by id desc')
-    # entries = cur.fetchall()
-
+    
     global codes
     global orderedClusters
 
     codes = {}
     orderedClusters = []
 
-    with open('response.json') as data_file:
+    with open('G-mistakes.json') as data_file:
     	data = json.load(data_file)
 
     dict = {}
 
     for i in data:
-        fix = i['UsedFix']
-        if(type(fix) == type(u'unicode')):
-            fix = fix.replace('\\', '')
-        dict[fix] = dict.get(fix, 0) + 1
-        emp = codes.get(fix, [])
-        emp.append( (i['before'], i['after']))
-        codes[fix] = codes.get(fix, emp)
+        if(i['IsFixed'] == True):
+            fix = i['UsedFix']
+            if(type(fix) == type(u'unicode')):
+                fix = fix.replace('\\', '')
+            dict[fix] = dict.get(fix, 0) + 1
+            emp = codes.get(fix, [])
+            emp.append( (i['before'], i['after']))
+            codes[fix] = codes.get(fix, emp)
 
 
     beforeExample = data[0]['before']
