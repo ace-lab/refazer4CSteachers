@@ -10,18 +10,21 @@ import highlight
 app = Flask(__name__)
 app.config.from_object(__name__)
 orderedClusters = []
-codes = {}
+current_question = []
+questions = {1:'accumulate-mistakes.json', 2:'G-mistakes.json', 3:'Product-mistakes.json', 4:'repeated-mistakes.json'}
 
-@app.route('/')
-def show_entries():
-    
+def prepare(question_number):
     global codes
     global orderedClusters
+    global current_question
+    global questions
 
     codes = {}
     orderedClusters = []
 
-    with open('G-mistakes.json') as data_file:
+    current_question = question_number
+
+    with open(questions[question_number]) as data_file:
     	data = json.load(data_file)
 
     dict = {}
@@ -36,17 +39,6 @@ def show_entries():
             emp.append( (i['before'], i['after']))
             codes[fix] = codes.get(fix, emp)
 
-
-    beforeExample = data[0]['before']
-    afterExample = data[0]['after']
-    beforeExample2 = data[1]['before']
-    afterExample2 = data[1]['after']
-
-    beforeMap = {'example':beforeExample, 'example2':beforeExample2}
-    afterMap = {'example':afterExample, 'example2':afterExample2}
-
-    files = highlight.diff_files(beforeMap, afterMap, 'full')
-
     for x in dict.keys():
         item = (x, dict.get(x))
         if(type(item[0]) == type(u'unicode')):
@@ -56,12 +48,31 @@ def show_entries():
 
     orderedClusters = sorted(orderedClusters, key=lambda cluster: -cluster[1])
 
-    return render_template('layout.html', clusters = orderedClusters, files = [], rule = "")
 
-@app.route('/<int:cluster_id>')
-def show_detail(cluster_id):
+@app.route('/<int:question_number>')
+def show_question(question_number):
+    prepare(question_number)
+
+    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = orderedClusters, files = [], rule = "")
+
+
+@app.route('/')
+def show_entries():
+
+    prepare(1)
+
+    return render_template('layout.html', question_name = questions[1], question_number = 1, clusters = orderedClusters, files = [], rule = "")
+
+@app.route('/<int:question_number>/<int:cluster_id>')
+def show_detail(question_number, cluster_id):
+    print("aqui")
+    print(url_for('show_detail', question_number=1, cluster_id=1))
     global codes
     global orderedClusters
+
+    if(question_number != current_question):
+        prepare(question_number)
+
 
     # print(orderedClusters)
 
@@ -81,7 +92,7 @@ def show_detail(cluster_id):
     files = highlight.diff_files(beforeMap, afterMap, 'full')
 
 
-    return render_template('layout.html', clusters = orderedClusters, files = files.values(), rule = fix)
+    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = orderedClusters, files = files.values(), rule = fix)
 
 
 

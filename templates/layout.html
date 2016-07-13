@@ -46,7 +46,7 @@
       <div class="col-md-2">
         <div class="list-group">
           {% for i in range(clusters|length) %}
-            <a href="{{i}}" class="list-group-item">
+            <a href="/{{question_number}}/{{i}}" class="list-group-item">
 
               <span class="badge">{{ clusters[i][1] }}</span>
               Cluster {{ i+1 }}
@@ -120,7 +120,9 @@
         <h3>Rule</h3>
         <p id="demo">{{ rule }}</p>
         <hr>
-        <h3>Feedback</h3>
+        <h3>File</h3>
+        {{question_name}}
+        <!-- <h3>Feedback</h3>
         <div class="checkbox">
           <label>
             <input type="checkbox" value="">
@@ -133,7 +135,7 @@
             Tip #2
           </label>
         </div>
-        <button type="button" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-primary">Save</button> -->
       </div>
     </div>
 
