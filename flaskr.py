@@ -42,7 +42,8 @@ def prepare(question_number):
     for x in dict.keys():
         item = (x, dict.get(x))
         if(type(item[0]) == type(u'unicode')):
-            orderedClusters.append((item[0].replace("\\", ""), item[1]))
+            aux = item[0].replace("\\", "")
+            orderedClusters.append((aux, item[1], aux.count("Insert"), aux.count("Update"), aux.count("Delete")))
         else:
             orderedClusters.append(item)
 

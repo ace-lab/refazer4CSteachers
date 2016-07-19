@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>Bootstrap 101 Template</title>
+    <title>UIPrototype</title>
 
     <link href="/static/css/helper.css" rel="stylesheet">
     <link href="/static/css/main.css" rel="stylesheet">
@@ -47,9 +47,9 @@
         <div class="list-group">
           {% for i in range(clusters|length) %}
             <a href="/{{question_number}}/{{i}}" class="list-group-item">
-
               <span class="badge">{{ clusters[i][1] }}</span>
-              Cluster {{ i+1 }}
+              <mark style="background-color: rgb(229, 254, 220)">I:{{ clusters[i][2] }}</mark> <mark>U:{{ clusters[i][3] }}</mark> <mark style="background-color: rgb(254, 221, 221)">D:{{ clusters[i][4] }}</mark>
+              <!-- Cluster {{ i+1 }} -->
             </a>
           {% endfor %}
         </div>
