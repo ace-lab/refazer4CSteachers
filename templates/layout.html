@@ -20,7 +20,8 @@
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
       <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>com
+
     <![endif]-->
     <style>
     pre{
@@ -47,9 +48,22 @@
         <div class="list-group">
           {% for i in range(clusters|length) %}
             <a href="/{{question_number}}/{{i}}" class="list-group-item">
+              <!-- {% if i == 0 %}
+              <mark style="background-color: rgb(229, 254, 220)">if n==0:</mark><br>
+              <mark style="background-color: rgb(229, 254, 220)">&nbsp&nbsp&nbsp&nbspreturn base</mark><br>
+              {% elif i == 1 %}
+              <mark style="background-color: rgb(254, 221, 221)">if n==1:</mark><br>
+              <mark style="background-color: rgb(229, 254, 220)">if base==1:</mark><br>
+              {% elif i == 56 %}
+              <mark style="background-color: rgb(254, 221, 221)">if n==0:</mark><br>
+              <mark style="background-color: rgb(254, 221, 221)">&nbsp&nbsp&nbsp&nbspreturn 0</mark><br>
+              <mark style="background-color: rgb(254, 221, 221)">else:</mark><br>
+              <mark style="background-color: rgb(254, 221, 221)">&nbsp&nbsp&nbsp&nbspreturn combiner(base, term(n))+accumulate(combiner, base, n-1, term)</mark><br>
+              {% endif %} -->
+
               <span class="badge">{{ clusters[i][1] }}</span>
-              <mark style="background-color: rgb(229, 254, 220)">I:{{ clusters[i][2] }}</mark> <mark>U:{{ clusters[i][3] }}</mark> <mark style="background-color: rgb(254, 221, 221)">D:{{ clusters[i][4] }}</mark>
-              <!-- Cluster {{ i+1 }} -->
+              I:{{ clusters[i][2] }} U:{{ clusters[i][3] }} D:{{ clusters[i][4] }}
+
             </a>
           {% endfor %}
         </div>
