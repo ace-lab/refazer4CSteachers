@@ -81,8 +81,6 @@ def show_detail(question_number, cluster_id):
     afterMap = {}
     fix = orderedClusters[cluster_id][0]
 
-
-
     pairs_before_after = codes.get(fix, [])
 
     idx = 0
@@ -91,6 +89,12 @@ def show_detail(question_number, cluster_id):
         afterMap['example'+str(idx)] = pair_before_after[1]
         idx = idx+1
     files = highlight.diff_files(beforeMap, afterMap, 'full')
+
+    for lines in files.values():
+        for line in lines:
+            line.contents = line.contents.replace("<", "&lt")
+            line.contents = line.contents.replace(">", "&gt");
+
 
 
     return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = orderedClusters, files = files.values(), rule = fix)
