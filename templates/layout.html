@@ -103,9 +103,9 @@
                         {% endif %}
                         {{ line_number(line.line_after) }}
                         <td>
-                          {% if line.line_after %}
+                          <!-- {% if line.line_after %}
                             <span class="comment-add"><i class="fa fa-plus"></i></span>
-                          {% endif %}
+                          {% endif %} -->
                           <span class="highlight-source">{{ line.contents | safe }}</span>
                         </td>
                       </tr>
