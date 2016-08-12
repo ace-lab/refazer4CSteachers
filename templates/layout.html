@@ -16,6 +16,8 @@
     <link href="/static/lib/swal/sweetalert.min.css" rel="stylesheet">
     <link href="/static/css/swal-theme.css" rel="stylesheet">
 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
@@ -60,7 +62,19 @@
               <mark style="background-color: rgb(254, 221, 221)">else:</mark><br>
               <mark style="background-color: rgb(254, 221, 221)">&nbsp&nbsp&nbsp&nbspreturn combiner(base, term(n))+accumulate(combiner, base, n-1, term)</mark><br>
               {% endif %} -->
+              {% for lines in clusters[i][5]%}
+                {% for line in lines %}
+                  {% if line.tag == "insert" %}
+                    <span class="highlight-source">{{ line.contents | safe | truncate(25, True)}}</span>
+                  {% elif line.tag == "delete" %}
+                    <span class="highlight-source">{{ line.contents | safe | truncate(25, True)}}</span>
+                  {% elif line.tag == "replace" %}
+                    <span class="highlight-source">{{ line.contents | safe | truncate(25, True)}}</span>
+                  {% endif %}
 
+                {% endfor %}
+              {% endfor %}
+              <hr style="margin-bottom:5px; margin-top:5px;">
               <span class="badge">{{ clusters[i][1] }}</span>
               I:{{ clusters[i][2] }} U:{{ clusters[i][3] }} D:{{ clusters[i][4] }}
 
@@ -131,25 +145,54 @@
         </div> -->
 
       <div class="col-md-3">
-        <h3>Rule</h3>
-        <p id="demo">{{ rule }}</p>
-        <hr>
-        <h3>File</h3>
+        <ul class="nav nav-tabs">
+          <li class="active"><a href="#tips">Tips</a></li>
+          <li><a href="#rule">Rule</a></li>
+          <li><a href="#file">File</a></li>
+        </ul>
+        <div class="tab-content">
+          <div id="tips" class="tab-pane fade in active">
+            <h3>Tips</h3>
+            <form action="{{ url_for('add_tip') }}" method=post>
+              <dl>
+                <dt>Tip:
+                <dd><textarea name=text rows=3 cols=40></textarea>
+                <input type="hidden" name=cluster_id value={{cluster_id}}>
+                <dd><input type=submit value=Add>
+              </dl>
+            </form>
+            <hr>
+            <ul class=entries>
+            {% for entry in entries %}
+              {% if entry.cluster_id == cluster_id %}
+              <li>{{ entry.text|safe }}
+              {% endif %}
+            {% endfor %}
+            </ul>
+          </div>
+          <div id="rule" class="tab-pane fade">
+            <h3>Rule</h3>
+            <p id="demo">{{ rule }}</p>
+          </div>
+          <div id="file" class="tab-pane fade">
+            <h3>File</h3>
+            {{question_name}}
+          </div>
+
+        </div>
+        <!-- <h3>File</h3>
         {{question_name}}
-        <!-- <h3>Feedback</h3>
-        <div class="checkbox">
-          <label>
-            <input type="checkbox" value="">
-            Tip #1
-          </label>
-        </div>
-        <div class="checkbox">
-          <label>
-            <input type="checkbox" value="">
-            Tip #2
-          </label>
-        </div>
-        <button type="button" class="btn btn-primary">Save</button> -->
+        <hr>
+        <form method=post>
+          <dl>
+            <dt>Tip:
+            <dd><textarea name=text rows=3 cols=40></textarea>
+            <dd><input type=submit value=Add>
+          </dl>
+        </form>
+        <hr>
+        <h3>Rule</h3>
+        <p id="demo">{{ rule }}</p> -->
       </div>
     </div>
 
@@ -158,6 +201,13 @@
       console.log(typeof(newRule));
       document.getElementById("demo").innerHTML = newRule;
     }
+    </script>
+    <script>
+    $(document).ready(function(){
+        $(".nav-tabs a").click(function(){
+            $(this).tab('show');
+        });
+    });
     </script>
 
 
