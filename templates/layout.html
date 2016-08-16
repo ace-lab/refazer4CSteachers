@@ -49,7 +49,11 @@
       <div class="col-md-2">
         <div class="list-group">
           {% for i in range(clusters|length) %}
-            <a href="/{{question_number}}/{{i}}" class="list-group-item">
+            {% if cluster_id == i %}
+              <a href="/{{question_number}}/{{i}}" class="list-group-item list-group-item-info">
+            {% else %}
+              <a href="/{{question_number}}/{{i}}" class="list-group-item">
+            {% endif %}
               <!-- {% if i == 0 %}
               <mark style="background-color: rgb(229, 254, 220)">if n==0:</mark><br>
               <mark style="background-color: rgb(229, 254, 220)">&nbsp&nbsp&nbsp&nbspreturn base</mark><br>
@@ -76,8 +80,7 @@
               {% endfor %}
               <hr style="margin-bottom:5px; margin-top:5px;">
               <span class="badge">{{ clusters[i][1] }}</span>
-              I:{{ clusters[i][2] }} U:{{ clusters[i][3] }} D:{{ clusters[i][4] }}
-
+              Hint: {% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} Yes {% else %} No {% endif %}
             </a>
           {% endfor %}
         </div>
@@ -96,29 +99,33 @@
                     </tr>
                   </thead>
                   <tbody>
-                    {% for line in lines %}
-                      <tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
-                        {% if line.is_diff %}
-                          {{ line_number(line.line_before) }}
-                        {% endif %}
-                        {{ line_number(line.line_after) }}
-                        <td>
-                          <!-- {% if line.line_after %}
-                            <span class="comment-add"><i class="fa fa-plus"></i></span>
-                          {% endif %} -->
-                          <span class="highlight-source">{{ line.contents | safe }}</span>
-                        </td>
-                      </tr>
-                      {% if line.comments %}
-                        <tr data-line={{ line.line_after }}>
-                          <td class="comment-container" colspan=3>
-                            {% for comment in line.comments %}
-                              {{ render_comment(comment) }}
-                            {% endfor %}
+
+                    {% if lines|length != ((lines|selectattr("tag", "equalto", "equal"))|list|length + 1) %}
+
+                      {% for line in lines %}
+                        <tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
+                          {% if line.is_diff %}
+                            {{ line_number(line.line_before) }}
+                          {% endif %}
+                          {{ line_number(line.line_after) }}
+                          <td>
+                            <!-- {% if line.line_after %}
+                              <span class="comment-add"><i class="fa fa-plus"></i></span>
+                            {% endif %} -->
+                            <span class="highlight-source">{{ line.contents | safe }}</span>
                           </td>
                         </tr>
-                      {% endif %}
-                    {% endfor %}
+                        {% if line.comments %}
+                          <tr data-line={{ line.line_after }}>
+                            <td class="comment-container" colspan=3>
+                              {% for comment in line.comments %}
+                                {{ render_comment(comment) }}
+                              {% endfor %}
+                            </td>
+                          </tr>
+                        {% endif %}
+                      {% endfor %}
+                    {% endif %}
                   </tbody>
                 </table>
             </div>
@@ -146,28 +153,38 @@
 
       <div class="col-md-3">
         <ul class="nav nav-tabs">
-          <li class="active"><a href="#tips">Tips</a></li>
+          <li class="active"><a href="#tips">Hint</a></li>
           <li><a href="#rule">Rule</a></li>
           <li><a href="#file">File</a></li>
         </ul>
         <div class="tab-content">
           <div id="tips" class="tab-pane fade in active">
-            <h3>Tips</h3>
+            <h3>Hint</h3>
             <form action="{{ url_for('add_tip') }}" method=post>
               <dl>
-                <dt>Tip:
+                <!-- <dt>Tip: -->
                 <dd><textarea name=text rows=3 cols=40></textarea>
                 <input type="hidden" name=cluster_id value={{cluster_id}}>
+                <input type="hidden" name=question_number value={{question_number}}>
                 <dd><input type=submit value=Add>
               </dl>
             </form>
+            <form action="{{ url_for('delete_tip') }}" method=post>
+              <input type="hidden" name=cluster_id value={{cluster_id}}>
+              <input type="hidden" name=question_number value={{question_number}}>
+              <dd><input type=submit value=Delete>
+            </form>
             <hr>
+            <!-- <p contenteditable="true"></p> -->
             <ul class=entries>
-            {% for entry in entries %}
-              {% if entry.cluster_id == cluster_id %}
+            {% if (entries|selectattr("cluster_id", "equalto", cluster_id)|list|length) == 0 %}
+              <i>No hint</i>
+            {% else %}
+              {{ (entries|selectattr("cluster_id", "equalto", cluster_id)|first).text }}
+            {% endif %}
+            <!-- {% for entry in (entries|selectattr("cluster_id", "equalto", cluster_id)) %}
               <li>{{ entry.text|safe }}
-              {% endif %}
-            {% endfor %}
+            {% endfor %} -->
             </ul>
           </div>
           <div id="rule" class="tab-pane fade">

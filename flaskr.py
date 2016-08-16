@@ -103,13 +103,23 @@ def prepare(question_number):
 @app.route('/<int:question_number>')
 def show_question(question_number):
     prepare(question_number)
-    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = orderedClusters, files = [], rule = "", entries = [], cluster_id = -1)
+
+    db = get_db()
+    cur = db.execute('select title, cluster_id, text from entries order by id desc')
+    entries = cur.fetchall()
+
+    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = orderedClusters, files = [], rule = "", entries = entries, cluster_id = -1)
 
 
 @app.route('/')
 def show_entries():
     prepare(1)
-    return render_template('layout.html', question_name = questions[1], question_number = 1, clusters = orderedClusters, files = [], rule = "", entries = [], cluster_id = -1)
+
+    db = get_db()
+    cur = db.execute('select title, cluster_id, text from entries order by id desc')
+    entries = cur.fetchall()
+
+    return render_template('layout.html', question_name = questions[1], question_number = 1, clusters = orderedClusters, files = [], rule = "", entries = entries, cluster_id = -1)
 
 @app.route('/<int:question_number>/<int:cluster_id>')
 def show_detail(question_number, cluster_id):
@@ -146,12 +156,24 @@ def show_detail(question_number, cluster_id):
 
     return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = orderedClusters, files = files.values(), rule = fix, entries = entries, cluster_id=cluster_id)
 
+
+@app.route('/delete', methods=['POST'])
+def delete_tip():
+
+    db = get_db()
+    db.execute('delete from entries where cluster_id=' + request.form['cluster_id'] + ' and question_number=' + request.form['question_number'])
+    db.commit()
+    # print("Aqui")
+    # print(request.form['cluster_id'])
+    # flash('New entry was successfully posted')
+    return redirect(url_for('show_detail', question_number=current_question, cluster_id=request.form['cluster_id']))
+
 @app.route('/add', methods=['POST'])
 def add_tip():
 
     db = get_db()
-    db.execute('insert into entries (title, cluster_id, text) values (?, ?, ?)',
-                 ['title', request.form['cluster_id'], request.form['text']])
+    db.execute('insert into entries (title, cluster_id, question_number, text) values (?, ?, ?, ?)',
+                 ['title', request.form['cluster_id'], request.form['question_number'], request.form['text']])
     db.commit()
     print("Aqui")
     print(request.form['cluster_id'])
