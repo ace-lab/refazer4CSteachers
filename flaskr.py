@@ -54,7 +54,7 @@ def prepare_question(question_number):
     codes_aux = {}
     ordered_clusters = []
 
-    with open(questions[question_number]) as data_file:
+    with open('data/'+questions[question_number]) as data_file:
     	data = json.load(data_file)
 
     dict = {}
