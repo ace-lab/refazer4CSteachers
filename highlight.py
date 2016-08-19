@@ -14,12 +14,7 @@ class Line:
         self.line_after = line_after
         self.contents = contents
         self.comments = comments
-    def lala(self):
-        print(self.is_diff)
-        print(self.tag)
-        print(self.line_before)
-        print(self.line_after)
-        print(self.contents)
+
 
 
 def highlight(filename, source):

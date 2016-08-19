@@ -6,11 +6,16 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
 import json
 import highlight
 
-# create our little application :)
+class Cluster:
+    def __init__(self, fix, number, diffs):
+        self.fix = fix
+        self.number = number
+        self.diffs = diffs
+
 app = Flask(__name__)
 app.config.from_object(__name__)
-orderedClusters = []
-current_question = []
+ordered_clusters = []
+codes = {}
 questions = {1:'accumulate-mistakes.json', 2:'G-mistakes.json', 3:'Product-mistakes.json', 4:'repeated-mistakes.json'}
 
 app.config.update(dict(
@@ -21,6 +26,69 @@ app.config.update(dict(
 ))
 
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
+
+def get_fix(question_number, cluster_id):
+    return ordered_clusters[question_number][cluster_id].fix
+
+def get_diffs(question_number, fix):
+
+    before_map = {}
+    after_map = {}
+
+    pairs_before_after = codes[question_number].get(fix, [])
+
+    idx = 0
+    for pair_before_after in pairs_before_after:
+        before_map['example'+str(idx)] = pair_before_after[0]
+        after_map['example'+str(idx)] = pair_before_after[1]
+        idx = idx+1
+    files = highlight.diff_files(before_map, after_map, 'full')
+
+    return files
+
+
+def prepare_question(question_number):
+
+    global codes
+
+    codes_aux = {}
+    ordered_clusters = []
+
+    with open(questions[question_number]) as data_file:
+    	data = json.load(data_file)
+
+    dict = {}
+
+    for i in data:
+        if(i['IsFixed'] == True):
+            fix = i['UsedFix']
+            fix = fix.replace('\\', '')
+            dict[fix] = dict.get(fix, 0) + 1
+            emp = codes_aux.get(fix, [])
+            emp.append( (i['before'], i['SynthesizedAfter']))
+            codes_aux[fix] = codes_aux.get(fix, emp)
+
+    codes[question_number] = codes_aux
+
+    for key in dict.keys():
+        item = (key, dict.get(key))
+
+        fix = item[0]
+        files = get_diffs(question_number, fix)
+
+        ordered_clusters.append(Cluster(fix, item[1], files.values()))
+        #ordered_clusters.append((fix, item[1], fix.count("Insert"), fix.count("Update"), fix.count("Delete"), filesSample.values()))
+
+    ordered_clusters = sorted(ordered_clusters, key=lambda cluster: -cluster.number)
+
+    return ordered_clusters
+
+def init_app():
+    global ordered_clusters
+    ordered_clusters = {}
+
+    for question_number in questions.keys():
+        ordered_clusters[question_number] = prepare_question(question_number)
 
 def connect_db():
     """Connects to the specific database."""
@@ -54,133 +122,44 @@ def close_db(error):
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
 
-def prepare(question_number):
-    global codes
-    global orderedClusters
-    global current_question
-    global questions
-
-    codes = {}
-    orderedClusters = []
-
-    current_question = question_number
-
-    with open(questions[question_number]) as data_file:
-    	data = json.load(data_file)
-
-    dict = {}
-
-    for i in data:
-        if(i['IsFixed'] == True):
-            fix = i['UsedFix']
-            if(type(fix) == type(u'unicode')):
-                fix = fix.replace('\\', '')
-            dict[fix] = dict.get(fix, 0) + 1
-            emp = codes.get(fix, [])
-            emp.append( (i['before'], i['SynthesizedAfter']))
-            codes[fix] = codes.get(fix, emp)
-
-    for x in dict.keys():
-        item = (x, dict.get(x))
-        if(type(item[0]) == type(u'unicode')):
-            aux = item[0].replace("\\", "")
-            codePair = codes[aux][0]
-
-            beforeMap = {"example":codePair[0]}
-            afterMap = {"example":codePair[1]}
-
-            filesSample = highlight.diff_files(beforeMap, afterMap, 'full')
-            for lines in filesSample.values():
-                for line in lines:
-                    line.contents = line.contents.replace("<", "&lt")
-                    line.contents = line.contents.replace(">", "&gt");
-
-            orderedClusters.append((aux, item[1], aux.count("Insert"), aux.count("Update"), aux.count("Delete"), filesSample.values()))
-
-    orderedClusters = sorted(orderedClusters, key=lambda cluster: -cluster[1])
-
+def get_hints():
+    db = get_db()
+    cur = db.execute('select title, cluster_id, text from entries order by id desc')
+    hints = cur.fetchall()
+    return hints
 
 @app.route('/<int:question_number>')
 def show_question(question_number):
-    prepare(question_number)
-
-    db = get_db()
-    cur = db.execute('select title, cluster_id, text from entries order by id desc')
-    entries = cur.fetchall()
-
-    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = orderedClusters, files = [], rule = "", entries = entries, cluster_id = -1)
-
+    return redirect(url_for('show_detail', question_number=question_number, cluster_id=0))
 
 @app.route('/')
 def show_entries():
-    prepare(1)
-
-    db = get_db()
-    cur = db.execute('select title, cluster_id, text from entries order by id desc')
-    entries = cur.fetchall()
-
-    return render_template('layout.html', question_name = questions[1], question_number = 1, clusters = orderedClusters, files = [], rule = "", entries = entries, cluster_id = -1)
+    return redirect(url_for('show_detail', question_number=1, cluster_id=0))
 
 @app.route('/<int:question_number>/<int:cluster_id>')
 def show_detail(question_number, cluster_id):
-    print(url_for('show_detail', question_number=1, cluster_id=0))
-    global codes
-    global orderedClusters
 
-    db = get_db()
-    cur = db.execute('select title, cluster_id, text from entries order by id desc')
-    entries = cur.fetchall()
+    entries = get_hints()
 
-    if(question_number != current_question):
-        prepare(question_number)
-
-
-    beforeMap = {}
-    afterMap = {}
-    fix = orderedClusters[cluster_id][0]
-
-    pairs_before_after = codes.get(fix, [])
-
-    idx = 0
-    for pair_before_after in pairs_before_after:
-        beforeMap['example'+str(idx)] = pair_before_after[0]
-        afterMap['example'+str(idx)] = pair_before_after[1]
-        idx = idx+1
-    files = highlight.diff_files(beforeMap, afterMap, 'full')
-
-    for lines in files.values():
-        for line in lines:
-            line.contents = line.contents.replace("<", "&lt")
-            line.contents = line.contents.replace(">", "&gt");
-
-
-    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = orderedClusters, files = files.values(), rule = fix, entries = entries, cluster_id=cluster_id)
-
+    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id)
 
 @app.route('/delete', methods=['POST'])
-def delete_tip():
-
+def delete_hint():
     db = get_db()
     db.execute('delete from entries where cluster_id=' + request.form['cluster_id'] + ' and question_number=' + request.form['question_number'])
     db.commit()
-    # print("Aqui")
-    # print(request.form['cluster_id'])
-    # flash('New entry was successfully posted')
-    return redirect(url_for('show_detail', question_number=current_question, cluster_id=request.form['cluster_id']))
+    return redirect(url_for('show_detail', question_number=request.form['question_number'], cluster_id=request.form['cluster_id']))
 
 @app.route('/add', methods=['POST'])
-def add_tip():
-
+def add_hint():
     db = get_db()
     db.execute('insert into entries (title, cluster_id, question_number, text) values (?, ?, ?, ?)',
                  ['title', request.form['cluster_id'], request.form['question_number'], request.form['text']])
     db.commit()
-    print("Aqui")
-    print(request.form['cluster_id'])
-    flash('New entry was successfully posted')
-    return redirect(url_for('show_detail', question_number=current_question, cluster_id=request.form['cluster_id']))
+    return redirect(url_for('show_detail', question_number=request.form['question_number'], cluster_id=request.form['cluster_id']))
 
 if __name__ == '__main__':
     # initdb_command()
+    init_app()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)

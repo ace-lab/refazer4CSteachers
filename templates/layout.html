@@ -54,32 +54,20 @@
             {% else %}
               <a href="/{{question_number}}/{{i}}" class="list-group-item">
             {% endif %}
-              <!-- {% if i == 0 %}
-              <mark style="background-color: rgb(229, 254, 220)">if n==0:</mark><br>
-              <mark style="background-color: rgb(229, 254, 220)">&nbsp&nbsp&nbsp&nbspreturn base</mark><br>
-              {% elif i == 1 %}
-              <mark style="background-color: rgb(254, 221, 221)">if n==1:</mark><br>
-              <mark style="background-color: rgb(229, 254, 220)">if base==1:</mark><br>
-              {% elif i == 56 %}
-              <mark style="background-color: rgb(254, 221, 221)">if n==0:</mark><br>
-              <mark style="background-color: rgb(254, 221, 221)">&nbsp&nbsp&nbsp&nbspreturn 0</mark><br>
-              <mark style="background-color: rgb(254, 221, 221)">else:</mark><br>
-              <mark style="background-color: rgb(254, 221, 221)">&nbsp&nbsp&nbsp&nbspreturn combiner(base, term(n))+accumulate(combiner, base, n-1, term)</mark><br>
-              {% endif %} -->
-              {% for lines in clusters[i][5]%}
-                {% for line in lines %}
-                  {% if line.tag == "insert" %}
-                    <span class="highlight-source">{{ line.contents | safe | truncate(25, True)}}</span>
-                  {% elif line.tag == "delete" %}
-                    <span class="highlight-source">{{ line.contents | safe | truncate(25, True)}}</span>
-                  {% elif line.tag == "replace" %}
-                    <span class="highlight-source">{{ line.contents | safe | truncate(25, True)}}</span>
-                  {% endif %}
 
-                {% endfor %}
+              {% for line in clusters[i].diffs|first %}
+                {% if line.tag == "insert" %}
+                  <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
+                {% elif line.tag == "delete" %}
+                  <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
+                {% elif line.tag == "replace" %}
+                  <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
+                {% endif %}
+
               {% endfor %}
+
               <hr style="margin-bottom:5px; margin-top:5px;">
-              <span class="badge">{{ clusters[i][1] }}</span>
+              <span class="badge">{{ clusters[i].number }}</span>
               Hint: {% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} Yes {% else %} No {% endif %}
             </a>
           {% endfor %}
@@ -87,7 +75,7 @@
       </div>
       <div class="col-md-7">
         <div style="overflow-y: scroll; height: 1000px;">
-          {% for lines in files %}
+          {% for lines in clusters[cluster_id].diffs %}
              <div class="source-file table-responsive"
                 data-filename='example'>
                 <table class="highlight">
@@ -100,32 +88,27 @@
                   </thead>
                   <tbody>
 
-                    {% if lines|length != ((lines|selectattr("tag", "equalto", "equal"))|list|length + 1) %}
-
-                      {% for line in lines %}
-                        <tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
-                          {% if line.is_diff %}
-                            {{ line_number(line.line_before) }}
-                          {% endif %}
-                          {{ line_number(line.line_after) }}
-                          <td>
-                            <!-- {% if line.line_after %}
-                              <span class="comment-add"><i class="fa fa-plus"></i></span>
-                            {% endif %} -->
-                            <span class="highlight-source">{{ line.contents | safe }}</span>
+                    {% for line in lines %}
+                      <tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
+                        {% if line.is_diff %}
+                          {{ line_number(line.line_before) }}
+                        {% endif %}
+                        {{ line_number(line.line_after) }}
+                        <td>
+                          <span class="highlight-source">{{ line.contents | escape}}</span>
+                        </td>
+                      </tr>
+                      {% if line.comments %}
+                        <tr data-line={{ line.line_after }}>
+                          <td class="comment-container" colspan=3>
+                            {% for comment in line.comments %}
+                              {{ render_comment(comment) }}
+                            {% endfor %}
                           </td>
                         </tr>
-                        {% if line.comments %}
-                          <tr data-line={{ line.line_after }}>
-                            <td class="comment-container" colspan=3>
-                              {% for comment in line.comments %}
-                                {{ render_comment(comment) }}
-                              {% endfor %}
-                            </td>
-                          </tr>
-                        {% endif %}
-                      {% endfor %}
-                    {% endif %}
+                      {% endif %}
+                    {% endfor %}
+
                   </tbody>
                 </table>
             </div>
@@ -133,43 +116,25 @@
         </div>
       </div>
 
-
-
-
-        <!-- <div class="panel panel-info">
-
-          <div class="panel-heading">Before</div>
-          <div class="panel-body">
-            <pre><code>{{beforeExample}}</code></pre>
-          </div>
-        </div>
-        <div class="panel panel-warning">
-
-          <div class="panel-heading">After</div>
-          <div class="panel-body">
-            <pre><code>{{afterExample}}</code></pre>
-          </div>
-        </div> -->
-
       <div class="col-md-3">
         <ul class="nav nav-tabs">
-          <li class="active"><a href="#tips">Hint</a></li>
+          <li class="active"><a href="#hints">Hint</a></li>
           <li><a href="#rule">Rule</a></li>
           <li><a href="#file">File</a></li>
         </ul>
         <div class="tab-content">
-          <div id="tips" class="tab-pane fade in active">
+          <div id="hints" class="tab-pane fade in active">
             <h3>Hint</h3>
-            <form action="{{ url_for('add_tip') }}" method=post>
+            <form action="{{ url_for('add_hint') }}" method=post>
               <dl>
-                <!-- <dt>Tip: -->
+                <!-- <dt>hint: -->
                 <dd><textarea name=text rows=3 cols=40></textarea>
                 <input type="hidden" name=cluster_id value={{cluster_id}}>
                 <input type="hidden" name=question_number value={{question_number}}>
                 <dd><input type=submit value=Add>
               </dl>
             </form>
-            <form action="{{ url_for('delete_tip') }}" method=post>
+            <form action="{{ url_for('delete_hint') }}" method=post>
               <input type="hidden" name=cluster_id value={{cluster_id}}>
               <input type="hidden" name=question_number value={{question_number}}>
               <dd><input type=submit value=Delete>
@@ -182,34 +147,17 @@
             {% else %}
               {{ (entries|selectattr("cluster_id", "equalto", cluster_id)|first).text }}
             {% endif %}
-            <!-- {% for entry in (entries|selectattr("cluster_id", "equalto", cluster_id)) %}
-              <li>{{ entry.text|safe }}
-            {% endfor %} -->
             </ul>
           </div>
           <div id="rule" class="tab-pane fade">
             <h3>Rule</h3>
-            <p id="demo">{{ rule }}</p>
+            <p id="demo">{{ clusters[cluster_id].fix }}</p>
           </div>
           <div id="file" class="tab-pane fade">
             <h3>File</h3>
             {{question_name}}
           </div>
-
         </div>
-        <!-- <h3>File</h3>
-        {{question_name}}
-        <hr>
-        <form method=post>
-          <dl>
-            <dt>Tip:
-            <dd><textarea name=text rows=3 cols=40></textarea>
-            <dd><input type=submit value=Add>
-          </dl>
-        </form>
-        <hr>
-        <h3>Rule</h3>
-        <p id="demo">{{ rule }}</p> -->
       </div>
     </div>
 
@@ -226,7 +174,6 @@
         });
     });
     </script>
-
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
