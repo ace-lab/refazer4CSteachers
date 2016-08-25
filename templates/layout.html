@@ -96,7 +96,7 @@
   </nav>
     <div class="container-fluid">
       <div class="row">
-        <div class="col-md-2">
+        <div class="col-md-3">
           <div class="list-group">
             {% for i in range(clusters|length) %}
               {% if cluster_id == i %}
@@ -107,23 +107,22 @@
 
                 {% for line in clusters[i].diffs|first %}
                   {% if line.tag == "insert" %}
-                    <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
+                    <div class="highlight-source">{{ line.contents | escape | truncate(50, True)}}</div>
                   {% elif line.tag == "delete" %}
-                    <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
+                    <div class="highlight-source">{{ line.contents | escape | truncate(50, True)}}</div>
                   {% elif line.tag == "replace" %}
-                    <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
+                    <div class="highlight-source">{{ line.contents | escape | truncate(50, True)}}</div>
                   {% endif %}
 
                 {% endfor %}
 
-                <hr style="margin-bottom:5px; margin-top:5px;">
-                <span class="badge">{{ clusters[i].number }}</span>
-                Hint: {% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}
+                <!-- <span class="badge">{{ clusters[i].number }}</span>
+                <span class="badge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span> -->
               </a>
             {% endfor %}
           </div>
         </div>
-        <div class="col-md-7">
+        <div class="col-md-6">
           <div style="overflow-y: scroll; height: 1000px;">
             {% for lines in clusters[cluster_id].diffs %}
                <div class="source-file table-responsive"
