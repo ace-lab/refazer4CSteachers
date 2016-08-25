@@ -12,6 +12,5 @@ python3 flaskr.py```
 2. Create an app on the heroku site
 3. Install heroku toolbelt from https://toolbelt.heroku.com/
 4. Login at your own terminal by running heroku login
-5. Establish heroku as a new remote by running
-```heroku git:remote -a [name of your app]
-Push the app to heroku: git push heroku master```
+5. Establish heroku as a new remote by running ```heroku git:remote -a [name of your app]```
+6. Push the app to heroku: ```git push heroku master```
