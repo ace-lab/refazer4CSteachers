@@ -38,8 +38,8 @@
       max-height: 600px;
     }
     body { padding-top: 70px; } /*space for header*/
-    #hintprogressbar { 
-      width: 500px; 
+    #hintprogressbar {
+      width: 500px;
       margin-bottom: 0px;
     }
     .notabadge {
@@ -132,6 +132,7 @@
         </div>
         <div class="col-md-6">
           <div style="overflow-y: scroll; height: 1000px;">
+            <pre>{{ clusters[cluster_id].failed }}</pre>
             {% for lines in clusters[cluster_id].diffs %}
                <div class="source-file table-responsive"
                   data-filename='example'>
@@ -205,6 +206,29 @@
                 {{ (entries|selectattr("cluster_id", "equalto", cluster_id)|first).text }}
               {% endif %}
               </ul>
+
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Input</th>
+                    <th>Expected</th>
+                    <th>Output</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>accumulate(add, 0, 5, identity)</td>
+                    <td>15</td>
+                    <td>5</td>
+                  </tr>
+                  <tr>
+                    <td>accumulate(mul, 2, 3, square)</td>
+                    <td>72</td>
+                    <td>10</td>
+                  </tr>
+                </tbody>
+              </table>
+
             </div>
             <div id="rule" class="tab-pane fade">
               <h3>Rule</h3>
