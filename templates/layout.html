@@ -42,6 +42,10 @@
       width: 500px; 
       margin-bottom: 0px;
     }
+    .notabadge {
+      float: right;
+      padding-right: 5px;
+    }
     </style>
   </head>
 
@@ -97,30 +101,34 @@
     <div class="container-fluid">
       <div class="row">
         <div class="col-md-3">
-          <div class="list-group">
+          <ul class="list-group">
+
             {% for i in range(clusters|length) %}
               {% if cluster_id == i %}
-                <a href="/{{question_number}}/{{i}}" class="list-group-item list-group-item-info">
+                <li class="list-group-item list-group-item-info">
               {% else %}
-                <a href="/{{question_number}}/{{i}}" class="list-group-item">
+                <li class="list-group-item">
               {% endif %}
+                <span class="badge">{{ clusters[i].number }}</span>
+                <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
+                <a href="/{{question_number}}/{{i}}">
 
                 {% for line in clusters[i].diffs|first %}
+                  
                   {% if line.tag == "insert" %}
-                    <div class="highlight-source">{{ line.contents | escape | truncate(50, True)}}</div>
+                    <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
                   {% elif line.tag == "delete" %}
-                    <div class="highlight-source">{{ line.contents | escape | truncate(50, True)}}</div>
+                    <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
                   {% elif line.tag == "replace" %}
-                    <div class="highlight-source">{{ line.contents | escape | truncate(50, True)}}</div>
+                    <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
                   {% endif %}
-
+                  
                 {% endfor %}
-
-                <!-- <span class="badge">{{ clusters[i].number }}</span>
-                <span class="badge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span> -->
-              </a>
+                </a>
+              
+              </li>
             {% endfor %}
-          </div>
+          </ul>
         </div>
         <div class="col-md-6">
           <div style="overflow-y: scroll; height: 1000px;">
