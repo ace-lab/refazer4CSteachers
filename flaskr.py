@@ -11,7 +11,8 @@ class Cluster:
     def __init__(self, fix, number, diffs):
         self.fix = fix
         self.number = number
-        self.diffs = diffs
+        self.diffs = [diff[0] in diff for diffs]
+        self.inputoutputIDs = [diff[1] in diff for diffs]
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -58,8 +59,9 @@ def get_diffs(question_number, fix):
     for pair_before_after in pairs_before_after:
         before_map['example'+str(idx)] = pair_before_after[0]
         after_map['example'+str(idx)] = pair_before_after[1]
+        inputoutputID = pair_before_after[2]
         idx = idx+1
-    files = highlight.diff_files(before_map, after_map, 'full')
+    files = highlight.diff_files(before_map, after_map, 'full', inputoutputID)
 
     return files
 
@@ -75,6 +77,7 @@ def prepare_question(question_number):
     	data = json.load(data_file)
 
     dict = {}
+    dictOfIDtoInputOutput = {}
 
     for i in data:
         if(i['IsFixed'] == True):
@@ -82,8 +85,10 @@ def prepare_question(question_number):
             fix = fix.replace('\\', '')
             dict[fix] = dict.get(fix, 0) + 1
             emp = codes_aux.get(fix, [])
-            emp.append( (i['before'], i['SynthesizedAfter']))
+            emp.append( (i['before'], i['SynthesizedAfter'],i['Id']))
             codes_aux[fix] = codes_aux.get(fix, emp)
+            try: dictOfIDtoInputOutput[i['Id']] = i['inputoutput']
+            except: dictOfIDtoInputOutput[i['Id']] = -1
 
     codes[question_number] = codes_aux
 

@@ -103,7 +103,7 @@ def highlight_diff(filename, a, b, diff_type='short'):
             elif tag == 'equal':
                 yield from equal(i1, i2, j1, j2)
 
-def diff_files(files_before, files_after, diff_type):
+def diff_files(files_before, files_after, diff_type, inputoutputID):
     if diff_type:
         files = {}
         for filename in files_before.keys() | files_after.keys():
@@ -112,7 +112,7 @@ def diff_files(files_before, files_after, diff_type):
                 files_before.get(filename, ''),
                 files_after.get(filename, ''),
                 diff_type)
-            files[filename] = list(lines)
+            files[filename] = (list(lines), inputoutputID)
     else:
         files = {filename: list(highlight_file(filename, source))
             for filename, source in files_after.items()}
