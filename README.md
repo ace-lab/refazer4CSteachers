@@ -4,8 +4,8 @@
 1. Install python3
 2. Clone https://github.com/lucasmf/HerokuUI
 3. Create virtualenvironment in cloned folder and run 
-```pip3 install -r requirements.txt
-python3 flaskr.py```
+  - ```pip3 install -r requirements.txt```
+  - ```python3 flaskr.py```
 
 ##Running the App on Heroku
 1. Create heroku login
