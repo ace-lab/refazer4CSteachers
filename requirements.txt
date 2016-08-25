@@ -67,4 +67,4 @@ pytest==2.9.1
 pytest-cov==2.2.1
 
 # until version 1.0.6 is on pypi
-git+git://github.com/neta79/loremipsum.git@py3_unicode_fix
+#git+git://github.com/neta79/loremipsum.git@py3_unicode_fix
