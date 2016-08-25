@@ -5,6 +5,7 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 import json
 import highlight
+import math
 
 class Cluster:
     def __init__(self, fix, number, diffs, failed):
@@ -27,6 +28,22 @@ app.config.update(dict(
 ))
 
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
+
+def get_coverage(question_number,entries):
+
+    covered_bugs = 0
+    for entry in entries:
+        print(entry['cluster_id'],entry['text'])
+        print(ordered_clusters[question_number][entry['cluster_id']].number)
+        covered_bugs+=ordered_clusters[question_number][entry['cluster_id']].number
+    total_bugs = 0
+    for cluster in ordered_clusters[question_number]:
+        print(cluster.number)#, cluster.cluster_id)
+        total_bugs+=cluster.number
+        #try: print(cluster.text)
+        #except: print('no text')
+    print(covered_bugs,total_bugs)
+    return math.ceil(covered_bugs*100/total_bugs)
 
 def get_fix(question_number, cluster_id):
     return ordered_clusters[question_number][cluster_id].fix
@@ -132,7 +149,8 @@ def close_db(error):
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
 
-def get_hints():
+def get_hints(question_number):
+    #todo: add question number to schema and db.execute call
     db = get_db()
     cur = db.execute('select title, cluster_id, text from entries order by id desc')
     hints = cur.fetchall()
@@ -149,8 +167,8 @@ def show_entries():
 @app.route('/<int:question_number>/<int:cluster_id>')
 def show_detail(question_number, cluster_id):
 
-    entries = get_hints()
-    coverage_percentage = 30 #get_coverage()
+    entries = get_hints(question_number)
+    coverage_percentage = get_coverage(question_number, entries)
 
     return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, coverage_percentage=coverage_percentage)
 
