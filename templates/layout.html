@@ -37,6 +37,11 @@
       padding-bottom: 20px!ie7;
       max-height: 600px;
     }
+    body { padding-top: 70px; } /*space for header*/
+    #hintprogressbar { 
+      width: 500px; 
+      margin-bottom: 0px;
+    }
     </style>
   </head>
 
@@ -45,117 +50,163 @@
   {% endmacro %}
 
   <body>
-    <div class="row">
-      <div class="col-md-2">
-        <div class="list-group">
-          {% for i in range(clusters|length) %}
-            {% if cluster_id == i %}
-              <a href="/{{question_number}}/{{i}}" class="list-group-item list-group-item-info">
-            {% else %}
-              <a href="/{{question_number}}/{{i}}" class="list-group-item">
-            {% endif %}
-
-              {% for line in clusters[i].diffs|first %}
-                {% if line.tag == "insert" %}
-                  <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
-                {% elif line.tag == "delete" %}
-                  <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
-                {% elif line.tag == "replace" %}
-                  <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
-                {% endif %}
-
-              {% endfor %}
-
-              <hr style="margin-bottom:5px; margin-top:5px;">
-              <span class="badge">{{ clusters[i].number }}</span>
-              Hint: {% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} Yes {% else %} No {% endif %}
-            </a>
-          {% endfor %}
+    <nav class="navbar navbar-default navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">OverHint</a>
         </div>
-      </div>
-      <div class="col-md-7">
-        <div style="overflow-y: scroll; height: 1000px;">
-          {% for lines in clusters[cluster_id].diffs %}
-             <div class="source-file table-responsive"
-                data-filename='example'>
-                <table class="highlight">
-                  <thead>
-                    <tr>
-                      <th class="source-file-header" colspan=3>
-                          <div class="source-file-name fixed-width-font">#</div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <!-- <li class="active"><a href="#">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dropdown <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="#">Action</a></li>
+                <li><a href="#">Another action</a></li>
+                <li><a href="#">Something else here</a></li>
+                <li role="separator" class="divider"></li>
+                <li class="dropdown-header">Nav header</li>
+                <li><a href="#">Separated link</a></li>
+                <li><a href="#">One more separated link</a></li>
+              </ul>
+            </li> -->
+            <li>
+              <a><div class="progress" id="hintprogressbar">
+                <div class="progress-bar" role="progressbar" aria-valuenow="70"
+    aria-valuemin="0" aria-valuemax="100" style="width:70%">
+      70%
+                </div>
+              </div></a>
+            </li>
+          </ul>
+          <!-- <ul class="nav navbar-nav navbar-right">
+            <li><a href="#">Right navbar placeholder</a></li>
+            <li class="active"><a href="#">Right navbar placeholder active</a></li>
+          </ul> -->
+        </div><!--/.nav-collapse -->
+    </div>
+  </nav>
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-2">
+          <div class="list-group">
+            {% for i in range(clusters|length) %}
+              {% if cluster_id == i %}
+                <a href="/{{question_number}}/{{i}}" class="list-group-item list-group-item-info">
+              {% else %}
+                <a href="/{{question_number}}/{{i}}" class="list-group-item">
+              {% endif %}
 
-                    {% for line in lines %}
-                      <tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
-                        {% if line.is_diff %}
-                          {{ line_number(line.line_before) }}
-                        {% endif %}
-                        {{ line_number(line.line_after) }}
-                        <td>
-                          <span class="highlight-source">{{ line.contents | escape}}</span>
-                        </td>
+                {% for line in clusters[i].diffs|first %}
+                  {% if line.tag == "insert" %}
+                    <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
+                  {% elif line.tag == "delete" %}
+                    <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
+                  {% elif line.tag == "replace" %}
+                    <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
+                  {% endif %}
+
+                {% endfor %}
+
+                <hr style="margin-bottom:5px; margin-top:5px;">
+                <span class="badge">{{ clusters[i].number }}</span>
+                Hint: {% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} Yes {% else %} No {% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="col-md-7">
+          <div style="overflow-y: scroll; height: 1000px;">
+            {% for lines in clusters[cluster_id].diffs %}
+               <div class="source-file table-responsive"
+                  data-filename='example'>
+                  <table class="highlight">
+                    <thead>
+                      <tr>
+                        <th class="source-file-header" colspan=3>
+                            <div class="source-file-name fixed-width-font">#</div>
+                        </th>
                       </tr>
-                      {% if line.comments %}
-                        <tr data-line={{ line.line_after }}>
-                          <td class="comment-container" colspan=3>
-                            {% for comment in line.comments %}
-                              {{ render_comment(comment) }}
-                            {% endfor %}
+                    </thead>
+                    <tbody>
+
+                      {% for line in lines %}
+                        <tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
+                          {% if line.is_diff %}
+                            {{ line_number(line.line_before) }}
+                          {% endif %}
+                          {{ line_number(line.line_after) }}
+                          <td>
+                            <span class="highlight-source">{{ line.contents | escape}}</span>
                           </td>
                         </tr>
-                      {% endif %}
-                    {% endfor %}
+                        {% if line.comments %}
+                          <tr data-line={{ line.line_after }}>
+                            <td class="comment-container" colspan=3>
+                              {% for comment in line.comments %}
+                                {{ render_comment(comment) }}
+                              {% endfor %}
+                            </td>
+                          </tr>
+                        {% endif %}
+                      {% endfor %}
 
-                  </tbody>
-                </table>
-            </div>
-          {% endfor %}
+                    </tbody>
+                  </table>
+              </div>
+            {% endfor %}
+          </div>
         </div>
-      </div>
 
-      <div class="col-md-3">
-        <ul class="nav nav-tabs">
-          <li class="active"><a href="#hints">Hint</a></li>
-          <li><a href="#rule">Rule</a></li>
-          <li><a href="#file">File</a></li>
-        </ul>
-        <div class="tab-content">
-          <div id="hints" class="tab-pane fade in active">
-            <h3>Hint</h3>
-            <form action="{{ url_for('add_hint') }}" method=post>
-              <dl>
-                <!-- <dt>hint: -->
-                <dd><textarea name=text rows=3 cols=40></textarea>
+        <div class="col-md-3">
+          <ul class="nav nav-tabs">
+            <li class="active"><a href="#hints">Hint</a></li>
+            <li><a href="#rule">Rule</a></li>
+            <li><a href="#file">File</a></li>
+          </ul>
+          <div class="tab-content">
+            <div id="hints" class="tab-pane fade in active">
+              <h3>Hint</h3>
+              <form action="{{ url_for('add_hint') }}" method=post>
+                <dl>
+                  <!-- <dt>hint: -->
+                  <dd><textarea name=text rows=3 cols=40></textarea>
+                  <input type="hidden" name=cluster_id value={{cluster_id}}>
+                  <input type="hidden" name=question_number value={{question_number}}>
+                  <dd><input type=submit value=Add>
+                </dl>
+              </form>
+              <form action="{{ url_for('delete_hint') }}" method=post>
                 <input type="hidden" name=cluster_id value={{cluster_id}}>
                 <input type="hidden" name=question_number value={{question_number}}>
-                <dd><input type=submit value=Add>
-              </dl>
-            </form>
-            <form action="{{ url_for('delete_hint') }}" method=post>
-              <input type="hidden" name=cluster_id value={{cluster_id}}>
-              <input type="hidden" name=question_number value={{question_number}}>
-              <dd><input type=submit value=Delete>
-            </form>
-            <hr>
-            <!-- <p contenteditable="true"></p> -->
-            <ul class=entries>
-            {% if (entries|selectattr("cluster_id", "equalto", cluster_id)|list|length) == 0 %}
-              <i>No hint</i>
-            {% else %}
-              {{ (entries|selectattr("cluster_id", "equalto", cluster_id)|first).text }}
-            {% endif %}
-            </ul>
-          </div>
-          <div id="rule" class="tab-pane fade">
-            <h3>Rule</h3>
-            <p id="demo">{{ clusters[cluster_id].fix }}</p>
-          </div>
-          <div id="file" class="tab-pane fade">
-            <h3>File</h3>
-            {{question_name}}
+                <dd><input type=submit value=Delete>
+              </form>
+              <hr>
+              <!-- <p contenteditable="true"></p> -->
+              <ul class=entries>
+              {% if (entries|selectattr("cluster_id", "equalto", cluster_id)|list|length) == 0 %}
+                <i>No hint</i>
+              {% else %}
+                {{ (entries|selectattr("cluster_id", "equalto", cluster_id)|first).text }}
+              {% endif %}
+              </ul>
+            </div>
+            <div id="rule" class="tab-pane fade">
+              <h3>Rule</h3>
+              <p id="demo">{{ clusters[cluster_id].fix }}</p>
+            </div>
+            <div id="file" class="tab-pane fade">
+              <h3>File</h3>
+              {{question_name}}
+            </div>
           </div>
         </div>
       </div>
