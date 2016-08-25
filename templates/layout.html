@@ -118,7 +118,7 @@
 
                 <hr style="margin-bottom:5px; margin-top:5px;">
                 <span class="badge">{{ clusters[i].number }}</span>
-                Hint: {% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} Yes {% else %} No {% endif %}
+                Hint: {% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}
               </a>
             {% endfor %}
           </div>
