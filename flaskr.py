@@ -140,8 +140,9 @@ def show_entries():
 def show_detail(question_number, cluster_id):
 
     entries = get_hints()
+    coverage_percentage = 30 #get_coverage()
 
-    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id)
+    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, coverage_percentage=coverage_percentage)
 
 @app.route('/delete', methods=['POST'])
 def delete_hint():
