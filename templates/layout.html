@@ -114,7 +114,7 @@
                 <a href="/{{question_number}}/{{i}}">
 
                 {% for line in clusters[i].diffs|first %}
-                  
+
                   {% if line.tag == "insert" %}
                     <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
                   {% elif line.tag == "delete" %}
@@ -122,10 +122,10 @@
                   {% elif line.tag == "replace" %}
                     <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
                   {% endif %}
-                  
+
                 {% endfor %}
                 </a>
-              
+
               </li>
             {% endfor %}
           </ul>
@@ -133,6 +133,7 @@
         <div class="col-md-6">
           <div style="overflow-y: scroll; height: 1000px;">
             <pre>{{ clusters[cluster_id].failed }}</pre>
+
             {% for lines in clusters[cluster_id].diffs %}
                <div class="source-file table-responsive"
                   data-filename='example'>

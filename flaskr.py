@@ -7,10 +7,11 @@ import json
 import highlight
 
 class Cluster:
-    def __init__(self, fix, number, diffs):
+    def __init__(self, fix, number, diffs, failed):
         self.fix = fix
         self.number = number
         self.diffs = diffs
+        self.failed = failed
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -44,6 +45,8 @@ def get_diffs(question_number, fix):
         idx = idx+1
     files = highlight.diff_files(before_map, after_map, 'full')
 
+
+
     return files
 
 
@@ -58,6 +61,7 @@ def prepare_question(question_number):
     	data = json.load(data_file)
 
     dict = {}
+    dict2 = {}
 
     for i in data:
         if(i['IsFixed'] == True):
@@ -67,6 +71,7 @@ def prepare_question(question_number):
             emp = codes_aux.get(fix, [])
             emp.append( (i['before'], i['SynthesizedAfter']))
             codes_aux[fix] = codes_aux.get(fix, emp)
+            dict2[fix] = i['failed']
 
     codes[question_number] = codes_aux
 
@@ -76,8 +81,13 @@ def prepare_question(question_number):
         fix = item[0]
         files = get_diffs(question_number, fix)
 
-        ordered_clusters.append(Cluster(fix, item[1], files.values()))
+        failed = dict2.get(key)
+        failed_str = map(str, failed)
+        failed = '\n'.join(failed_str)
+        cluster = Cluster(fix=fix, number=item[1], diffs=files.values(), failed=failed)
+        ordered_clusters.append(cluster)
         #ordered_clusters.append((fix, item[1], fix.count("Insert"), fix.count("Update"), fix.count("Delete"), filesSample.values()))
+
 
     ordered_clusters = sorted(ordered_clusters, key=lambda cluster: -cluster.number)
 
