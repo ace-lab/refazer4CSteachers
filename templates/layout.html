@@ -42,6 +42,10 @@
       width: 500px;
       margin-bottom: 0px;
     }
+    .notabadge {
+      float: right;
+      padding-right: 5px;
+    }
     </style>
   </head>
 
@@ -80,9 +84,9 @@
             </li> -->
             <li>
               <a><div class="progress" id="hintprogressbar">
-                <div class="progress-bar" role="progressbar" aria-valuenow="70"
-    aria-valuemin="0" aria-valuemax="100" style="width:70%">
-      70%
+                <div class="progress-bar" role="progressbar" aria-valuenow="{{ coverage_percentage }}"
+    aria-valuemin="0" aria-valuemax="100" style="width:{{ coverage_percentage }}%">
+      {{ coverage_percentage }}%
                 </div>
               </div></a>
             </li>
@@ -96,34 +100,37 @@
   </nav>
     <div class="container-fluid">
       <div class="row">
-        <div class="col-md-2">
-          <div class="list-group">
+        <div class="col-md-3">
+          <ul class="list-group">
+
             {% for i in range(clusters|length) %}
               {% if cluster_id == i %}
-                <a href="/{{question_number}}/{{i}}" class="list-group-item list-group-item-info">
+                <li class="list-group-item list-group-item-info">
               {% else %}
-                <a href="/{{question_number}}/{{i}}" class="list-group-item">
+                <li class="list-group-item">
               {% endif %}
+                <span class="badge">{{ clusters[i].number }}</span>
+                <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
+                <a href="/{{question_number}}/{{i}}">
 
                 {% for line in clusters[i].diffs|first %}
+                  
                   {% if line.tag == "insert" %}
-                    <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
+                    <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
                   {% elif line.tag == "delete" %}
-                    <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
+                    <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
                   {% elif line.tag == "replace" %}
-                    <span class="highlight-source">{{ line.contents | escape | truncate(25, True)}}</span>
+                    <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
                   {% endif %}
-
+                  
                 {% endfor %}
-
-                <hr style="margin-bottom:5px; margin-top:5px;">
-                <span class="badge">{{ clusters[i].number }}</span>
-                Hint: {% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}
-              </a>
+                </a>
+              
+              </li>
             {% endfor %}
-          </div>
+          </ul>
         </div>
-        <div class="col-md-7">
+        <div class="col-md-6">
           <div style="overflow-y: scroll; height: 1000px;">
             <pre>{{ clusters[cluster_id].failed }}</pre>
             {% for lines in clusters[cluster_id].diffs %}
