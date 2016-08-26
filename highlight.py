@@ -117,3 +117,18 @@ def diff_files(files_before, files_after, diff_type, inputoutputID):
         files = {filename: list(highlight_file(filename, source))
             for filename, source in files_after.items()}
     return files
+
+import json
+
+def diff_file(filename, file_before, file_after, diff_type):
+    if diff_type:
+        lines = highlight_diff(
+            filename,
+            file_before,
+            file_after,
+            diff_type
+        )
+    else:
+        lines = []
+    return list(lines)
+

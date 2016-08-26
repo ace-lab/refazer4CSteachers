@@ -113,8 +113,8 @@
                 <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
                 <a href="/{{question_number}}/{{i}}">
 
-                {% for line in clusters[i].diffs|first %}
-
+                <b>Cluster No. {{i}}</b>
+                {% for line in clusters[i].items[0].diff_lines %}
                   {% if line.tag == "insert" %}
                     <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
                   {% elif line.tag == "delete" %}
@@ -122,7 +122,6 @@
                   {% elif line.tag == "replace" %}
                     <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
                   {% endif %}
-
                 {% endfor %}
                 </a>
 
@@ -132,22 +131,24 @@
         </div>
         <div class="col-md-6">
           <div style="overflow-y: scroll; height: 1000px;">
-            <pre>{{ clusters[cluster_id].failed }}</pre>
 
-            {% for lines in clusters[cluster_id].diffs %}
+            <h1>Key:</h1>
+            <pre>{{ clusters[cluster_id].items[0].keys() }}</pre>
+
+            {% for item in clusters[cluster_id].items %}
                <div class="source-file table-responsive"
                   data-filename='example'>
                   <table class="highlight">
                     <thead>
                       <tr>
                         <th class="source-file-header" colspan=3>
-                            <div class="source-file-name fixed-width-font">#</div>
+                            <div class="source-file-name fixed-width-font"># {{ item.Id }} </div>
                         </th>
                       </tr>
                     </thead>
                     <tbody>
 
-                      {% for line in lines %}
+                      {% for line in item.diff_lines %}
                         <tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
                           {% if line.is_diff %}
                             {{ line_number(line.line_before) }}
@@ -169,6 +170,25 @@
                       {% endfor %}
 
                     </tbody>
+                  </table>
+
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>Input</th>
+                        <th>Expected</th>
+                        <th>Output</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for test in item.tests %}
+                      <tr>
+                        <td>{{ test.input }}</td>
+                        <td>{{ test.expected }}</td>
+                        <td>{{ test.output }}</td>
+                      </tr>
+                    </tbody>
+                    {% endfor %}
                   </table>
               </div>
             {% endfor %}
@@ -207,28 +227,6 @@
                 {{ (entries|selectattr("cluster_id", "equalto", cluster_id)|first).text }}
               {% endif %}
               </ul>
-
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Input</th>
-                    <th>Expected</th>
-                    <th>Output</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>accumulate(add, 0, 5, identity)</td>
-                    <td>15</td>
-                    <td>5</td>
-                  </tr>
-                  <tr>
-                    <td>accumulate(mul, 2, 3, square)</td>
-                    <td>72</td>
-                    <td>10</td>
-                  </tr>
-                </tbody>
-              </table>
 
             </div>
             <div id="rule" class="tab-pane fade">
