@@ -20,10 +20,12 @@ class Cluster:
 app = Flask(__name__)
 app.config.from_object(__name__)
 ordered_clusters = []
-# codes = {}
-# results = {}
-json_data = {}
-questions = {1:'accumulate-mistakes.json', 2:'G-mistakes.json', 3:'Product-mistakes.json', 4:'repeated-mistakes.json'}
+questions = {
+    1:'accumulate-mistakes.json',
+    2:'G-mistakes.json',
+    3:'Product-mistakes.json',
+    4:'repeated-mistakes.json'
+    }
 
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, 'flaskr.db'),
@@ -53,47 +55,20 @@ def get_coverage(question_number,entries):
 def get_fix(question_number, cluster_id):
     return ordered_clusters[question_number][cluster_id].fix
 
-def get_diffs(question_number, fix):
-
-    before_map = {}
-    after_map = {}
-
-    codes_aux = json_data[question_number]['codes']
-    pairs_before_after = codes_aux.get(fix, [])
-    # pairs_before_after = codes[question_number].get(fix, [])
-
-    idx = 0
-    for pair_before_after in pairs_before_after:
-        before_map['example'+str(idx)] = pair_before_after[0]
-        after_map['example'+str(idx)] = pair_before_after[1]
-        inputoutputID = pair_before_after[2]
-        idx = idx+1
-    files = highlight.diff_files(before_map, after_map, 'full', inputoutputID)
-    return files
-
-def get_results(question_number, fix):
-    json_data[question_number]
-
-
-
+def get_tests(failed):
+    results = [{
+        'input': 'foo',
+        'output': 'bar',
+        'expected': 'hoge'
+    }]
+    return results
 
 def prepare_question(question_number):
-
-    # global codes
-    # global results
-    global json_data
-
-    # codes_aux = {}
-    # results_aux = {}
     ordered_clusters = []
-
     with open('data/'+questions[question_number]) as data_file:
     	data = json.load(data_file)
 
     dict = {}
-    # dict2 = {}
-    # dictOfIDtoInputOutput = {}
-
     clustered_items = {}
     items = {}
     for i in data:
@@ -107,10 +82,11 @@ def prepare_question(question_number):
             file_after = i['SynthesizedAfter']
             filename = 'filename-' + str(i['Id'])
             diff_lines = highlight.diff_file(filename, file_before, file_after, 'full')
-            item['diff_lines'] = diff_lines
-            item['tests'] = i['failed'] # process later
 
-            # print(diff.values())
+            tests = get_tests(i['failed'])
+            item['diff_lines'] = diff_lines
+            item['tests'] = tests
+
             id = i['Id']
             items[id] = item
             if (fix in clustered_items.keys()):
@@ -118,22 +94,9 @@ def prepare_question(question_number):
             else:
                 clustered_items[fix] = [item]
 
-    json_data[question_number] = items
-
     for key in dict.keys():
         arr = (key, dict.get(key))
-
         fix = arr[0]
-        # files = get_diffs(question_number, fix)
-
-        # failed = dict2.get(key)
-        # failed_str = map(str, failed)
-        # failed = '\n'.join(failed_str)
-
-        # files = get_diffs(question_number, fix)
-        # diffs = files.values()
-        # results = get_results()
-
         items = clustered_items[fix]
         cluster = Cluster(fix=fix, number=arr[1], items=items)
         ordered_clusters.append(cluster)
