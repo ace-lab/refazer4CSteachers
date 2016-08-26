@@ -8,18 +8,24 @@ import highlight
 import math
 
 class Cluster:
-    def __init__(self, fix, number, diffs, failed):
+    def __init__(self, fix, number, items):
         self.fix = fix
         self.number = number
-        self.diffs = [diff[0] in diff for diffs]
-        self.inputoutputIDs = [diff[1] in diff for diffs]
-        self.failed = failed
+        self.items = items
+        # self.diffs = diffs
+        # self.diffs = [diff[0] in diff for diffs]
+        # self.inputoutputIDs = [diff[1] in diff for diffs]
+        # self.results = results
 
 app = Flask(__name__)
 app.config.from_object(__name__)
 ordered_clusters = []
-codes = {}
-questions = {1:'accumulate-mistakes.json', 2:'G-mistakes.json', 3:'Product-mistakes.json', 4:'repeated-mistakes.json'}
+questions = {
+    1:'accumulate-mistakes.json',
+    2:'G-mistakes.json',
+    3:'Product-mistakes.json',
+    4:'repeated-mistakes.json'
+    }
 
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, 'flaskr.db'),
@@ -49,66 +55,50 @@ def get_coverage(question_number,entries):
 def get_fix(question_number, cluster_id):
     return ordered_clusters[question_number][cluster_id].fix
 
-def get_diffs(question_number, fix):
-
-    before_map = {}
-    after_map = {}
-
-    pairs_before_after = codes[question_number].get(fix, [])
-
-    idx = 0
-    for pair_before_after in pairs_before_after:
-        before_map['example'+str(idx)] = pair_before_after[0]
-        after_map['example'+str(idx)] = pair_before_after[1]
-        inputoutputID = pair_before_after[2]
-        idx = idx+1
-    files = highlight.diff_files(before_map, after_map, 'full', inputoutputID)
-
-
-
-    return files
-
+def get_tests(failed):
+    results = [{
+        'input': 'foo',
+        'output': 'bar',
+        'expected': 'hoge'
+    }]
+    return results
 
 def prepare_question(question_number):
-
-    global codes
-
-    codes_aux = {}
     ordered_clusters = []
-
     with open('data/'+questions[question_number]) as data_file:
     	data = json.load(data_file)
 
     dict = {}
-    dict2 = {}
-    dictOfIDtoInputOutput = {}
-
+    clustered_items = {}
+    items = {}
     for i in data:
-        if(i['IsFixed'] == True):
+        if (i['IsFixed'] == True):
             fix = i['UsedFix']
             fix = fix.replace('\\', '')
             dict[fix] = dict.get(fix, 0) + 1
-            emp = codes_aux.get(fix, [])
-            emp.append( (i['before'], i['SynthesizedAfter'],i['Id']))
-            codes_aux[fix] = codes_aux.get(fix, emp)
 
-            try: dictOfIDtoInputOutput[i['Id']] = i['inputoutput']
-            except: dictOfIDtoInputOutput[i['Id']] = -1
+            item = i
+            file_before = i['before']
+            file_after = i['SynthesizedAfter']
+            filename = 'filename-' + str(i['Id'])
+            diff_lines = highlight.diff_file(filename, file_before, file_after, 'full')
 
-            dict2[fix] = i['failed']
+            tests = get_tests(i['failed'])
+            item['diff_lines'] = diff_lines
+            item['tests'] = tests
 
-    codes[question_number] = codes_aux
+            id = i['Id']
+            items[id] = item
+            if (fix in clustered_items.keys()):
+                clustered_items[fix].append(item)
+            else:
+                clustered_items[fix] = [item]
 
     for key in dict.keys():
-        item = (key, dict.get(key))
-
-        fix = item[0]
-        files = get_diffs(question_number, fix)
-
-        failed = dict2.get(key)
-        failed_str = map(str, failed)
-        failed = '\n'.join(failed_str)
-        cluster = Cluster(fix=fix, number=item[1], diffs=files.values(), failed=failed)
+        arr = (key, dict.get(key))
+        fix = arr[0]
+        items = clustered_items[fix]
+        cluster = Cluster(fix=fix, number=arr[1], items=items)
         ordered_clusters.append(cluster)
         #ordered_clusters.append((fix, item[1], fix.count("Insert"), fix.count("Update"), fix.count("Delete"), filesSample.values()))
 
