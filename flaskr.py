@@ -56,10 +56,34 @@ def get_fix(question_number, cluster_id):
     return ordered_clusters[question_number][cluster_id].fix
 
 def get_tests(failed):
+    #print('failed',failed)
+    expected_value = ''
+    output_value = ''
+    previous_line = ''
+    testcases = []
+    for line in failed:
+        #print(line)
+        if previous_line == '# Error: expected':
+            #print('this is an expected value')
+            expected_value = line[1:].strip()
+        if previous_line == '# but got':
+            #print('this is the output value')
+            output_value = line[1:].strip()
+            #print(output_value)
+        if line.startswith('>>>'):
+            #print('test case:', line)
+            testcases.append(line[4:])
+        previous_line = line
+    if len(testcases)>0:
+        failed_test = testcases[-1]
+    else:
+        print('wtf no testcases?')
+        failed_test = ''
+
     results = [{
-        'input': 'foo',
-        'output': 'bar',
-        'expected': 'hoge'
+        'input': failed_test,
+        'output': output_value,
+        'expected': expected_value
     }]
     return results
 
