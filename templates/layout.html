@@ -113,7 +113,7 @@
                 <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
                 <a href="/{{question_number}}/{{i}}">
 
-                <b>Cluster No. {{i}}</b>
+                <b>Cluster {{i}}</b>
                 {% for line in clusters[i].items[0].diff_lines %}
                   {% if line.tag == "insert" %}
                     <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
@@ -149,8 +149,8 @@
         <div class="col-md-6">
           <div style="overflow-y: scroll; height: 1000px;">
 
-            <h1>Key:</h1>
-            <pre>{{ clusters[cluster_id].items[0].keys() }}</pre>
+            <!-- <h1>Key:</h1>
+            <pre>{{ clusters[cluster_id].items[0].keys() }}</pre> -->
             {% for item in clusters[cluster_id].items %}
               {% if item.group_id == group_id %}
                <div class="source-file table-responsive"
@@ -159,7 +159,7 @@
                     <thead>
                       <tr>
                         <th class="source-file-header" colspan=3>
-                            <div class="source-file-name fixed-width-font"># {{ item.Id }} </div>
+                            <div class="source-file-name fixed-width-font">Student bug fix {{ item.Id }} </div>
                         </th>
                       </tr>
                     </thead>
@@ -192,9 +192,14 @@
                   <table class="table">
                     <thead>
                       <tr>
-                        <th>Input</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                      </tr>
+                      <tr>
+                        <th>Test case failed before fix</th>
                         <th>Expected</th>
-                        <th>Output</th>
+                        <th>Output before fix</th>
                       </tr>
                     </thead>
                     <tbody>
