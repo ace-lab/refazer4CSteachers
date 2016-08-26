@@ -105,11 +105,12 @@ def prepare_question(question_number):
             item = i
             file_before = i['before']
             file_after = i['SynthesizedAfter']
-            filename = i['Id']
-            diff = highlight.diff_file(filename, file_before, file_after, 'full')
-            item['diff'] = diff
+            filename = 'filename-' + str(i['Id'])
+            diff_lines = highlight.diff_file(filename, file_before, file_after, 'full')
+            item['diff_lines'] = diff_lines
             item['tests'] = i['failed'] # process later
 
+            # print(diff.values())
             id = i['Id']
             items[id] = item
             if (fix in clustered_items.keys()):
