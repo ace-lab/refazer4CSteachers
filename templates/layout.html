@@ -113,8 +113,8 @@
                 <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
                 <a href="/{{question_number}}/{{i}}">
 
-                {% for line in clusters[i].diffs|first %}
-
+                <b>Cluster No. {{i}}</b>
+                {% for line in clusters[i].items[0].diff_lines %}
                   {% if line.tag == "insert" %}
                     <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
                   {% elif line.tag == "delete" %}
@@ -122,7 +122,6 @@
                   {% elif line.tag == "replace" %}
                     <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
                   {% endif %}
-
                 {% endfor %}
                 </a>
 
@@ -132,22 +131,24 @@
         </div>
         <div class="col-md-6">
           <div style="overflow-y: scroll; height: 1000px;">
-            <p>{{ clusters[cluster_id].items }}</p>
 
-            {% for lines in clusters[cluster_id].diffs %}
+            <h1>Key:</h1>
+            <pre>{{ clusters[cluster_id].items[0].keys() }}</pre>
+
+            {% for item in clusters[cluster_id].items %}
                <div class="source-file table-responsive"
                   data-filename='example'>
                   <table class="highlight">
                     <thead>
                       <tr>
                         <th class="source-file-header" colspan=3>
-                            <div class="source-file-name fixed-width-font">#</div>
+                            <div class="source-file-name fixed-width-font"># {{ item.Id }} </div>
                         </th>
                       </tr>
                     </thead>
                     <tbody>
 
-                      {% for line in lines %}
+                      {% for line in item.diff_lines %}
                         <tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
                           {% if line.is_diff %}
                             {{ line_number(line.line_before) }}
