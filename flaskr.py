@@ -8,17 +8,21 @@ import highlight
 import math
 
 class Cluster:
-    def __init__(self, fix, number, diffs, failed):
+    def __init__(self, fix, number, items):
         self.fix = fix
         self.number = number
-        self.diffs = [diff[0] in diff for diffs]
-        self.inputoutputIDs = [diff[1] in diff for diffs]
-        self.failed = failed
+        self.items = items
+        # self.diffs = diffs
+        # self.diffs = [diff[0] in diff for diffs]
+        # self.inputoutputIDs = [diff[1] in diff for diffs]
+        # self.results = results
 
 app = Flask(__name__)
 app.config.from_object(__name__)
 ordered_clusters = []
-codes = {}
+# codes = {}
+# results = {}
+json_data = {}
 questions = {1:'accumulate-mistakes.json', 2:'G-mistakes.json', 3:'Product-mistakes.json', 4:'repeated-mistakes.json'}
 
 app.config.update(dict(
@@ -54,7 +58,9 @@ def get_diffs(question_number, fix):
     before_map = {}
     after_map = {}
 
-    pairs_before_after = codes[question_number].get(fix, [])
+    codes_aux = json_data[question_number]['codes']
+    pairs_before_after = codes_aux.get(fix, [])
+    # pairs_before_after = codes[question_number].get(fix, [])
 
     idx = 0
     for pair_before_after in pairs_before_after:
@@ -63,52 +69,72 @@ def get_diffs(question_number, fix):
         inputoutputID = pair_before_after[2]
         idx = idx+1
     files = highlight.diff_files(before_map, after_map, 'full', inputoutputID)
-
-
-
     return files
+
+def get_results(question_number, fix):
+    json_data[question_number]
+
+
 
 
 def prepare_question(question_number):
 
-    global codes
+    # global codes
+    # global results
+    global json_data
 
-    codes_aux = {}
+    # codes_aux = {}
+    # results_aux = {}
     ordered_clusters = []
 
     with open('data/'+questions[question_number]) as data_file:
     	data = json.load(data_file)
 
     dict = {}
-    dict2 = {}
-    dictOfIDtoInputOutput = {}
+    # dict2 = {}
+    # dictOfIDtoInputOutput = {}
 
+    clustered_items = {}
+    items = {}
     for i in data:
-        if(i['IsFixed'] == True):
+        if (i['IsFixed'] == True):
             fix = i['UsedFix']
             fix = fix.replace('\\', '')
             dict[fix] = dict.get(fix, 0) + 1
-            emp = codes_aux.get(fix, [])
-            emp.append( (i['before'], i['SynthesizedAfter'],i['Id']))
-            codes_aux[fix] = codes_aux.get(fix, emp)
 
-            try: dictOfIDtoInputOutput[i['Id']] = i['inputoutput']
-            except: dictOfIDtoInputOutput[i['Id']] = -1
+            item = i
+            file_before = i['before']
+            file_after = i['SynthesizedAfter']
+            filename = i['Id']
+            diff = highlight.diff_file(filename, file_before, file_after, 'full')
+            item['diff'] = diff
+            item['tests'] = i['failed'] # process later
 
-            dict2[fix] = i['failed']
+            id = i['Id']
+            items[id] = item
+            if (fix in clustered_items.keys()):
+                clustered_items[fix].append(item)
+            else:
+                clustered_items[fix] = [item]
 
-    codes[question_number] = codes_aux
+    json_data[question_number] = items
 
     for key in dict.keys():
-        item = (key, dict.get(key))
+        arr = (key, dict.get(key))
 
-        fix = item[0]
-        files = get_diffs(question_number, fix)
+        fix = arr[0]
+        # files = get_diffs(question_number, fix)
 
-        failed = dict2.get(key)
-        failed_str = map(str, failed)
-        failed = '\n'.join(failed_str)
-        cluster = Cluster(fix=fix, number=item[1], diffs=files.values(), failed=failed)
+        # failed = dict2.get(key)
+        # failed_str = map(str, failed)
+        # failed = '\n'.join(failed_str)
+
+        # files = get_diffs(question_number, fix)
+        # diffs = files.values()
+        # results = get_results()
+
+        items = clustered_items[fix]
+        cluster = Cluster(fix=fix, number=arr[1], items=items)
         ordered_clusters.append(cluster)
         #ordered_clusters.append((fix, item[1], fix.count("Insert"), fix.count("Update"), fix.count("Delete"), filesSample.values()))
 
