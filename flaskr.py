@@ -8,9 +8,10 @@ import highlight
 import math
 
 class Cluster:
-    def __init__(self, fix, number, items):
+    def __init__(self, fix, number, groups, items):
         self.fix = fix
         self.number = number
+        self.groups = groups
         self.items = items
         # self.diffs = diffs
         # self.diffs = [diff[0] in diff for diffs]
@@ -69,8 +70,10 @@ def prepare_question(question_number):
     	data = json.load(data_file)
 
     dict = {}
+    all_items = {}
     clustered_items = {}
-    items = {}
+    clustered_groups = {}
+
     for i in data:
         if (i['IsFixed'] == True):
             fix = i['UsedFix']
@@ -87,18 +90,26 @@ def prepare_question(question_number):
             item['diff_lines'] = diff_lines
             item['tests'] = tests
 
+            group_id = i['Id'] % 2
+            item['group_id'] = group_id
+
             id = i['Id']
-            items[id] = item
+            all_items[id] = item
+
             if (fix in clustered_items.keys()):
                 clustered_items[fix].append(item)
             else:
                 clustered_items[fix] = [item]
+                clustered_groups[fix] = set([])
+
+            clustered_groups[fix].add(group_id)
 
     for key in dict.keys():
         arr = (key, dict.get(key))
         fix = arr[0]
+        groups = clustered_groups[fix]
         items = clustered_items[fix]
-        cluster = Cluster(fix=fix, number=arr[1], items=items)
+        cluster = Cluster(fix=fix, number=arr[1], groups=groups, items=items)
         ordered_clusters.append(cluster)
         #ordered_clusters.append((fix, item[1], fix.count("Insert"), fix.count("Update"), fix.count("Delete"), filesSample.values()))
 
@@ -155,19 +166,19 @@ def get_hints(question_number):
 
 @app.route('/<int:question_number>')
 def show_question(question_number):
-    return redirect(url_for('show_detail', question_number=question_number, cluster_id=0))
+    return redirect(url_for('show_detail', question_number=question_number, cluster_id=0, group_id=0))
 
 @app.route('/')
 def show_entries():
-    return redirect(url_for('show_detail', question_number=1, cluster_id=0))
+    return redirect(url_for('show_detail', question_number=1, cluster_id=0, group_id=0))
 
-@app.route('/<int:question_number>/<int:cluster_id>')
-def show_detail(question_number, cluster_id):
+@app.route('/<int:question_number>/<int:cluster_id>/<int:group_id>')
+def show_detail(question_number, cluster_id, group_id):
 
     entries = get_hints(question_number)
     coverage_percentage = get_coverage(question_number, entries)
 
-    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, coverage_percentage=coverage_percentage)
+    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, group_id=group_id, coverage_percentage=coverage_percentage)
 
 @app.route('/delete', methods=['POST'])
 def delete_hint():
