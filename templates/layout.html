@@ -132,7 +132,7 @@
         </div>
         <div class="col-md-6">
           <div style="overflow-y: scroll; height: 1000px;">
-            <pre>{{ clusters[cluster_id].failed }}</pre>
+            <p>{{ clusters[cluster_id].items }}</p>
 
             {% for lines in clusters[cluster_id].diffs %}
                <div class="source-file table-responsive"
