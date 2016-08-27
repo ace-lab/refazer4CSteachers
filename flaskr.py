@@ -98,6 +98,9 @@ def prepare_question(question_number):
     clustered_items = {}
     clustered_groups = {}
 
+    group_id = -1
+    checked_tests = []
+
     for i in data:
         if (i['IsFixed'] == True):
             fix = i['UsedFix']
@@ -114,7 +117,10 @@ def prepare_question(question_number):
             item['diff_lines'] = diff_lines
             item['tests'] = tests
 
-            group_id = i['Id'] % 2
+            if (tests not in checked_tests):
+                checked_tests.append(tests)
+                group_id += 1
+
             item['group_id'] = group_id
 
             id = i['Id']
@@ -125,7 +131,6 @@ def prepare_question(question_number):
             else:
                 clustered_items[fix] = [item]
                 clustered_groups[fix] = set([])
-
             clustered_groups[fix].add(group_id)
 
     for key in dict.keys():
