@@ -21,6 +21,7 @@ class Cluster:
 app = Flask(__name__)
 app.config.from_object(__name__)
 ordered_clusters = []
+group_id_to_test = {}
 questions = {
     1:'accumulate-mistakes.json',
     2:'G-mistakes.json',
@@ -56,7 +57,7 @@ def get_coverage(question_number,entries):
 def get_fix(question_number, cluster_id):
     return ordered_clusters[question_number][cluster_id].fix
 
-def get_tests(failed):
+def get_test(failed):
     #print('failed',failed)
     expected_value = ''
     output_value = ''
@@ -98,6 +99,7 @@ def prepare_question(question_number):
     all_items = {}
     clustered_items = {}
     clustered_groups = {}
+    group_id_to_test_for_a_question = {}
 
     group_id = -1
     checked_tests = []
@@ -114,18 +116,19 @@ def prepare_question(question_number):
             filename = 'filename-' + str(i['Id'])
             diff_lines = highlight.diff_file(filename, file_before, file_after, 'full')
 
-            tests = get_tests(i['failed'])
+            test = get_test(i['failed'])
             item['diff_lines'] = diff_lines
-            item['tests'] = tests
+            item['tests'] = test
 
-            if (tests in checked_tests):
-                group_id = checked_tests.index(tests)
+            if (test in checked_tests):
+                group_id = checked_tests.index(test)
             else:
-                checked_tests.append(tests)
+                checked_tests.append(test)
                 group_id = len(checked_tests)
 
 
             item['group_id'] = group_id
+            group_id_to_test_for_a_question[group_id] = test
 
             id = i['Id']
             all_items[id] = item
@@ -149,14 +152,18 @@ def prepare_question(question_number):
 
     ordered_clusters = sorted(ordered_clusters, key=lambda cluster: -cluster.number)
 
-    return ordered_clusters
+    print('_for_a_question',group_id_to_test_for_a_question)
+    return (ordered_clusters, group_id_to_test_for_a_question)
 
 def init_app():
     global ordered_clusters
     ordered_clusters = {}
+    global group_id_to_test
+    group_id_to_test = {}
 
     for question_number in questions.keys():
-        ordered_clusters[question_number] = prepare_question(question_number)
+        ordered_clusters[question_number],group_id_to_test[question_number] = prepare_question(question_number)
+        print("question number ", question_number, group_id_to_test[question_number])
 
 def connect_db():
     """Connects to the specific database."""
@@ -211,7 +218,8 @@ def show_detail(question_number, cluster_id, group_id):
     entries = get_hints(question_number)
     coverage_percentage = get_coverage(question_number, entries)
 
-    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, group_id=group_id, coverage_percentage=coverage_percentage)
+    print('last time printing group_id_to_test', group_id_to_test)
+    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, group_id=group_id, coverage_percentage=coverage_percentage, group_id_to_test=group_id_to_test)
 
 @app.route('/delete', methods=['POST'])
 def delete_hint():

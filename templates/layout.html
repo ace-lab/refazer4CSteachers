@@ -132,6 +132,9 @@
 
         <div class="col-md-3">
           <ul class="list-group">
+
+            
+
             {% for g in clusters[cluster_id].groups %}
               {% if g == group_id %}
                 <li class="list-group-item list-group-item-info">
@@ -139,7 +142,8 @@
                 <li class="list-group-item">
               {% endif %}
                 <a href="/{{question_number}}/{{cluster_id}}/{{g}}">
-                Groupt No. {{ g }}
+                <!-- Behavioral Misfire {{ g }} -->
+                {{group_id_to_test[question_number][g][0].input}}
                 </a>
               </li>
             {% endfor %}
