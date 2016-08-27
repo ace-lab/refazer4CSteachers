@@ -117,9 +117,12 @@ def prepare_question(question_number):
             item['diff_lines'] = diff_lines
             item['tests'] = tests
 
-            if (tests not in checked_tests):
+            if (tests in checked_tests):
+                group_id = checked_tests.index(tests)
+            else:
                 checked_tests.append(tests)
-                group_id += 1
+                group_id = len(checked_tests)
+
 
             item['group_id'] = group_id
 
