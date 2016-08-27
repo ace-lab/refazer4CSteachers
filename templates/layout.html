@@ -111,7 +111,7 @@
               {% endif %}
                 <span class="badge">{{ clusters[i].number }}</span>
                 <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
-                <a href="/{{question_number}}/{{i}}">
+                <a href="/{{question_number}}/{{i}}/0">
 
                 <b>Cluster {{i}}</b>
                 {% for line in clusters[i].items[0].diff_lines %}
