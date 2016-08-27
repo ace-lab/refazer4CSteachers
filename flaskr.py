@@ -73,7 +73,8 @@ def get_tests(failed):
             #print(output_value)
         if line.startswith('>>>'):
             #print('test case:', line)
-            testcases.append(line[4:])
+            split_by_hash = line[4:].split('#') #removes comments
+            testcases.append(split_by_hash[0])
         previous_line = line
     if len(testcases)>0:
         failed_test = testcases[-1]
