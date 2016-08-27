@@ -143,7 +143,11 @@
               {% endif %}
                 <a href="/{{question_number}}/{{cluster_id}}/{{g}}">
                 <!-- Behavioral Misfire {{ g }} -->
-                {{group_id_to_test[question_number][g][0].input}}
+                {{group_id_to_test[question_number][g][0].input}} 
+                <i>returned</i>
+                {{group_id_to_test[question_number][g][0].output}} 
+                <i>not</i> 
+                {{group_id_to_test[question_number][g][0].expected}}
                 </a>
               </li>
             {% endfor %}

@@ -74,8 +74,9 @@ def get_test(failed):
             #print(output_value)
         if line.startswith('>>>'):
             #print('test case:', line)
-            split_by_hash = line[4:].split('#') #removes comments
-            testcases.append(split_by_hash[0])
+            line_no_comment = line[4:].split('#')[0] #removes comments
+            if not line_no_comment.startswith('check(') and not line_no_comment.startswith('from construct_check import check'):
+                testcases.append(line_no_comment)
         previous_line = line
     if len(testcases)>0:
         failed_test = testcases[-1]
@@ -141,9 +142,12 @@ def prepare_question(question_number):
             clustered_groups[fix].add(group_id)
 
     for key in dict.keys():
+        print(key)
         arr = (key, dict.get(key))
         fix = arr[0]
-        groups = clustered_groups[fix]
+        print('yah',group_id_to_test_for_a_question[group_id][0])
+        print('yahyah',clustered_groups[fix])
+        groups = clustered_groups[fix] #sorted(clustered_groups[fix],key=lambda group_id: group_id_to_test_for_a_question[group_id][0].output)
         items = clustered_items[fix]
         cluster = Cluster(fix=fix, number=arr[1], groups=groups, items=items)
         ordered_clusters.append(cluster)
