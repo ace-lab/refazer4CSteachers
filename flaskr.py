@@ -176,25 +176,28 @@ def prepare_question(question_number):
                 'expected':group_id_to_test_for_a_question[group_id][0]['expected'],
                 'output':group_id_to_test_for_a_question[group_id][0]['output'],
             })
-        print('total',total,'number',arr[1])
-        print('question_number',question_number)
-        print('')
+        
         #group = list(clustered_groups[fix]) #sorted(clustered_groups[fix],key=lambda group_id: group_id_to_test_for_a_question[group_id][0].output)
         #group_with_count = [ (group, len(group)) for group in group )]
         #print('group',group)
         #print('fix',fix,'groups',list(groups))
         ordered_groups = sorted(group_list, key=lambda group: -group['count'])
-        print('ordered_groups',ordered_groups)
+        print('ordered_groups',[grp['count'] for grp in ordered_groups])
+
+        print('total',total,'number',arr[1])
+        print('question_number',question_number)
+        print('')
+        
         items = clustered_items[fix]
-        cluster = Cluster(fix=fix, number=arr[1], groups=group_list, items=items)
+        cluster = Cluster(fix=fix, number=arr[1], groups=ordered_groups, items=items)
         ordered_clusters.append(cluster)
         #ordered_clusters.append((fix, item[1], fix.count("Insert"), fix.count("Update"), fix.count("Delete"), filesSample.values()))
 
 
-    print('clust_id,clust.keys()')
+    #print('clust_id,clust.keys()')
     ordered_clusters = sorted(ordered_clusters, key=lambda cluster: -cluster.number)
-    for clust_id,clust in enumerate(ordered_clusters):
-        print(clust_id,clust)
+    #for clust_id,clust in enumerate(ordered_clusters):
+    #    print(clust_id,clust)
 
     #print('_for_a_question',group_id_to_test_for_a_question)
     return (ordered_clusters, group_id_to_test_for_a_question)
