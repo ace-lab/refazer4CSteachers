@@ -145,20 +145,20 @@
 
             {% for g in clusters[cluster_id].groups %}
               <a href="/{{question_number}}/{{cluster_id}}/{{g}}">
-              {% if g == group_id %}
+              {% if g['group_id'] == group_id %}
                 <li class="list-group-item list-group-item-info">
               {% else %}
                 <li class="list-group-item">
               {% endif %}
-                <span class="badge">{{group_id_to_test[question_number][g][0].count}}</span>
+                <span class="badge">{{g['count']}}</span>
                 
-                Behavioral Misfire {{ g }}
-                <div class="code">{{group_id_to_test[question_number][g][0].input}}</div>
+                Behavioral Misfire {{ g['group_id'] }}
+                <div class="code">{{g['input']}}</div>
                 <span class="returned">returned</span>
-                <span class="code">{{group_id_to_test[question_number][g][0].output}}</span>
+                <span class="code">{{g['output']}}</span>
                 <br>
                 <span class="expected">instead of</span>
-                <span class="code">{{group_id_to_test[question_number][g][0].expected}}</span>
+                <span class="code">{{g['expected']}}</span>
                 <!-- <i>:</i>  -->
 
               </li></a>
