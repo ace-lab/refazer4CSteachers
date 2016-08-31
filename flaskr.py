@@ -92,6 +92,7 @@ def get_test(failed):
     return results
 
 def prepare_question(question_number):
+
     ordered_clusters = []
     with open('data/'+questions[question_number]) as data_file:
     	data = json.load(data_file)
@@ -139,7 +140,16 @@ def prepare_question(question_number):
             else:
                 clustered_items[fix] = [item]
                 clustered_groups[fix] = []
+            #print('i',i)
+
+            print('')
+            print('number of items so far',len(all_items.keys()))
+            print('num of items in this fix so far',dict[fix])
+            print('clustered_groups[fix]',clustered_groups[fix])
+            print('num of group_ids',len(clustered_groups[fix]))
             clustered_groups[fix].append(group_id)
+            print('clustered_groups[fix] after',clustered_groups[fix])
+            print('num of group_ids after',len(clustered_groups[fix]))
 
     for key in dict.keys():
         #print('key',key)
@@ -148,10 +158,16 @@ def prepare_question(question_number):
         #print('yah',group_id_to_test_for_a_question[group_id][0])
         #print('list of group ids',clustered_groups[fix])
         groups = set(clustered_groups[fix])
+        total = 0
         for group_id in groups:
-            print(group_id)
+            #print(group_id, clustered_groups[fix], clustered_groups[fix].count(group_id))
             #print(group_id_to_test_for_a_question[group_id])
-            group_id_to_test_for_a_question[group_id][0]['count'] = clustered_groups[fix].count(group_id)
+            number_of_items_with_this_fix_and_group_id = clustered_groups[fix].count(group_id)
+            total += number_of_items_with_this_fix_and_group_id
+            group_id_to_test_for_a_question[group_id][0]['count'] = number_of_items_with_this_fix_and_group_id
+            print('group_id',group_id,': ',group_id_to_test_for_a_question[group_id][0])
+        print('total',total,'number',arr[1])
+        print('question_number',question_number)
         #group = list(clustered_groups[fix]) #sorted(clustered_groups[fix],key=lambda group_id: group_id_to_test_for_a_question[group_id][0].output)
         #group_with_count = [ (group, len(group)) for group in group )]
         #print('group',group)
@@ -162,7 +178,10 @@ def prepare_question(question_number):
         #ordered_clusters.append((fix, item[1], fix.count("Insert"), fix.count("Update"), fix.count("Delete"), filesSample.values()))
 
 
+    print('clust_id,clust.keys()')
     ordered_clusters = sorted(ordered_clusters, key=lambda cluster: -cluster.number)
+    for clust_id,clust in enumerate(ordered_clusters):
+        print(clust_id,clust)
 
     #print('_for_a_question',group_id_to_test_for_a_question)
     return (ordered_clusters, group_id_to_test_for_a_question)
