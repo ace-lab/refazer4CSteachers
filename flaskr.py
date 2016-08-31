@@ -22,12 +22,13 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 ordered_clusters = []
 group_id_to_test = {}
-questions = {
-    1:'accumulate-mistakes.json',
-    2:'G-mistakes.json',
-    3:'Product-mistakes.json',
-    4:'repeated-mistakes.json'
-    }
+# questions = {
+#     1:'accumulate-mistakes.json',
+#     2:'G-mistakes.json',
+#     3:'Product-mistakes.json',
+#     4:'repeated-mistakes.json'
+#     }
+questions = {1:'accumulate-mistakes.json'}
 
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, 'flaskr.db'),
@@ -158,6 +159,7 @@ def prepare_question(question_number):
         #print('yah',group_id_to_test_for_a_question[group_id][0])
         #print('list of group ids',clustered_groups[fix])
         groups = set(clustered_groups[fix])
+        group_list = []
         total = 0
         for group_id in groups:
             #print(group_id, clustered_groups[fix], clustered_groups[fix].count(group_id))
@@ -166,14 +168,25 @@ def prepare_question(question_number):
             total += number_of_items_with_this_fix_and_group_id
             group_id_to_test_for_a_question[group_id][0]['count'] = number_of_items_with_this_fix_and_group_id
             print('group_id',group_id,': ',group_id_to_test_for_a_question[group_id][0])
+
+            group_list.append({
+                'group_id':group_id,
+                'count':number_of_items_with_this_fix_and_group_id,
+                'input':group_id_to_test_for_a_question[group_id][0]['input'],
+                'expected':group_id_to_test_for_a_question[group_id][0]['expected'],
+                'output':group_id_to_test_for_a_question[group_id][0]['output'],
+            })
         print('total',total,'number',arr[1])
         print('question_number',question_number)
+        print('')
         #group = list(clustered_groups[fix]) #sorted(clustered_groups[fix],key=lambda group_id: group_id_to_test_for_a_question[group_id][0].output)
         #group_with_count = [ (group, len(group)) for group in group )]
         #print('group',group)
         #print('fix',fix,'groups',list(groups))
+        ordered_groups = sorted(group_list, key=lambda group: -group['count'])
+        print('ordered_groups',ordered_groups)
         items = clustered_items[fix]
-        cluster = Cluster(fix=fix, number=arr[1], groups=groups, items=items)
+        cluster = Cluster(fix=fix, number=arr[1], groups=group_list, items=items)
         ordered_clusters.append(cluster)
         #ordered_clusters.append((fix, item[1], fix.count("Insert"), fix.count("Update"), fix.count("Delete"), filesSample.values()))
 
