@@ -22,13 +22,12 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 ordered_clusters = []
 group_id_to_test = {}
-# questions = {
-#     1:'accumulate-mistakes.json',
-#     2:'G-mistakes.json',
-#     3:'Product-mistakes.json',
-#     4:'repeated-mistakes.json'
-#     }
-questions = {1:'accumulate-mistakes.json'}
+questions = {
+    1:'accumulate-mistakes.json',
+    2:'G-mistakes.json',
+    3:'Product-mistakes.json',
+    4:'repeated-mistakes.json'
+    }
 
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, 'flaskr.db'),
@@ -187,7 +186,7 @@ def prepare_question(question_number):
         print('total',total,'number',arr[1])
         print('question_number',question_number)
         print('')
-        
+
         items = clustered_items[fix]
         cluster = Cluster(fix=fix, number=arr[1], groups=ordered_groups, items=items)
         ordered_clusters.append(cluster)
