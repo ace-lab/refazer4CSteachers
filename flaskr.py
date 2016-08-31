@@ -42,16 +42,16 @@ def get_coverage(question_number,entries):
 
     covered_bugs = 0
     for entry in entries:
-        print(entry['cluster_id'],entry['text'])
-        print(ordered_clusters[question_number][entry['cluster_id']].number)
+        #print(entry['cluster_id'],entry['text'])
+        #print(ordered_clusters[question_number][entry['cluster_id']].number)
         covered_bugs+=ordered_clusters[question_number][entry['cluster_id']].number
     total_bugs = 0
     for cluster in ordered_clusters[question_number]:
-        print(cluster.number)#, cluster.cluster_id)
+        #print(cluster.number)#, cluster.cluster_id)
         total_bugs+=cluster.number
         #try: print(cluster.text)
         #except: print('no text')
-    print(covered_bugs,total_bugs)
+    #print(covered_bugs,total_bugs)
     return math.ceil(covered_bugs*100/total_bugs)
 
 def get_fix(question_number, cluster_id):
@@ -81,7 +81,7 @@ def get_test(failed):
     if len(testcases)>0:
         failed_test = testcases[-1]
     else:
-        print('wtf no testcases?')
+        #print('wtf no testcases?')
         failed_test = ''
 
     results = [{
@@ -138,16 +138,24 @@ def prepare_question(question_number):
                 clustered_items[fix].append(item)
             else:
                 clustered_items[fix] = [item]
-                clustered_groups[fix] = set([])
-            clustered_groups[fix].add(group_id)
+                clustered_groups[fix] = []
+            clustered_groups[fix].append(group_id)
 
     for key in dict.keys():
-        print(key)
+        #print('key',key)
         arr = (key, dict.get(key))
         fix = arr[0]
-        print('yah',group_id_to_test_for_a_question[group_id][0])
-        print('yahyah',clustered_groups[fix])
-        groups = clustered_groups[fix] #sorted(clustered_groups[fix],key=lambda group_id: group_id_to_test_for_a_question[group_id][0].output)
+        #print('yah',group_id_to_test_for_a_question[group_id][0])
+        #print('list of group ids',clustered_groups[fix])
+        groups = set(clustered_groups[fix])
+        for group_id in groups:
+            print(group_id)
+            #print(group_id_to_test_for_a_question[group_id])
+            group_id_to_test_for_a_question[group_id][0]['count'] = clustered_groups[fix].count(group_id)
+        #group = list(clustered_groups[fix]) #sorted(clustered_groups[fix],key=lambda group_id: group_id_to_test_for_a_question[group_id][0].output)
+        #group_with_count = [ (group, len(group)) for group in group )]
+        #print('group',group)
+        #print('fix',fix,'groups',list(groups))
         items = clustered_items[fix]
         cluster = Cluster(fix=fix, number=arr[1], groups=groups, items=items)
         ordered_clusters.append(cluster)
@@ -156,7 +164,7 @@ def prepare_question(question_number):
 
     ordered_clusters = sorted(ordered_clusters, key=lambda cluster: -cluster.number)
 
-    print('_for_a_question',group_id_to_test_for_a_question)
+    #print('_for_a_question',group_id_to_test_for_a_question)
     return (ordered_clusters, group_id_to_test_for_a_question)
 
 def init_app():
@@ -167,7 +175,7 @@ def init_app():
 
     for question_number in questions.keys():
         ordered_clusters[question_number],group_id_to_test[question_number] = prepare_question(question_number)
-        print("question number ", question_number, group_id_to_test[question_number])
+        #print("question number ", question_number, group_id_to_test[question_number])
 
 def connect_db():
     """Connects to the specific database."""
@@ -222,7 +230,7 @@ def show_detail(question_number, cluster_id, group_id):
     entries = get_hints(question_number)
     coverage_percentage = get_coverage(question_number, entries)
 
-    print('last time printing group_id_to_test', group_id_to_test)
+    #print('last time printing group_id_to_test', group_id_to_test)
     return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, group_id=group_id, coverage_percentage=coverage_percentage, group_id_to_test=group_id_to_test)
 
 @app.route('/delete', methods=['POST'])
