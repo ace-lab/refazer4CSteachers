@@ -46,6 +46,9 @@
       float: right;
       padding-right: 5px;
     }
+    .code {
+      font-family: "Courier New", Courier, monospace;
+    }
     </style>
   </head>
 
@@ -113,7 +116,7 @@
                 <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
                 <a href="/{{question_number}}/{{i}}/0">
 
-                <b>Cluster {{i}}</b>
+                <!-- <b>Cluster {{i}}</b> -->
                 {% for line in clusters[i].items[0].diff_lines %}
                   {% if line.tag == "insert" %}
                     <div class="highlight-source">{{ line.contents | escape | truncate(45, True)}}</div>
@@ -136,20 +139,26 @@
             
 
             {% for g in clusters[cluster_id].groups %}
+              <a href="/{{question_number}}/{{cluster_id}}/{{g}}">
               {% if g == group_id %}
                 <li class="list-group-item list-group-item-info">
               {% else %}
                 <li class="list-group-item">
               {% endif %}
-                <a href="/{{question_number}}/{{cluster_id}}/{{g}}">
+                <span class="badge">{{group_id_to_test[question_number][g][0].count}}</span>
+                
                 <!-- Behavioral Misfire {{ g }} -->
-                {{group_id_to_test[question_number][g][0].input}} 
-                <i>returned</i>
-                {{group_id_to_test[question_number][g][0].output}} 
-                <i>not</i> 
-                {{group_id_to_test[question_number][g][0].expected}}
-                </a>
-              </li>
+                <div class="code">{{group_id_to_test[question_number][g][0].input}}</div>
+                returned
+                <span class="code">{{group_id_to_test[question_number][g][0].output}}</span>
+                <br>
+                instead of 
+                <span class="code">{{group_id_to_test[question_number][g][0].expected}}</span>
+                <!-- <i>:</i>  -->
+
+                
+                
+              </li></a>
             {% endfor %}
           </ul>
         </div>
