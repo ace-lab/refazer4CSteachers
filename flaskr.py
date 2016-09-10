@@ -266,10 +266,12 @@ def show_detail(question_number, view_id, cluster_id, group_id):
 
     #print('last time printing group_id_to_test', group_id_to_test)
     if (view_id==0):
-        return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, group_id=group_id, coverage_percentage=coverage_percentage, group_id_to_test=group_id_to_test)
+        return render_template('show_fixes_by_rules.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, group_id=group_id, coverage_percentage=coverage_percentage, group_id_to_test=group_id_to_test)
     elif (view_id==1):
-        return render_template('combo.html')
-    
+        return render_template('show_fixes_by_test.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, group_id=group_id, coverage_percentage=coverage_percentage, group_id_to_test=group_id_to_test)
+    elif (view_id==2):
+        return render_template('show_fixes_by_testsxrules.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, group_id=group_id, coverage_percentage=coverage_percentage, group_id_to_test=group_id_to_test)
+        
 
 # @app.route('/delete', methods=['POST'])
 # def delete_hint():
