@@ -142,14 +142,14 @@ def prepare_question(question_number):
                 clustered_groups[fix] = []
             #print('i',i)
 
-            print('')
-            print('number of items so far',len(all_items.keys()))
-            print('num of items in this fix so far',dict[fix])
-            print('clustered_groups[fix]',clustered_groups[fix])
-            print('num of group_ids',len(clustered_groups[fix]))
+            # print('')
+            # print('number of items so far',len(all_items.keys()))
+            # print('num of items in this fix so far',dict[fix])
+            # print('clustered_groups[fix]',clustered_groups[fix])
+            # print('num of group_ids',len(clustered_groups[fix]))
             clustered_groups[fix].append(group_id)
-            print('clustered_groups[fix] after',clustered_groups[fix])
-            print('num of group_ids after',len(clustered_groups[fix]))
+            # print('clustered_groups[fix] after',clustered_groups[fix])
+            # print('num of group_ids after',len(clustered_groups[fix]))
 
     for key in dict.keys():
         #print('key',key)
@@ -181,11 +181,11 @@ def prepare_question(question_number):
         #print('group',group)
         #print('fix',fix,'groups',list(groups))
         ordered_groups = sorted(group_list, key=lambda group: -group['count'])
-        print('ordered_groups',[grp['count'] for grp in ordered_groups])
+        #print('ordered_groups',[grp['count'] for grp in ordered_groups])
 
-        print('total',total,'number',arr[1])
-        print('question_number',question_number)
-        print('')
+        #print('total',total,'number',arr[1])
+        #print('question_number',question_number)
+        #print('')
 
         items = clustered_items[fix]
         cluster = Cluster(fix=fix, number=arr[1], groups=ordered_groups, items=items)
@@ -252,35 +252,39 @@ def get_hints(question_number):
 
 @app.route('/<int:question_number>')
 def show_question(question_number):
-    return redirect(url_for('show_detail', question_number=question_number, cluster_id=0, group_id=0))
+    return redirect(url_for('show_detail', question_number=question_number, view_id=0, cluster_id=0, group_id=0))
 
 @app.route('/')
 def show_entries():
-    return redirect(url_for('show_detail', question_number=1, cluster_id=0, group_id=0))
+    return redirect(url_for('show_detail', question_number=1, view_id=0, cluster_id=0, group_id=0))
 
-@app.route('/<int:question_number>/<int:cluster_id>/<int:group_id>')
-def show_detail(question_number, cluster_id, group_id):
+@app.route('/<int:question_number>/<int:view_id>/<int:cluster_id>/<int:group_id>')
+def show_detail(question_number, view_id, cluster_id, group_id):
 
     entries = get_hints(question_number)
     coverage_percentage = get_coverage(question_number, entries)
 
     #print('last time printing group_id_to_test', group_id_to_test)
-    return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, group_id=group_id, coverage_percentage=coverage_percentage, group_id_to_test=group_id_to_test)
+    if (view_id==0):
+        return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, group_id=group_id, coverage_percentage=coverage_percentage, group_id_to_test=group_id_to_test)
+    elif (view_id==1):
+        return render_template('combo.html')
+    
 
-@app.route('/delete', methods=['POST'])
-def delete_hint():
-    db = get_db()
-    db.execute('delete from entries where cluster_id=' + request.form['cluster_id'] + ' and question_number=' + request.form['question_number'])
-    db.commit()
-    return redirect(url_for('show_detail', question_number=request.form['question_number'], cluster_id=request.form['cluster_id']))
+# @app.route('/delete', methods=['POST'])
+# def delete_hint():
+#     db = get_db()
+#     db.execute('delete from entries where cluster_id=' + request.form['cluster_id'] + ' and question_number=' + request.form['question_number'])
+#     db.commit()
+#     return redirect(url_for('show_detail', question_number=request.form['question_number'], view_id=0 cluster_id=request.form['cluster_id']))
 
-@app.route('/add', methods=['POST'])
-def add_hint():
-    db = get_db()
-    db.execute('insert into entries (title, cluster_id, question_number, text) values (?, ?, ?, ?)',
-                 ['title', request.form['cluster_id'], request.form['question_number'], request.form['text']])
-    db.commit()
-    return redirect(url_for('show_detail', question_number=request.form['question_number'], cluster_id=request.form['cluster_id']))
+# @app.route('/add', methods=['POST'])
+# def add_hint():
+#     db = get_db()
+#     db.execute('insert into entries (title, cluster_id, question_number, text) values (?, ?, ?, ?)',
+#                  ['title', request.form['cluster_id'], request.form['question_number'], request.form['text']])
+#     db.commit()
+#     return redirect(url_for('show_detail', question_number=request.form['question_number'], cluster_id=request.form['cluster_id']))
 
 if __name__ == '__main__':
     # initdb_command()
