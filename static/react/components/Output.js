@@ -33,7 +33,7 @@ class Output extends Component {
               return (
                 <div id={`line-${i+1}`}>
                   <If condition={outputs[i+1]}>
-                    <span class='output-var'>{outputs[i+1].name}</span> = <span class='output-data'>{outputs[i+1].data}</span>
+                    <span className='output-var'>{outputs[i+1].name}</span> = <span className='output-data'>{outputs[i+1].data}</span>
                   </If>
                 </div>
               )
