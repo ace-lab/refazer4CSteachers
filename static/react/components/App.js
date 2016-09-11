@@ -27,7 +27,7 @@ class App extends Component {
   render () {
     return (
       <div id="main" className="ui grid">
-        <section id="container" className="nine wide column">
+        <section id="container">
           <Code store={this.props.store} data={this.props} actions={this.props.actions}/>
         </section>
       </div>
