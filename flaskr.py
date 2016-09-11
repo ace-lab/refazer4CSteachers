@@ -142,14 +142,14 @@ def prepare_question(question_number):
                 clustered_groups[fix] = []
             #print('i',i)
 
-            print('')
-            print('number of items so far',len(all_items.keys()))
-            print('num of items in this fix so far',dict[fix])
-            print('clustered_groups[fix]',clustered_groups[fix])
-            print('num of group_ids',len(clustered_groups[fix]))
-            clustered_groups[fix].append(group_id)
-            print('clustered_groups[fix] after',clustered_groups[fix])
-            print('num of group_ids after',len(clustered_groups[fix]))
+            # print('')
+            # print('number of items so far',len(all_items.keys()))
+            # print('num of items in this fix so far',dict[fix])
+            # print('clustered_groups[fix]',clustered_groups[fix])
+            # print('num of group_ids',len(clustered_groups[fix]))
+            # clustered_groups[fix].append(group_id)
+            # print('clustered_groups[fix] after',clustered_groups[fix])
+            # print('num of group_ids after',len(clustered_groups[fix]))
 
     for key in dict.keys():
         #print('key',key)
@@ -175,7 +175,7 @@ def prepare_question(question_number):
                 'expected':group_id_to_test_for_a_question[group_id][0]['expected'],
                 'output':group_id_to_test_for_a_question[group_id][0]['output'],
             })
-        
+
         #group = list(clustered_groups[fix]) #sorted(clustered_groups[fix],key=lambda group_id: group_id_to_test_for_a_question[group_id][0].output)
         #group_with_count = [ (group, len(group)) for group in group )]
         #print('group',group)
