@@ -147,7 +147,7 @@ def prepare_question(question_number):
             # print('num of items in this fix so far',dict[fix])
             # print('clustered_groups[fix]',clustered_groups[fix])
             # print('num of group_ids',len(clustered_groups[fix]))
-            # clustered_groups[fix].append(group_id)
+            clustered_groups[fix].append(group_id)
             # print('clustered_groups[fix] after',clustered_groups[fix])
             # print('num of group_ids after',len(clustered_groups[fix]))
 
