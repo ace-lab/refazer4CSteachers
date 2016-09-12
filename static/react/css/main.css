@@ -1,0 +1,83 @@
+.CodeMirror {
+  background: #f5f2f0;
+  font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+  padding: 1em;
+  margin: 0.5em 0;
+  line-height: 1.5;
+}
+
+.styled-background {
+  background: red;
+  border-top: 5px red solid;
+  border-bottom: 5px red solid;
+}
+
+#react-app #main {
+}
+
+#react-app #container {
+  position: relative;
+  line-height: 20px;
+  margin-top: 20px;
+  margin-bottom: 30px;
+  width: 100%;
+}
+
+.language-answer {
+  padding: 0px;
+}
+
+.language-answer .x {
+  margin: 7px 5px;
+  color: red;
+}
+
+.language-answer .o {
+  margin: 5px;
+  color: green;
+}
+
+
+#react-app #error {
+  position: absolute;
+  left: 5px;
+}
+
+#react-app #tick {
+  position: absolute;
+  left: 25px;
+  top: 85px;
+  color: teal;
+}
+
+code {
+  width: 50%;
+  padding-left: 20px;
+  float: left;
+}
+
+#react-app #output {
+  width: 30%;
+  float: left;
+  text-align: right;
+}
+
+#react-app #outer {
+  width: 20%;
+  float: left;
+  position: relative;
+}
+
+.output-var, .output-data {
+  padding: 3px;
+}
+
+.output-error {
+  background: #f1c0c0;
+}
+
+
+
+
+
+

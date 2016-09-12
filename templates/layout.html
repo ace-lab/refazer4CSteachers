@@ -16,6 +16,14 @@
     <link href="/static/lib/swal/sweetalert.min.css" rel="stylesheet">
     <link href="/static/css/swal-theme.css" rel="stylesheet">
 
+    <link rel="stylesheet" href="/static/lib/semantic-ui/semantic.min.css">
+    <link rel="stylesheet" href="/static/lib/prism/themes/prism.css">
+    <link rel="stylesheet" href="/static/lib/prism/plugins/line-highlight/prism-line-highlight.css">
+
+
+    <link rel="stylesheet" href="/static/react/css/main.css">
+    <link rel="stylesheet" href="/static/react/css/rc-slider.css">
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
@@ -120,7 +128,7 @@
               {% endif %}
                 <span class="badge">{{ clusters[i].number }}</span>
                 <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
-                
+
 
                 <b>Cluster {{i}}</b>
                 {% for line in clusters[i].items[0].diff_lines %}
@@ -132,7 +140,7 @@
                     <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
                   {% endif %}
                 {% endfor %}
-                
+
               </li></a>
             {% endfor %}
           </ul>
@@ -140,8 +148,6 @@
 
         <div class="col-md-3">
           <ul class="list-group">
-
-            
 
             {% for g in clusters[cluster_id].groups %}
               <a href="/{{question_number}}/{{cluster_id}}/{{g['group_id']}}">
@@ -151,7 +157,7 @@
                 <li class="list-group-item">
               {% endif %}
                 <span class="badge">{{g['count']}}</span>
-                
+
                 <!-- Behavioral Misfire {{ g['group_id'] }} -->
                 <span>test case</span>
                 <span class="code">{{g['input']}}</span>
@@ -169,6 +175,9 @@
         </div>
 
         <div class="col-md-6">
+
+          <div id="react-app"></div>
+
           <div style="overflow-y: scroll; height: 1000px;">
 
             <!-- <h1>Key:</h1>
@@ -310,5 +319,12 @@
     <script src="/static/lib/markdown/markdown.js"></script>
     <script src="/static/js/main.js"></script>
     <script src="/static/lib/bootstrap/js/bootstrap.min.js"></script>
+
+    <script src="/static/lib/prism/prism.js"></script>
+    <script src="/static/lib/prism/components/prism-python.js"></script>
+    <script src="/static/lib/prism/plugins/highlight-keywords/prism-highlight-keywords.js"></script>
+    <script src="/static/lib/prism/plugins/line-highlight/prism-line-highlight.js"></script>
+
+    <script src="/static/react/bundle.js"></script>
   </body>
 </html>
