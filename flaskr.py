@@ -198,6 +198,7 @@ def create_question(question_number):
         rule_and_test_based_cluster.append(cluster)
 
     ordered_clusters.sort(key = lambda x : len(x.fixes), reverse= True)
+    test_based_clusters.sort(key = lambda x : len(x.fixes), reverse= True)
     rule_and_test_based_cluster.sort(key = lambda  x : len(x.fixes), reverse=True)
     question = Question(question_id=question_number, rule_based_cluster = ordered_clusters,
                         test_based_cluster = test_based_clusters, rule_and_test_based_cluster=rule_and_test_based_cluster)
