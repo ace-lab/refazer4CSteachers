@@ -2,20 +2,17 @@
 {% block clusters %}
 <div class="col-md-3">
             <ul class="list-group">
-
               {% for i in range(clusters|length) %}
-                <a href="/{{question_number}}/{{i}}/0">
+                <a href="/{{question_number}}/0/{{i}}">
                 {% if cluster_id == i %}
                   <li class="list-group-item list-group-item-info">
                 {% else %}
                   <li class="list-group-item">
                 {% endif %}
-                  <span class="badge">{{ clusters[i].number }}</span>
+                  <span class="badge">{{ clusters[i].size }}</span>
                   <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
-                  
-
                   <b>Cluster {{i}}</b>
-                  {% for line in clusters[i].items[0].diff_lines %}
+                  {% for line in clusters[i].fixes[0].diff_lines %}
                     {% if line.tag == "insert" %}
                       <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
                     {% elif line.tag == "delete" %}
@@ -23,8 +20,7 @@
                     {% elif line.tag == "replace" %}
                       <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
                     {% endif %}
-                  {% endfor %}
-                  
+                  {% endfor %}                  
                 </li></a>
               {% endfor %}
             </ul>

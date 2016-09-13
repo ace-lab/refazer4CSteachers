@@ -94,13 +94,12 @@
       <div class="container">
         {% block tabs %}
         <ul class="nav nav-tabs">
-          <li class="active"><a href="/{{question_number}}/0/0/0">Rule</a></li>
-          <li><a href="/{{question_number}}/1/0/0">Test</a></li>
-          <li><a href="/{{question_number}}/2/0/0">Rule x Test</a></li>
+          <li class="active"><a href="/{{question_number}}/0/0">Rule</a></li>
+          <li><a href="/{{question_number}}/1/0">Test</a></li>
+          <li><a href="/{{question_number}}/2/0">Rule x Test</a></li>
         </ul>
         {% endblock %}
         <br>
-        <p><strong>Note:</strong> This example shows how to create a basic navigation tab. It is not toggleable/dynamic yet (you can't click on the links to display different content)- see the last example in the Bootstrap Tabs and Pills Tutorial to find out how this can be done.</p>
       </div>
       {% block fixes %}{% endblock %}
     </div>

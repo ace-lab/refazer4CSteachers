@@ -2,44 +2,12 @@
   {% block fixes %}
   <div class="row">
           {% block clusters %}{% endblock %}
-
-          <div class="col-md-3">
-            <ul class="list-group">
-
-              
-
-              {% for g in clusters[cluster_id].groups %}
-                <a href="/{{question_number}}/{{cluster_id}}/{{g['group_id']}}">
-                {% if g['group_id'] == group_id %}
-                  <li class="list-group-item list-group-item-info">
-                {% else %}
-                  <li class="list-group-item">
-                {% endif %}
-                  <span class="badge">{{g['count']}}</span>
-                  
-                  <!-- Behavioral Misfire {{ g['group_id'] }} -->
-                  <span>test case</span>
-                  <span class="code">{{g['input']}}</span>
-                  <br>
-                  <span>returned</span>
-                  <span class="code">{{g['output']}}</span>
-                  <br>
-                  <span>instead of</span>
-                  <span class="code">{{g['expected']}}</span>
-                  <!-- <i>:</i>  -->
-
-                </li></a>
-              {% endfor %}
-            </ul>
-          </div>
-
           <div class="col-md-6">
             <div style="overflow-y: scroll; height: 1000px;">
 
               <!-- <h1>Key:</h1>
-              <pre>{{ clusters[cluster_id].items[0].keys() }}</pre> -->
-              {% for item in clusters[cluster_id].items %}
-                {% if item.group_id == group_id %}
+              <pre>{{ clusters[cluster_id].fixes[0].keys() }}</pre> -->
+              {% for item in clusters[cluster_id].fixes %}
                  <div class="source-file table-responsive"
                     data-filename='example'>
                     <table class="highlight">
@@ -72,7 +40,6 @@
 
                     
                 </div>
-                {% endif %}
               {% endfor %}
             </div>
           </div>
