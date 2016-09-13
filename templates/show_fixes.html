@@ -1,0 +1,48 @@
+  {% extends "layout.html" %}
+  {% block fixes %}
+  <div class="row">
+          {% block clusters %}{% endblock %}
+          <div class="col-md-6">
+            <div style="overflow-y: scroll; height: 1000px;">
+
+              <!-- <h1>Key:</h1>
+              <pre>{{ clusters[cluster_id].fixes[0].keys() }}</pre> -->
+              {% for item in clusters[cluster_id].fixes %}
+                 <div class="source-file table-responsive"
+                    data-filename='example'>
+                    <table class="highlight">
+
+                      <tbody>
+
+                        {% for line in item.diff_lines %}
+                          <tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
+                            {% if line.is_diff %}
+                              {{ line_number(line.line_before) }}
+                            {% endif %}
+                            {{ line_number(line.line_after) }}
+                            <td>
+                              <span class="highlight-source">{{ line.contents | escape}}</span>
+                            </td>
+                          </tr>
+                          {% if line.comments %}
+                            <tr data-line={{ line.line_after }}>
+                              <td class="comment-container" colspan=3>
+                                {% for comment in line.comments %}
+                                  {{ render_comment(comment) }}
+                                {% endfor %}
+                              </td>
+                            </tr>
+                          {% endif %}
+                        {% endfor %}
+
+                      </tbody>
+                    </table>
+
+                    
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+
+        </div>
+        {% endblock %}
