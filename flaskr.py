@@ -7,22 +7,50 @@ import json
 import highlight
 import math
 
-class Cluster:
-    def __init__(self, fix, number, groups, items):
-        self.fix = fix
-        self.number = number
-        self.groups = groups
-        self.items = items
-        # self.diffs = diffs
-        # self.diffs = [diff[0] in diff for diffs]
-        # self.inputoutputIDs = [diff[1] in diff for diffs]
-        # self.results = results
+class Rule_and_test:
+    def __init__(self, test, rule):
+        self.test = test
+        self.rule = rule
+
+    def __hash__(self):
+        return hash((self.test[0]['input'], self.test[0]['output'], self.rule))
+
+    def __eq__(self, other):
+        return (self.test, self.rule) == (other.test, other.rule)
+
+class Rule_based_cluster:
+    def __init__(self, rule, size, fixes):
+        self.rule = rule
+        self.size = size
+        self.fixes = fixes
+
+class Test_based_cluster:
+    def __init__(self, test, size, fixes):
+        self.test = test
+        self.size = size
+        self.fixes = fixes
+
+class Rule_and_test_based_cluster:
+    def __init__(self, rule, test, size, fixes):
+        self.rule = rule
+        self.test = test
+        self.size = size
+        self.fixes = fixes
+
+class Question:
+    def __init__(self, question_id, rule_based_cluster, test_based_cluster, rule_and_test_based_cluster):
+        self.question_id = question_id,
+        self.rule_based_cluster = rule_based_cluster,
+        self.test_based_cluster = test_based_cluster
+        self.rule_and_test_based_cluster = rule_and_test_based_cluster
+
 
 app = Flask(__name__)
 app.config.from_object(__name__)
 ordered_clusters = []
 group_id_to_test = {}
-questions = {
+
+question_files = {
     1:'accumulate-mistakes.json',
     2:'G-mistakes.json',
     3:'Product-mistakes.json',
@@ -44,14 +72,18 @@ def get_coverage(question_number,entries):
     for entry in entries:
         #print(entry['cluster_id'],entry['text'])
         #print(ordered_clusters[question_number][entry['cluster_id']].number)
-        covered_bugs+=ordered_clusters[question_number][entry['cluster_id']].number
-    total_bugs = 0
-    for cluster in ordered_clusters[question_number]:
-        #print(cluster.number)#, cluster.cluster_id)
-        total_bugs+=cluster.number
-        #try: print(cluster.text)
-        #except: print('no text')
-    #print(covered_bugs,total_bugs)
+        covered_bugs+=questions[question_number].rule_based_cluster['cluster_id'].number
+    total_bugs = 1
+    # total_bugs = 0
+    # print("Testing!!!!!!!!!!!!!!")
+    # print(questions)
+    # for question in questions[question_number]:
+    #     #print(cluster.number)#, cluster.cluster_id)
+    #     cluster = question.rule_based_cluster
+    #     total_bugs+=cluster.number
+    #     #try: print(cluster.text)
+    #     #except: print('no text')
+    # #print(covered_bugs,total_bugs)
     return math.ceil(covered_bugs*100/total_bugs)
 
 def get_fix(question_number, cluster_id):
@@ -91,125 +123,99 @@ def get_test(failed):
     }]
     return results
 
-def prepare_question(question_number):
 
+def create_question(question_number):
     ordered_clusters = []
-    with open('data/'+questions[question_number]) as data_file:
-    	data = json.load(data_file)
 
-    dict = {}
-    all_items = {}
-    clustered_items = {}
-    clustered_groups = {}
+    with open('data/'+question_files[question_number]) as data_file:
+    	submission_pairs = json.load(data_file)
+
+    clustered_fixes_by_rule = {}
+    clustered_fixes_by_test = {}
+    clustered_fixes_by_rule_and_test = {}
     group_id_to_test_for_a_question = {}
 
     group_id = -1
     checked_tests = []
 
-    for i in data:
-        if (i['IsFixed'] == True):
-            fix = i['UsedFix']
-            fix = fix.replace('\\', '')
-            dict[fix] = dict.get(fix, 0) + 1
+    rule_and_test_based_cluster = []
 
-            item = i
-            file_before = i['before']
-            file_after = i['SynthesizedAfter']
-            filename = 'filename-' + str(i['Id'])
-            diff_lines = highlight.diff_file(filename, file_before, file_after, 'full')
 
-            test = get_test(i['failed'])
-            item['diff_lines'] = diff_lines
-            item['tests'] = test
+    for submission_pair in submission_pairs:
+        if (submission_pair['IsFixed'] == True):
+            rule = submission_pair['UsedFix']
+            rule = rule.replace('\\', '')
+
+            fix = submission_pair
+            code_before = submission_pair['before']
+            code_after = submission_pair['SynthesizedAfter']
+            filename = 'filename-' + str(submission_pair['Id'])
+            diff_lines = highlight.diff_file(filename, code_before, code_after, 'full')
+
+            test = get_test(submission_pair['failed'])
+            fix['diff_lines'] = diff_lines
+            fix['tests'] = test
+
+            id = submission_pair['Id']
+
+
+
+
+            if (rule in clustered_fixes_by_rule.keys()):
+                clustered_fixes_by_rule[rule].append(fix)
+            else:
+                clustered_fixes_by_rule[rule] = [fix]
 
             if (test in checked_tests):
                 group_id = checked_tests.index(test)
+                clustered_fixes_by_test[checked_tests.index(test)].append(fix)
             else:
                 checked_tests.append(test)
                 group_id = len(checked_tests)
+                clustered_fixes_by_test[checked_tests.index(test)] = [fix]
 
+            key = Rule_and_test(test=test,rule=rule)
+            if key in clustered_fixes_by_rule_and_test.keys():
+                clustered_fixes_by_rule_and_test[key].append(fix)
+            else:
+                clustered_fixes_by_rule_and_test[key] = [fix]
 
-            item['group_id'] = group_id
+            fix['group_id'] = group_id
             group_id_to_test_for_a_question[group_id] = test
 
-            id = i['Id']
-            all_items[id] = item
 
-            if (fix in clustered_items.keys()):
-                clustered_items[fix].append(item)
-            else:
-                clustered_items[fix] = [item]
-                clustered_groups[fix] = []
-            #print('i',i)
-
-            # print('')
-            # print('number of items so far',len(all_items.keys()))
-            # print('num of items in this fix so far',dict[fix])
-            # print('clustered_groups[fix]',clustered_groups[fix])
-            # print('num of group_ids',len(clustered_groups[fix]))
-            clustered_groups[fix].append(group_id)
-            # print('clustered_groups[fix] after',clustered_groups[fix])
-            # print('num of group_ids after',len(clustered_groups[fix]))
-
-    for key in dict.keys():
-        #print('key',key)
-        arr = (key, dict.get(key))
-        fix = arr[0]
-        #print('yah',group_id_to_test_for_a_question[group_id][0])
-        #print('list of group ids',clustered_groups[fix])
-        groups = set(clustered_groups[fix])
-        group_list = []
-        total = 0
-        for group_id in groups:
-            #print(group_id, clustered_groups[fix], clustered_groups[fix].count(group_id))
-            #print(group_id_to_test_for_a_question[group_id])
-            number_of_items_with_this_fix_and_group_id = clustered_groups[fix].count(group_id)
-            total += number_of_items_with_this_fix_and_group_id
-            group_id_to_test_for_a_question[group_id][0]['count'] = number_of_items_with_this_fix_and_group_id
-            print('group_id',group_id,': ',group_id_to_test_for_a_question[group_id][0])
-
-            group_list.append({
-                'group_id':group_id,
-                'count':number_of_items_with_this_fix_and_group_id,
-                'input':group_id_to_test_for_a_question[group_id][0]['input'],
-                'expected':group_id_to_test_for_a_question[group_id][0]['expected'],
-                'output':group_id_to_test_for_a_question[group_id][0]['output'],
-            })
-        
-        #group = list(clustered_groups[fix]) #sorted(clustered_groups[fix],key=lambda group_id: group_id_to_test_for_a_question[group_id][0].output)
-        #group_with_count = [ (group, len(group)) for group in group )]
-        #print('group',group)
-        #print('fix',fix,'groups',list(groups))
-        ordered_groups = sorted(group_list, key=lambda group: -group['count'])
-        #print('ordered_groups',[grp['count'] for grp in ordered_groups])
-
-        #print('total',total,'number',arr[1])
-        #print('question_number',question_number)
-        #print('')
-
-        items = clustered_items[fix]
-        cluster = Cluster(fix=fix, number=arr[1], groups=ordered_groups, items=items)
+    for key,value in clustered_fixes_by_rule.items():
+        cluster = Rule_based_cluster(rule=key, fixes = value, size=len(value))
         ordered_clusters.append(cluster)
-        #ordered_clusters.append((fix, item[1], fix.count("Insert"), fix.count("Update"), fix.count("Delete"), filesSample.values()))
 
+    test_based_clusters = []
+    for key,value in clustered_fixes_by_test.items():
+        cluster = Test_based_cluster(test=checked_tests[key], fixes = value, size=len(value))
+        test_based_clusters.append(cluster)
 
-    #print('clust_id,clust.keys()')
-    ordered_clusters = sorted(ordered_clusters, key=lambda cluster: -cluster.number)
-    #for clust_id,clust in enumerate(ordered_clusters):
-    #    print(clust_id,clust)
+    for key,value in clustered_fixes_by_rule_and_test.items():
+        cluster = Rule_and_test_based_cluster(test=key.test, rule=key.rule, fixes = value, size = len(value))
+        rule_and_test_based_cluster.append(cluster)
 
-    #print('_for_a_question',group_id_to_test_for_a_question)
-    return (ordered_clusters, group_id_to_test_for_a_question)
+    ordered_clusters.sort(key = lambda x : len(x.fixes), reverse= True)
+    rule_and_test_based_cluster.sort(key = lambda  x : len(x.fixes), reverse=True)
+    question = Question(question_id=question_number, rule_based_cluster = ordered_clusters,
+                        test_based_cluster = test_based_clusters, rule_and_test_based_cluster=rule_and_test_based_cluster)
+
+    return question
+    #return (ordered_clusters, group_id_to_test_for_a_question)
 
 def init_app():
-    global ordered_clusters
-    ordered_clusters = {}
+    #global ordered_clusters
+    #ordered_clusters = {}
     global group_id_to_test
     group_id_to_test = {}
-
-    for question_number in questions.keys():
-        ordered_clusters[question_number],group_id_to_test[question_number] = prepare_question(question_number)
+    global questions
+    questions = {}
+    for question_number in question_files.keys():
+        questions[question_number] = create_question(question_number)
         #print("question number ", question_number, group_id_to_test[question_number])
+    print(questions)
 
 def connect_db():
     """Connects to the specific database."""
@@ -243,33 +249,46 @@ def close_db(error):
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
 
-def get_hints(question_number):
+def get_fixes(question_number):
     #todo: add question number to schema and db.execute call
     db = get_db()
     cur = db.execute('select title, cluster_id, text from entries order by id desc')
-    hints = cur.fetchall()
-    return hints
+    fixes = cur.fetchall()
+    return fixes
 
 @app.route('/<int:question_number>')
 def show_question(question_number):
     return redirect(url_for('show_detail', question_number=question_number, view_id=0, cluster_id=0, group_id=0))
 
 @app.route('/')
-def show_entries():
+def show_fixes():
     return redirect(url_for('show_detail', question_number=1, view_id=0, cluster_id=0, group_id=0))
 
-@app.route('/<int:question_number>/<int:view_id>/<int:cluster_id>/<int:group_id>')
-def show_detail(question_number, view_id, cluster_id, group_id):
+@app.route('/<int:question_number>/<int:view_id>/<int:cluster_id>')
+def show_detail(question_number, view_id, cluster_id):
 
-    entries = get_hints(question_number)
-    coverage_percentage = get_coverage(question_number, entries)
+    fixes = get_fixes(question_number)
+    coverage_percentage = get_coverage(question_number, fixes)
 
     #print('last time printing group_id_to_test', group_id_to_test)
+    print (questions[question_number].rule_based_cluster[0][0].fixes)
     if (view_id==0):
-        return render_template('layout.html', question_name = questions[question_number], question_number = question_number, clusters = ordered_clusters[question_number], entries = entries, cluster_id=cluster_id, group_id=group_id, coverage_percentage=coverage_percentage, group_id_to_test=group_id_to_test)
+        return render_template('show_fixes_by_rules.html', question_name = question_files[question_number],
+                               question_number = question_number, clusters = questions[question_number].rule_based_cluster[0],
+                               fixes = fixes, cluster_id=cluster_id,
+                               coverage_percentage=coverage_percentage)
     elif (view_id==1):
-        return render_template('combo.html')
-    
+
+        return render_template('show_fixes_by_test.html', question_name = questions[question_number],
+                               question_number = question_number, clusters = questions[question_number].test_based_cluster,
+                               fixes = fixes, cluster_id=cluster_id,
+                               coverage_percentage=coverage_percentage)
+    elif (view_id==2):
+        return render_template('show_fixes_by_testsxrules.html', question_name = questions[question_number],
+                               question_number = question_number, clusters = questions[question_number].rule_and_test_based_cluster,
+                               fixes = fixes, cluster_id=cluster_id,
+                               coverage_percentage=coverage_percentage)
+        
 
 # @app.route('/delete', methods=['POST'])
 # def delete_hint():
