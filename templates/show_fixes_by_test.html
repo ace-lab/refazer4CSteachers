@@ -12,7 +12,11 @@
   <ul class="list-group">
     {% for i in range(clusters|length) %}
     <a href="/{{question_number}}/1/{{i}}">
-      <li class="list-group-item">
+      {% if cluster_id == i %}
+                  <li class="list-group-item list-group-item-info">
+                {% else %}
+                  <li class="list-group-item">
+                {% endif %}
         <!--<span class="badge">{{g['count']}}</span>-->
           <!-- Behavioral Misfire {{ g['group_id'] }} -->
           <span class="badge">{{ clusters[i].size }}</span>
