@@ -12,13 +12,29 @@
   <ul class="list-group">
     {% for i in range(clusters|length) %}
     <a href="/{{question_number}}/2/{{i}}">
-      <li class="list-group-item">
+      {% if cluster_id == i %}
+                  <li class="list-group-item list-group-item-info">
+                {% else %}
+                  <li class="list-group-item">
+                {% endif %}
         <!--<span class="badge">{{g['count']}}</span>-->
           <!-- Behavioral Misfire {{ g['group_id'] }} -->
           <span class="badge">{{ clusters[i].size }}</span>
                   <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
                   <b>Cluster {{i}}</b></br>
-        <span>test case</span>
+                  <div style="border : 1px dotted; margin-top : 2px; padding: 2px; border-radius: 5px;">
+{% for line in clusters[i].fixes[0].diff_lines %}
+                    {% if line.tag == "insert" %}
+                      <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
+                    {% elif line.tag == "delete" %}
+                      <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
+                    {% elif line.tag == "replace" %}
+                      <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
+                    {% endif %}
+                  {% endfor %}
+                  </div>
+                  <div style="border : 1px dotted; margin-top : 2px; padding: 2px; border-radius: 5px;">
+                     <span>test case</span>
         <span class="code">{{clusters[i].test[0]['input']}}</span>
         <br>
         <span>returned</span>
@@ -26,6 +42,10 @@
         <br>
         <span>instead of</span>
         <span class="code">{{clusters[i].test[0]['expected']}}</span>
+                  </div>
+                   
+        
+       
         <!-- <i>:</i>  -->
         </li></a>
       {% endfor %}
