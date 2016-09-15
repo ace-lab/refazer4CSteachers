@@ -70,20 +70,8 @@ def get_coverage(question_number,entries):
 
     covered_bugs = 0
     for entry in entries:
-        #print(entry['cluster_id'],entry['text'])
-        #print(ordered_clusters[question_number][entry['cluster_id']].number)
         covered_bugs+=questions[question_number].rule_based_cluster['cluster_id'].number
     total_bugs = 1
-    # total_bugs = 0
-    # print("Testing!!!!!!!!!!!!!!")
-    # print(questions)
-    # for question in questions[question_number]:
-    #     #print(cluster.number)#, cluster.cluster_id)
-    #     cluster = question.rule_based_cluster
-    #     total_bugs+=cluster.number
-    #     #try: print(cluster.text)
-    #     #except: print('no text')
-    # #print(covered_bugs,total_bugs)
     return math.ceil(covered_bugs*100/total_bugs)
 
 def get_fix(question_number, cluster_id):
