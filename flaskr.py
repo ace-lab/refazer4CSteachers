@@ -233,31 +233,31 @@ def get_fixes(question_number):
 
 @app.route('/<int:question_number>')
 def show_question(question_number):
-    return redirect(url_for('show_detail', question_number=question_number, view_id=0, cluster_id=0, group_id=0))
+    return redirect(url_for('show_detail', question_number=question_number, tab_id=0, cluster_id=0, group_id=0))
 
 @app.route('/')
 def show_fixes():
-    return redirect(url_for('show_detail', question_number=1, view_id=0, cluster_id=0, group_id=0))
+    return redirect(url_for('show_detail', question_number=1, tab_id=0, cluster_id=0, group_id=0))
 
-@app.route('/<int:question_number>/<int:view_id>/<int:cluster_id>')
-def show_detail(question_number, view_id, cluster_id):
+@app.route('/<int:question_number>/<int:tab_id>/<int:cluster_id>')
+def show_detail(question_number, tab_id, cluster_id):
 
     fixes = get_fixes(question_number)
     coverage_percentage = get_coverage(question_number, fixes)
 
     print (questions[question_number].rule_based_cluster[0][0].fixes)
-    if (view_id==0):
+    if (tab_id==0):
         return render_template('show_fixes_by_rules.html', question_name = question_files[question_number],
                                question_number = question_number, clusters = questions[question_number].rule_based_cluster[0],
                                fixes = fixes, cluster_id=cluster_id,
                                coverage_percentage=coverage_percentage)
-    elif (view_id==1):
+    elif (tab_id==1):
 
         return render_template('show_fixes_by_test.html', question_name = questions[question_number],
                                question_number = question_number, clusters = questions[question_number].test_based_cluster,
                                fixes = fixes, cluster_id=cluster_id,
                                coverage_percentage=coverage_percentage)
-    elif (view_id==2):
+    elif (tab_id==2):
         return render_template('show_fixes_by_testsxrules.html', question_name = questions[question_number],
                                question_number = question_number, clusters = questions[question_number].rule_and_test_based_cluster,
                                fixes = fixes, cluster_id=cluster_id,
@@ -269,15 +269,15 @@ def show_detail(question_number, view_id, cluster_id):
 #     db = get_db()
 #     db.execute('delete from entries where cluster_id=' + request.form['cluster_id'] + ' and question_number=' + request.form['question_number'])
 #     db.commit()
-#     return redirect(url_for('show_detail', question_number=request.form['question_number'], view_id=0 cluster_id=request.form['cluster_id']))
+#     return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=0 cluster_id=request.form['cluster_id']))
 
-# @app.route('/add', methods=['POST'])
-# def add_hint():
-#     db = get_db()
-#     db.execute('insert into entries (title, cluster_id, question_number, text) values (?, ?, ?, ?)',
-#                  ['title', request.form['cluster_id'], request.form['question_number'], request.form['text']])
-#     db.commit()
-#     return redirect(url_for('show_detail', question_number=request.form['question_number'], cluster_id=request.form['cluster_id']))
+@app.route('/add', methods=['POST'])
+def add_hint():
+    db = get_db()
+    db.execute('insert into entries (title, question_number, cluster_id, tab, text) values (?, ?, ?, ?)',
+                 ['title', request.form['question_number'], request.form['cluster_id'], request.form['tab'], request.form['text']])
+    db.commit()
+    return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=request.form['tab'], cluster_id=request.form['cluster_id']))
 
 if __name__ == '__main__':
     # initdb_command()
