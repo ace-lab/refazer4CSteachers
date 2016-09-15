@@ -245,7 +245,7 @@ def show_detail(question_number, tab_id, cluster_id):
     fixes = get_fixes(question_number)
     coverage_percentage = get_coverage(question_number, fixes)
 
-    print (questions[question_number].rule_based_cluster[0][0].fixes)
+    #print (questions[question_number].rule_based_cluster[0][0].fixes)
     if (tab_id==0):
         return render_template('show_fixes_by_rules.html', 
                                 question_name = question_files[question_number],
