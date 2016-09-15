@@ -28,7 +28,6 @@ class Code extends Component {
     this.props.actions.updateStep(step)
   }
 
-
   render() {
     return (
       <div>
