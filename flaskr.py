@@ -247,21 +247,27 @@ def show_detail(question_number, tab_id, cluster_id):
 
     print (questions[question_number].rule_based_cluster[0][0].fixes)
     if (tab_id==0):
-        return render_template('show_fixes_by_rules.html', question_name = question_files[question_number],
-                               question_number = question_number, clusters = questions[question_number].rule_based_cluster[0],
-                               fixes = fixes, cluster_id=cluster_id,
-                               coverage_percentage=coverage_percentage)
+        return render_template('show_fixes_by_rules.html', 
+                                question_name = question_files[question_number],
+                                question_number = question_number, 
+                                clusters = questions[question_number].rule_based_cluster[0],
+                                fixes = fixes, cluster_id=cluster_id,
+                                coverage_percentage=coverage_percentage)
     elif (tab_id==1):
 
-        return render_template('show_fixes_by_test.html', question_name = questions[question_number],
-                               question_number = question_number, clusters = questions[question_number].test_based_cluster,
-                               fixes = fixes, cluster_id=cluster_id,
-                               coverage_percentage=coverage_percentage)
+        return render_template('show_fixes_by_test.html', 
+                                question_name = questions[question_number],
+                                question_number = question_number, 
+                                clusters = questions[question_number].test_based_cluster,
+                                fixes = fixes, cluster_id=cluster_id,
+                                coverage_percentage=coverage_percentage)
     elif (tab_id==2):
-        return render_template('show_fixes_by_testsxrules.html', question_name = questions[question_number],
-                               question_number = question_number, clusters = questions[question_number].rule_and_test_based_cluster,
-                               fixes = fixes, cluster_id=cluster_id,
-                               coverage_percentage=coverage_percentage)
+        return render_template('show_fixes_by_testsxrules.html', 
+                                question_name = questions[question_number],
+                                question_number = question_number, 
+                                clusters = questions[question_number].rule_and_test_based_cluster,
+                                fixes = fixes, cluster_id=cluster_id,
+                                coverage_percentage=coverage_percentage)
         
 
 # @app.route('/delete', methods=['POST'])
