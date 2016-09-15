@@ -80,7 +80,7 @@ class App extends Component {
 ## 2. Show the data
 React allows you to show the data with JSX. You can use the data anywhere from the React app. Just like this
 
-![](http://reactfordesigners.com/labs/reactjs-introduction-for-people-who-know-just-enough-jquery-to-get-by/images/labs/jquery-style-vs-react-style.png)
+![](http://reactfordesigners.com/images/labs/jquery-style-vs-react-style.png)
 From [React.js Introduction For People Who Know Just Enough jQuery To Get By](http://reactfordesigners.com/labs/reactjs-introduction-for-people-who-know-just-enough-jquery-to-get-by/)
 
 This is main view in `App.js`
