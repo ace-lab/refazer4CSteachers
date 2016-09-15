@@ -78,22 +78,16 @@ def get_fix(question_number, cluster_id):
     return ordered_clusters[question_number][cluster_id].fix
 
 def get_test(failed):
-    #print('failed',failed)
     expected_value = ''
     output_value = ''
     previous_line = ''
     testcases = []
     for line in failed:
-        #print(line)
         if previous_line == '# Error: expected':
-            #print('this is an expected value')
             expected_value = line[1:].strip()
         if previous_line == '# but got':
-            #print('this is the output value')
             output_value = line[1:].strip()
-            #print(output_value)
         if line.startswith('>>>'):
-            #print('test case:', line)
             line_no_comment = line[4:].split('#')[0] #removes comments
             if not line_no_comment.startswith('check(') and not line_no_comment.startswith('from construct_check import check'):
                 testcases.append(line_no_comment)
@@ -128,7 +122,6 @@ def create_question(question_number):
 
     rule_and_test_based_cluster = []
 
-
     for submission_pair in submission_pairs:
         if (submission_pair['IsFixed'] == True):
             rule = submission_pair['UsedFix']
@@ -145,9 +138,6 @@ def create_question(question_number):
             fix['tests'] = test
 
             id = submission_pair['Id']
-
-
-
 
             if (rule in clustered_fixes_by_rule.keys()):
                 clustered_fixes_by_rule[rule].append(fix)
@@ -192,18 +182,14 @@ def create_question(question_number):
                         test_based_cluster = test_based_clusters, rule_and_test_based_cluster=rule_and_test_based_cluster)
 
     return question
-    #return (ordered_clusters, group_id_to_test_for_a_question)
 
 def init_app():
-    #global ordered_clusters
-    #ordered_clusters = {}
     global group_id_to_test
     group_id_to_test = {}
     global questions
     questions = {}
     for question_number in question_files.keys():
         questions[question_number] = create_question(question_number)
-        #print("question number ", question_number, group_id_to_test[question_number])
     print(questions)
 
 def connect_db():
@@ -259,7 +245,6 @@ def show_detail(question_number, view_id, cluster_id):
     fixes = get_fixes(question_number)
     coverage_percentage = get_coverage(question_number, fixes)
 
-    #print('last time printing group_id_to_test', group_id_to_test)
     print (questions[question_number].rule_based_cluster[0][0].fixes)
     if (view_id==0):
         return render_template('show_fixes_by_rules.html', question_name = question_files[question_number],
