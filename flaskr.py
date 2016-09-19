@@ -38,11 +38,12 @@ class Rule_and_test_based_cluster:
         self.fixes = fixes
 
 class Question:
-    def __init__(self, question_id, rule_based_cluster, test_based_cluster, rule_and_test_based_cluster):
-        self.question_id = question_id,
-        self.rule_based_cluster = rule_based_cluster,
+    def __init__(self, question_id, rule_based_cluster, test_based_cluster, rule_and_test_based_cluster,question_instructions):
+        self.question_id = question_id
+        self.rule_based_cluster = rule_based_cluster
         self.test_based_cluster = test_based_cluster
         self.rule_and_test_based_cluster = rule_and_test_based_cluster
+        self.question_instructions = question_instructions
 
 
 app = Flask(__name__)
@@ -107,10 +108,35 @@ def get_test(failed):
 
 
 def create_question(question_number):
+
+    question_instructions = {
+    1:'''<code>accumulate(combiner, base, n, term)</code> takes the following arguments:
+    <ul>
+    <li>
+        <code>term</code and <code>n</code: the same arguments as in <code>summation</code> and <code>product</code>
+    </li>
+    <li>
+        <code>combiner</code>: a two-argument function that specifies how the current term combined with the previously accumulated terms.
+    </li>
+    <li>
+        <code>base</code>: value that specifies what value to use to start the accumulation.
+    </li>
+    </ul>
+    For example, <code>accumulate(add, 11, 3, square)</code> is <code>11 + square(1) + square(2) + square(3)</code>.''',
+    2:'''A mathematical function G on positive integers is defined by two cases:
+
+<code>G(n) = n</code> if <code>n <= 3</code>
+<code>G(n) = G(n - 1) + 2 * G(n - 2) + 3 * G(n - 3)</code> if <code>n > 3</code>
+
+Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
+    3:'TODO: RETRIEVE DIRECTIONS FOR Product-mistakes.json',
+    4:'TODO: RETRIEVE DIRECTIONS FOR repeated-mistakes.json'
+    }
+
     ordered_clusters = []
 
     with open('data/'+question_files[question_number]) as data_file:
-    	submission_pairs = json.load(data_file)
+        submission_pairs = json.load(data_file)
 
     clustered_fixes_by_rule = {}
     clustered_fixes_by_test = {}
@@ -179,7 +205,8 @@ def create_question(question_number):
     test_based_clusters.sort(key = lambda x : len(x.fixes), reverse= True)
     rule_and_test_based_cluster.sort(key = lambda  x : len(x.fixes), reverse=True)
     question = Question(question_id=question_number, rule_based_cluster = ordered_clusters,
-                        test_based_cluster = test_based_clusters, rule_and_test_based_cluster=rule_and_test_based_cluster)
+                        test_based_cluster = test_based_clusters, rule_and_test_based_cluster=rule_and_test_based_cluster,
+                        question_instructions = question_instructions[question_number])
 
     return question
 
@@ -244,27 +271,30 @@ def show_detail(question_number, tab_id, cluster_id):
 
     fixes = get_fixes(question_number)
     #coverage_percentage = get_coverage(question_number, fixes)
-
+    #print('question_instructions',question_instructions)
     #print (questions[question_number].rule_based_cluster[0][0].fixes)
     if (tab_id==0):
         return render_template('show_fixes_by_rules.html', 
                                 question_name = question_files[question_number],
                                 question_number = question_number, 
-                                clusters = questions[question_number].rule_based_cluster[0],
-                                fixes = fixes, cluster_id=cluster_id)
+                                clusters = questions[question_number].rule_based_cluster,
+                                fixes = fixes, cluster_id=cluster_id,
+                                question_instructions = questions[question_number].question_instructions)
     elif (tab_id==1):
 
         return render_template('show_fixes_by_test.html', 
                                 question_name = questions[question_number],
                                 question_number = question_number, 
                                 clusters = questions[question_number].test_based_cluster,
-                                fixes = fixes, cluster_id=cluster_id)
+                                fixes = fixes, cluster_id=cluster_id,
+                                question_instructions = questions[question_number].question_instructions)
     elif (tab_id==2):
         return render_template('show_fixes_by_testsxrules.html', 
                                 question_name = questions[question_number],
                                 question_number = question_number, 
                                 clusters = questions[question_number].rule_and_test_based_cluster,
-                                fixes = fixes, cluster_id=cluster_id)
+                                fixes = fixes, cluster_id=cluster_id,
+                                question_instructions = questions[question_number].question_instructions)
         
 
 # @app.route('/delete', methods=['POST'])
