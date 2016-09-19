@@ -1,34 +1,5 @@
 {% extends "layout.html" %}
 
-{% block navbar %}
-<nav class="navbar navbar-default navbar-fixed-top">
-  <div class="container-fluid">
-    <div class="navbar-header">
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-      <a class="navbar-brand" href="#">OverHint</a>
-    </div>
-    <div id="navbar" class="navbar-collapse collapse">
-      <ul class="nav navbar-nav">
-        <li>
-          <a>
-            <div class="progress" id="hintprogressbar">
-              <div class="progress-bar" role="progressbar" aria-valuenow="{{ coverage_percentage }}" aria-valuemin="0" aria-valuemax="100" style="width:{{ coverage_percentage }}%">
-                {{ coverage_percentage }}%
-              </div>
-            </div>
-          </a>
-        </li>
-      </ul>
-    </div><!--/.nav-collapse -->
-  </div>
-</nav>
-{% endblock %}
-
 {% block fixes %}
 <div class="row">
   {% block clusters %}{% endblock %}
