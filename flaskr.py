@@ -66,13 +66,13 @@ app.config.update(dict(
 
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
 
-def get_coverage(question_number,entries):
+# def get_coverage(question_number,entries):
 
-    covered_bugs = 0
-    for entry in entries:
-        covered_bugs+=questions[question_number].rule_based_cluster['cluster_id'].number
-    total_bugs = 1
-    return math.ceil(covered_bugs*100/total_bugs)
+#     covered_bugs = 0
+#     for entry in entries:
+#         covered_bugs+=questions[question_number].rule_based_cluster['cluster_id'].number
+#     total_bugs = 1
+#     return math.ceil(covered_bugs*100/total_bugs)
 
 def get_fix(question_number, cluster_id):
     return ordered_clusters[question_number][cluster_id].fix
@@ -243,7 +243,7 @@ def show_fixes():
 def show_detail(question_number, tab_id, cluster_id):
 
     fixes = get_fixes(question_number)
-    coverage_percentage = get_coverage(question_number, fixes)
+    #coverage_percentage = get_coverage(question_number, fixes)
 
     #print (questions[question_number].rule_based_cluster[0][0].fixes)
     if (tab_id==0):
@@ -251,23 +251,20 @@ def show_detail(question_number, tab_id, cluster_id):
                                 question_name = question_files[question_number],
                                 question_number = question_number, 
                                 clusters = questions[question_number].rule_based_cluster[0],
-                                fixes = fixes, cluster_id=cluster_id,
-                                coverage_percentage=coverage_percentage)
+                                fixes = fixes, cluster_id=cluster_id)
     elif (tab_id==1):
 
         return render_template('show_fixes_by_test.html', 
                                 question_name = questions[question_number],
                                 question_number = question_number, 
                                 clusters = questions[question_number].test_based_cluster,
-                                fixes = fixes, cluster_id=cluster_id,
-                                coverage_percentage=coverage_percentage)
+                                fixes = fixes, cluster_id=cluster_id)
     elif (tab_id==2):
         return render_template('show_fixes_by_testsxrules.html', 
                                 question_name = questions[question_number],
                                 question_number = question_number, 
                                 clusters = questions[question_number].rule_and_test_based_cluster,
-                                fixes = fixes, cluster_id=cluster_id,
-                                coverage_percentage=coverage_percentage)
+                                fixes = fixes, cluster_id=cluster_id)
         
 
 # @app.route('/delete', methods=['POST'])
