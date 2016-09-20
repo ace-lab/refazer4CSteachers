@@ -306,10 +306,14 @@ def show_detail(question_number, tab_id, cluster_id):
 
 @app.route('/add', methods=['POST'])
 def add_hint():
+    print('adding hint',request.form['question_number'], request.form['cluster_id'], request.form['tab'], request.form['text'])
+
     db = get_db()
     db.execute('insert into entries (title, question_number, cluster_id, tab, text) values (?, ?, ?, ?)',
                  ['title', request.form['question_number'], request.form['cluster_id'], request.form['tab'], request.form['text']])
     db.commit()
+
+    #does this need to be updated? TODO
     return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=request.form['tab'], cluster_id=request.form['cluster_id']))
 
 if __name__ == '__main__':
