@@ -32,6 +32,11 @@
                 {% endfor %}
               </tbody>
             </table>
+            <div class='dynamic-info'>
+              {% for variable_diff in item.dynamic_diff %}
+                {{variable_diff}}
+              {% endfor %}
+            </div>
         </div>
       {% endfor %}
     </div>

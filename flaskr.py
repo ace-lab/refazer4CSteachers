@@ -53,9 +53,9 @@ group_id_to_test = {}
 
 question_files = {
     1:'accumulate-mistakes.json',
-    2:'G-mistakes.json',
-    3:'Product-mistakes.json',
-    4:'repeated-mistakes.json'
+    # 2:'G-mistakes.json',
+    # 3:'Product-mistakes.json',
+    # 4:'repeated-mistakes.json'
     }
 
 app.config.update(dict(
@@ -148,8 +148,21 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
 
     rule_and_test_based_cluster = []
 
+    no_sequence_diff = []
+    def_seq_diff = []
+    num_fixed = []
+
     for submission_pair in submission_pairs:
         if (submission_pair['IsFixed'] == True):
+            num_fixed.append(submission_pair)
+            print(submission_pair.keys())
+            if 'sequence_comparison_diff' in submission_pair:
+                print(submission_pair['sequence_comparison_diff'])
+                def_seq_diff.append(submission_pair)
+            print('len of seq diff',len(def_seq_diff))
+            #else:
+            #    print()
+            #print(submission_pair)
             rule = submission_pair['UsedFix']
             rule = rule.replace('\\', '')
 
@@ -162,6 +175,13 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
             test = get_test(submission_pair['failed'])
             fix['diff_lines'] = diff_lines
             fix['tests'] = test
+            try:
+                fix['dynamic_diff'] = submission_pair['sequence_comparison_diff']
+            except:
+                #print('no sequence diff for', submission_pair)
+                no_sequence_diff.append(submission_pair)
+                print(len(no_sequence_diff),len(num_fixed))
+
 
             id = submission_pair['Id']
 
