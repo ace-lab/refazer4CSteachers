@@ -155,14 +155,6 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
     for submission_pair in submission_pairs:
         if (submission_pair['IsFixed'] == True):
             num_fixed.append(submission_pair)
-            print(submission_pair.keys())
-            if 'sequence_comparison_diff' in submission_pair:
-                print(submission_pair['sequence_comparison_diff'])
-                def_seq_diff.append(submission_pair)
-            print('len of seq diff',len(def_seq_diff))
-            #else:
-            #    print()
-            #print(submission_pair)
             rule = submission_pair['UsedFix']
             rule = rule.replace('\\', '')
 
@@ -178,10 +170,7 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
             try:
                 fix['dynamic_diff'] = submission_pair['sequence_comparison_diff']
             except:
-                #print('no sequence diff for', submission_pair)
                 no_sequence_diff.append(submission_pair)
-                print(len(no_sequence_diff),len(num_fixed))
-
 
             id = submission_pair['Id']
 
