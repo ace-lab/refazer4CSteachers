@@ -33,9 +33,26 @@
               </tbody>
             </table>
             <div class='dynamic-info'>
-              {% for variable_diff in item.dynamic_diff %}
-                {{variable_diff}}
+              {# variable_diff is a dic that has the test case as key.
+                   The test case is defined as 'print function(parameters)'
+                   We can get the test case from the item['tests'] property
+                   TODO: rename the key to remove the print part so that it keeps the 
+                   same name pattern of the test in the property 'tests' from item    
+                #}
+                {% set key = 'print ' + item.tests[0]['input'] | trim %}
+              <table class="table"> 
+                <tr><td colspan="3">{{key}}</td></tr>
+                <tr><td>Variable</td><td>Incorrect code</td><td>Fixed code</td></tr>             
+              {% for variable_diff in item.dynamic_diff %}    
+                {% if key in item.dynamic_diff[variable_diff]%}  
+                <tr>
+                  <td>{{variable_diff}}</td>
+                  <td>{{item.dynamic_diff[variable_diff][key][1]}}</td>
+                  <td>{{item.dynamic_diff[variable_diff][key][0]}}</td>                
+                </tr>
+                {% endif %}
               {% endfor %}
+              </table>
             </div>
         </div>
       {% endfor %}
