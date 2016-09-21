@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+
+{% block fixes %}
+
+<div class="row">
+	<div class="col-md-6">
+<h3>Follow-up task</h3>
+<p>Look at the following feedback</p>
+<p>"Feedback for question"</p>
+<p>Now, consider the following 3 incorrect submissions. Is the above feedback appropriated for all submissions?</p>
+<div>
+	<table class="table">
+		<tr><td>Submission 1</td><td>Submission 2</td><td>Submission 3</td></tr>
+		<tr>
+			<td>
+				<div class="source-file table-responsive"
+				data-filename='example'>
+				<table class="highlight">
+					<tbody>
+						{% for line in item1.diff_lines %}
+						<tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
+							{% if line.is_diff %}
+							{{ line_number(line.line_before) }}
+							{% endif %}
+							{{ line_number(line.line_after) }}
+							<td>
+								<span class="highlight-source">{{ line.contents | escape}}</span>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</td>
+		<td>
+			<div class="source-file table-responsive"
+				data-filename='example'>
+				<table class="highlight">
+					<tbody>
+						{% for line in item2.diff_lines %}
+						<tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
+							{% if line.is_diff %}
+							{{ line_number(line.line_before) }}
+							{% endif %}
+							{{ line_number(line.line_after) }}
+							<td>
+								<span class="highlight-source">{{ line.contents | escape}}</span>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</td>
+		<td>
+<div class="source-file table-responsive"
+				data-filename='example'>
+				<table class="highlight">
+					<tbody>
+						{% for line in item3.diff_lines %}
+						<tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
+							{% if line.is_diff %}
+							{{ line_number(line.line_before) }}
+							{% endif %}
+							{{ line_number(line.line_after) }}
+							<td>
+								<span class="highlight-source">{{ line.contents | escape}}</span>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</td>
+	</tr>
+</table>
+</div>
+<div>
+	<p>Choose one of the following answers:</p> 
+	<div class="radio">
+  <label><input type="radio" name="optradio">The feedback is appropriated for all 3 submissions</label>
+</div>
+<div class="radio">
+  <label><input type="radio" name="optradio">The feedback is appropriated for all 3 submissions but I could write a better feedback if I consider each submission individually</label>
+</div>
+<div class="radio">
+  <label><input type="radio" name="optradio" >Feedback is not appropriated for one or more submissions</label>
+</div>
+<div class="radio">
+  <label><input type="radio" name="optradio" >Others</label>
+</div>
+</div>
+	</div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+$("#task-tab").addClass("active")
+{% endblock %}

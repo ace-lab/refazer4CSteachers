@@ -304,7 +304,52 @@ def show_detail(question_number, tab_id, cluster_id):
                                 clusters = questions[question_number].rule_and_test_based_cluster,
                                 fixes = fixes, cluster_id=cluster_id,
                                 question_instructions = questions[question_number].question_instructions)
-        
+    elif (tab_id==3):
+        item1 = {}
+        code_before = """def accumulate(combiner, base, n, term):
+      if n==1:
+          return combiner(base, term(n))
+      else:
+          return combiner(accumulate(combiner, base, n-1, term), term(n))"""
+        code_after = """def accumulate(combiner, base, n, term):
+      if n<=1:
+          return combiner(base, term(n))
+      else:
+          return combiner(accumulate(combiner, base, n-1, term), term(n))"""
+        filename = 'file1'
+        item1['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
+
+        item2 = {}
+        code_before = """def accumulate(combiner, base, n, term):
+          if n==1:
+              return combiner(base, term(n))
+          else:
+              return combiner(accumulate(combiner, base, n-1, term), term(n))"""
+        code_after = """def accumulate(combiner, base, n, term):
+          if n<=1:
+              return combiner(base, term(n))
+          else:
+              return combiner(accumulate(combiner, base, n-1, term), term(n))"""
+        filename = 'file2'
+        item2['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
+
+        item3 = {}
+        code_before = """def accumulate(combiner, base, n, term):
+          if n==1:
+              return combiner(base, term(n))
+          else:
+              return combiner(accumulate(combiner, base, n-1, term), term(n))"""
+        code_after = """def accumulate(combiner, base, n, term):
+          if n<=1:
+              return combiner(base, term(n))
+          else:
+              return combiner(accumulate(combiner, base, n-1, term), term(n))"""
+        filename = 'file3'
+        item3['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
+        return render_template('task.html', item1 = item1, item2 = item2, item3 = item3, question_number = question_number)
+
+
+
 
 # @app.route('/delete', methods=['POST'])
 # def delete_hint():
