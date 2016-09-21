@@ -32,9 +32,9 @@
       <!-- <div class="container"> -->
         {% block tabs %}
         <ul class="nav nav-tabs">
-          <li class="active"><a href="/{{question_number}}/0/0">Rule</a></li>
-          <li><a href="/{{question_number}}/1/0">Test</a></li>
-          <li><a href="/{{question_number}}/2/0">Rule x Test</a></li>
+          <li id="rule-based-tab"><a href="/{{question_number}}/0/0">Rule</a></li>
+          <li id="test-based-tab"><a href="/{{question_number}}/1/0">Test</a></li>
+          <li id="rulextest-based-tab"><a href="/{{question_number}}/2/0">Rule x Test</a></li>
         </ul>
         {% endblock %}
       <!-- </div> -->
@@ -53,6 +53,7 @@
             $(this).tab('show');
         });
     });
+    {% block script %}{% endblock %}
     </script>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->

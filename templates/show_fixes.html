@@ -41,7 +41,7 @@
                 #}
                 {% set key = 'print ' + item.tests[0]['input'] | trim %}
               <table class="table"> 
-                <tr><td colspan="3">{{key}}</td></tr>
+                <tr><td colspan="col-md-3">{{key}}</td></tr>
                 <tr><td>Variable</td><td>Incorrect code</td><td>Fixed code</td></tr>             
               {% for variable_diff in item.dynamic_diff %}    
                 {% if key in item.dynamic_diff[variable_diff]%}  
@@ -73,4 +73,10 @@
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block script %}
+<script>
+$("#tab-rule-based-tab").class("active")
+</script>
 {% endblock %}
