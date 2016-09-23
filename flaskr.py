@@ -298,7 +298,6 @@ def show_detail(question_number, tab_id, cluster_id):
             cluster_id = cluster_id,
             tab_id = tab_id,
             question_instructions = questions[question_number].question_instructions,
-            math = math
         )
     elif (tab_id==1):
 
@@ -310,7 +309,6 @@ def show_detail(question_number, tab_id, cluster_id):
             cluster_id = cluster_id,
             tab_id = tab_id,
             question_instructions = questions[question_number].question_instructions,
-            math=math
         )
     elif (tab_id==2):
         return render_template('show_fixes_by_testsxrules.html',
@@ -321,7 +319,6 @@ def show_detail(question_number, tab_id, cluster_id):
             cluster_id = cluster_id,
             tab_id = tab_id,
             question_instructions = questions[question_number].question_instructions,
-            math = math
         )
     elif (tab_id==3):
         item1 = {}
@@ -393,12 +390,20 @@ def show_detail(question_number, tab_id, cluster_id):
 def add_hint():
     print('adding hint',request.form['question_number'], request.form['cluster_id'], request.form['tab_id'], request.form['text'])
     db = get_db()
-    db.execute('insert into entries (title, question_number, cluster_id, tab_id, text) values (?, ?, ?, ?, ?)',
+    db.execute('INSERT INTO entries (title, question_number, cluster_id, tab_id, text) VALUES (?, ?, ?, ?, ?)',
                  ['title', request.form['question_number'], request.form['cluster_id'], request.form['tab_id'], request.form['text']])
     db.commit()
 
     #does this need to be updated? TODO
     return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=request.form['tab_id'], cluster_id=request.form['cluster_id']))
+
+@app.route('/update', methods=['POST'])
+def update_hint():
+    db = get_db()
+    db.execute('UPDATE entries SET text=? WHERE cluster_id=? AND question_number=? AND tab_id=?', [request.form['text'], request.form['cluster_id'], request.form['question_number'], request.form['tab_id']])
+    db.commit()
+    return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=request.form['tab_id'], cluster_id=request.form['cluster_id']))
+
 
 if __name__ == '__main__':
     # initdb_command()
