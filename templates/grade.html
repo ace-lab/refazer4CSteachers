@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block fixes %}
+{% if ok %}
+<p>Number of fixes: {{fixes}}</p>
+{% endif %}
+<p>Problem: </p>
+<p>{{error}}</p>
+{% endblock %}
+
+{% block script %}
+$("#grader-based-tab").addClass("active")
+{% endblock %}
