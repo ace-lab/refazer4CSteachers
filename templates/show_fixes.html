@@ -94,7 +94,7 @@
         <a href="#" id="edit-hint-button">Edit</a>
         </div>
         <div id="edit-hint" style="display:none;">
-          <form class="ui form" action="{{ url_for('add_hint') }}" method="POST">
+          <form class="ui form" action="{{ url_for('update_hint') }}" method="POST">
             <div class="field">
               <textarea name="text" rows=3 cols=40>{{(
                 fixes
