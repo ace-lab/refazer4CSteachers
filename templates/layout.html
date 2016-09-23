@@ -123,6 +123,18 @@
         $(".nav-tabs a").click(function(){
             $(this).tab('show');
         });
+
+        $('#edit-hint-button').click(function(event) {
+          event.preventDefault()
+          $('#edit-hint').show()
+          $('#show-hint').hide()
+        })
+        $('#cancel-hint-button').click(function(event) {
+          event.preventDefault()
+          $('#edit-hint').hide()
+          $('#show-hint').show()
+        })
+
     });
     {% block script %}{% endblock %}
     </script>
