@@ -5,6 +5,7 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 import json
 import highlight
+import requests
 import math
 
 class Rule_and_test:
@@ -38,12 +39,14 @@ class Rule_and_test_based_cluster:
         self.fixes = fixes
 
 class Question:
-    def __init__(self, question_id, rule_based_cluster, test_based_cluster, rule_and_test_based_cluster,question_instructions):
+    def __init__(self, question_id, rule_based_cluster, test_based_cluster, rule_and_test_based_cluster,
+                 question_instructions, fixes):
         self.question_id = question_id
         self.rule_based_cluster = rule_based_cluster
         self.test_based_cluster = test_based_cluster
         self.rule_and_test_based_cluster = rule_and_test_based_cluster
         self.question_instructions = question_instructions
+        self.fixes = fixes
 
 
 app = Flask(__name__)
@@ -142,6 +145,7 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
     clustered_fixes_by_test = {}
     clustered_fixes_by_rule_and_test = {}
     group_id_to_test_for_a_question = {}
+    fixes = []
 
     group_id = -1
     checked_tests = []
@@ -167,6 +171,9 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
             test = get_test(submission_pair['failed'])
             fix['diff_lines'] = diff_lines
             fix['tests'] = test
+            fix['before'] = code_before
+            fix['synthesized_after'] = code_after
+            fix['is_fixed'] = True;
             try:
                 fix['dynamic_diff'] = submission_pair['sequence_comparison_diff']
             except:
@@ -195,6 +202,8 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
 
             fix['group_id'] = group_id
             group_id_to_test_for_a_question[group_id] = test
+            fixes.append(fix)
+
 
 
     for key,value in clustered_fixes_by_rule.items():
@@ -215,7 +224,7 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
     rule_and_test_based_cluster.sort(key = lambda  x : len(x.fixes), reverse=True)
     question = Question(question_id=question_number, rule_based_cluster = ordered_clusters,
                         test_based_cluster = test_based_clusters, rule_and_test_based_cluster=rule_and_test_based_cluster,
-                        question_instructions = question_instructions[question_number])
+                        question_instructions = question_instructions[question_number], fixes= fixes)
 
     return question
 
@@ -275,9 +284,9 @@ def show_question(question_number):
 def show_fixes():
     return redirect(url_for('show_detail', question_number=1, tab_id=0, cluster_id=0, group_id=0))
 
+
 @app.route('/<int:question_number>/<int:tab_id>/<int:cluster_id>')
 def show_detail(question_number, tab_id, cluster_id):
-
     fixes = get_fixes(question_number)
     #coverage_percentage = get_coverage(question_number, fixes)
     #print('question_instructions',question_instructions)
@@ -347,6 +356,20 @@ def show_detail(question_number, tab_id, cluster_id):
         filename = 'file3'
         item3['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
         return render_template('task.html', item1 = item1, item2 = item2, item3 = item3, question_number = question_number)
+    elif (tab_id==4):
+        for fix in questions[question_number].fixes:
+            fix['diff_lines'] = []
+        print('Number of submissions sent  to Refazer')
+        print(len(questions[question_number].fixes))
+        data = requests.post('http://localhost:53530/api/refazer', json={"submissions":list(questions[question_number].fixes)})
+        if data.ok:
+            print("Number of submissions returned")
+            print(len(data.json()))
+            return render_template('grade.html', ok = True, fixes  = len(data.json()), error = "",question_number = question_number)
+        else:
+            print("problem found")
+            print(data.content)
+            return render_template('grade.html', ok = False, error = data.content,question_number = question_number)
 
 
 
