@@ -40,13 +40,13 @@ class Rule_and_test_based_cluster:
 
 class Question:
     def __init__(self, question_id, rule_based_cluster, test_based_cluster, rule_and_test_based_cluster,
-                 question_instructions, fixes):
+                 question_instructions, submissions):
         self.question_id = question_id
         self.rule_based_cluster = rule_based_cluster
         self.test_based_cluster = test_based_cluster
         self.rule_and_test_based_cluster = rule_and_test_based_cluster
         self.question_instructions = question_instructions
-        self.fixes = fixes
+        self.submissions = submissions
 
 
 app = Flask(__name__)
@@ -224,7 +224,7 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
     rule_and_test_based_cluster.sort(key = lambda  x : len(x.fixes), reverse=True)
     question = Question(question_id=question_number, rule_based_cluster = ordered_clusters,
                         test_based_cluster = test_based_clusters, rule_and_test_based_cluster=rule_and_test_based_cluster,
-                        question_instructions = question_instructions[question_number], fixes= fixes)
+                        question_instructions = question_instructions[question_number], submissions= fixes)
 
     return question
 
@@ -357,11 +357,11 @@ def show_detail(question_number, tab_id, cluster_id):
         item3['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
         return render_template('task.html', item1 = item1, item2 = item2, item3 = item3, question_number = question_number)
     elif (tab_id==4):
-        for fix in questions[question_number].fixes:
+        for fix in questions[question_number].submissions:
             fix['diff_lines'] = []
         print('Number of submissions sent  to Refazer')
-        print(len(questions[question_number].fixes))
-        data = requests.post('http://localhost:53530/api/refazer', json={"submissions":list(questions[question_number].fixes)})
+        print(len(questions[question_number].submissions))
+        data = requests.post('http://localhost:53530/api/refazer', json={"submissions":list(questions[question_number].submissions)})
         if data.ok:
             print("Number of submissions returned")
             print(len(data.json()))
