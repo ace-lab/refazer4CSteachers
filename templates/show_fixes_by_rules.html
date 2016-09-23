@@ -9,8 +9,10 @@
       {% else %}
         <li class="list-group-item">
       {% endif %}
-        <span class="badge">{{ clusters[i].size }}</span>
+
+        <span class="badge ui label label-size-{{ math.floor(clusters[i].size/10) }}">{{ clusters[i].size }}</span>
         <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
+
         <b>Cluster {{i}}</b>
         {% for line in clusters[i].fixes[0].diff_lines %}
           {% if line.tag == "insert" %}
@@ -20,7 +22,7 @@
           {% elif line.tag == "replace" %}
             <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
           {% endif %}
-        {% endfor %}                  
+        {% endfor %}
       </li></a>
     {% endfor %}
   </ul>
