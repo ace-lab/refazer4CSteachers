@@ -120,3 +120,34 @@ td.slim-cell {
     font-size: 150%;
   }
 }
+
+
+
+pre{
+  font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
+  margin-bottom: 10px;
+  overflow: auto;
+  width: auto;
+  padding: 5px;
+  background-color: #eee;
+  width: 650px!ie7;
+  padding-bottom: 20px!ie7;
+  max-height: 600px;
+}
+/*body { padding-top: 70px; } *//*space for header*/
+#hintprogressbar {
+  width: 500px;
+  margin-bottom: 0px;
+}
+.notabadge {
+  float: right;
+  padding-right: 5px;
+}
+.code {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+}
+/*.returned .expected {
+  width: 100px;
+  display: block;
+}*/

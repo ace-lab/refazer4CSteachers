@@ -70,236 +70,26 @@
   {% endmacro %}
 
   <body>
-    <nav class="navbar navbar-default navbar-fixed-top">
+    {% block navbar %}{% endblock %}
+
     <div class="container-fluid">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="#">OverHint</a>
-        </div>
-        <div id="navbar" class="navbar-collapse collapse">
-          <ul class="nav navbar-nav">
-            <!-- <li class="active"><a href="#">Home</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#contact">Contact</a></li>
-            <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dropdown <span class="caret"></span></a>
-              <ul class="dropdown-menu">
-                <li><a href="#">Action</a></li>
-                <li><a href="#">Another action</a></li>
-                <li><a href="#">Something else here</a></li>
-                <li role="separator" class="divider"></li>
-                <li class="dropdown-header">Nav header</li>
-                <li><a href="#">Separated link</a></li>
-                <li><a href="#">One more separated link</a></li>
-              </ul>
-            </li> -->
-            <li>
-              <a><div class="progress" id="hintprogressbar">
-                <div class="progress-bar" role="progressbar" aria-valuenow="{{ coverage_percentage }}"
-    aria-valuemin="0" aria-valuemax="100" style="width:{{ coverage_percentage }}%">
-      {{ coverage_percentage }}%
-                </div>
-              </div></a>
-            </li>
-          </ul>
-          <!-- <ul class="nav navbar-nav navbar-right">
-            <li><a href="#">Right navbar placeholder</a></li>
-            <li class="active"><a href="#">Right navbar placeholder active</a></li>
-          </ul> -->
-        </div><!--/.nav-collapse -->
-    </div>
-  </nav>
-    <div class="container-fluid">
-      <div class="row">
-        <div class="col-md-3">
-          <ul class="list-group">
-
-            {% for i in range(clusters|length) %}
-              <a href="/{{question_number}}/{{i}}/0">
-              {% if cluster_id == i %}
-                <li class="list-group-item list-group-item-info">
-              {% else %}
-                <li class="list-group-item">
-              {% endif %}
-                <span class="badge">{{ clusters[i].number }}</span>
-                <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
-
-
-                <b>Cluster {{i}}</b>
-                {% for line in clusters[i].items[0].diff_lines %}
-                  {% if line.tag == "insert" %}
-                    <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
-                  {% elif line.tag == "delete" %}
-                    <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
-                  {% elif line.tag == "replace" %}
-                    <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
-                  {% endif %}
-                {% endfor %}
-
-              </li></a>
-            {% endfor %}
-          </ul>
-        </div>
-
-        <div class="col-md-3">
-          <ul class="list-group">
-
-            {% for g in clusters[cluster_id].groups %}
-              <a href="/{{question_number}}/{{cluster_id}}/{{g['group_id']}}">
-              {% if g['group_id'] == group_id %}
-                <li class="list-group-item list-group-item-info">
-              {% else %}
-                <li class="list-group-item">
-              {% endif %}
-                <span class="badge">{{g['count']}}</span>
-
-                <!-- Behavioral Misfire {{ g['group_id'] }} -->
-                <span>test case</span>
-                <span class="code">{{g['input']}}</span>
-                <br>
-                <span>returned</span>
-                <span class="code">{{g['output']}}</span>
-                <br>
-                <span>instead of</span>
-                <span class="code">{{g['expected']}}</span>
-                <!-- <i>:</i>  -->
-
-              </li></a>
-            {% endfor %}
-          </ul>
-        </div>
-
-        <div class="col-md-6">
-
-          <div id="react-app"></div>
-
-          <div style="overflow-y: scroll; height: 1000px;">
-
-            <!-- <h1>Key:</h1>
-            <pre>{{ clusters[cluster_id].items[0].keys() }}</pre> -->
-            {% for item in clusters[cluster_id].items %}
-              {% if item.group_id == group_id %}
-               <div class="source-file table-responsive"
-                  data-filename='example'>
-                  <table class="highlight">
-                    <!-- <thead>
-                      <tr>
-                        <th class="source-file-header" colspan=3>
-                            <div class="source-file-name fixed-width-font">Student bug fix {{ item.Id }} </div>
-                        </th>
-                      </tr>
-                    </thead> -->
-                    <tbody>
-
-                      {% for line in item.diff_lines %}
-                        <tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
-                          {% if line.is_diff %}
-                            {{ line_number(line.line_before) }}
-                          {% endif %}
-                          {{ line_number(line.line_after) }}
-                          <td>
-                            <span class="highlight-source">{{ line.contents | escape}}</span>
-                          </td>
-                        </tr>
-                        {% if line.comments %}
-                          <tr data-line={{ line.line_after }}>
-                            <td class="comment-container" colspan=3>
-                              {% for comment in line.comments %}
-                                {{ render_comment(comment) }}
-                              {% endfor %}
-                            </td>
-                          </tr>
-                        {% endif %}
-                      {% endfor %}
-
-                    </tbody>
-                  </table>
-
-                  <!-- <table class="table">
-                    <thead>
-                      <tr>
-                        <th></th>
-                        <th></th>
-                        <th></th>
-                      </tr>
-                      <tr>
-                        <th>Test case failed before fix</th>
-                        <th>Expected</th>
-                        <th>Output before fix</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for test in item.tests %}
-                      <tr>
-                        <td>{{ test.input }}</td>
-                        <td>{{ test.expected }}</td>
-                        <td>{{ test.output }}</td>
-                      </tr>
-                    </tbody>
-                    {% endfor %}
-                  </table> -->
-              </div>
-              {% endif %}
-            {% endfor %}
-          </div>
-        </div>
-
-        <!--
-        <div class="col-md-3">
-          <ul class="nav nav-tabs">
-            <li class="active"><a href="#hints">Hint</a></li>
-            <li><a href="#rule">Rule</a></li>
-            <li><a href="#file">File</a></li>
-          </ul>
-          <div class="tab-content">
-            <div id="hints" class="tab-pane fade in active">
-              <h3>Hint</h3>
-              <form action="{{ url_for('add_hint') }}" method=post>
-                <dl>
-                  <dd><textarea name=text rows=3 cols=40></textarea>
-                  <input type="hidden" name=cluster_id value={{cluster_id}}>
-                  <input type="hidden" name=question_number value={{question_number}}>
-                  <dd><input type=submit value=Add>
-                </dl>
-              </form>
-              <form action="{{ url_for('delete_hint') }}" method=post>
-                <input type="hidden" name=cluster_id value={{cluster_id}}>
-                <input type="hidden" name=question_number value={{question_number}}>
-                <dd><input type=submit value=Delete>
-              </form>
-              <hr>
-              <ul class=entries>
-              {% if (entries|selectattr("cluster_id", "equalto", cluster_id)|list|length) == 0 %}
-                <i>No hint</i>
-              {% else %}
-                {{ (entries|selectattr("cluster_id", "equalto", cluster_id)|first).text }}
-              {% endif %}
-              </ul>
-
-            </div>
-            <div id="rule" class="tab-pane fade">
-              <h3>Rule</h3>
-              <p id="demo">{{ clusters[cluster_id].fix }}</p>
-            </div>
-            <div id="file" class="tab-pane fade">
-              <h3>File</h3>
-              {{question_name}}
-            </div>
-          </div>
-        </div>
-        -->
-
-      </div>
+      <!-- <div class="container"> -->
+        {% block tabs %}
+        <ul class="nav nav-tabs">
+          <li id="rule-based-tab"><a href="/{{question_number}}/0/0">Rule</a></li>
+          <li id="test-based-tab"><a href="/{{question_number}}/1/0">Test</a></li>
+          <li id="rulextest-based-tab"><a href="/{{question_number}}/2/0">Rule x Test</a></li>
+          <li id="task-tab"><a href="/{{question_number}}/3/0">Task</a></li>
+          <li id="grader-tab"><a href="/{{question_number}}/4/0">Grader</a></li>
+        </ul>
+        {% endblock %}
+      <!-- </div> -->
+      {% block fixes %}{% endblock %}
     </div>
 
     <script>
     function changeRule(newRule) {
-      console.log(typeof(newRule));
+      console.log('typeof(newRule)',typeof(newRule));
       document.getElementById("demo").innerHTML = newRule;
     }
     </script>
@@ -309,6 +99,7 @@
             $(this).tab('show');
         });
     });
+    {% block script %}{% endblock %}
     </script>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
@@ -325,6 +116,6 @@
     <script src="/static/lib/prism/plugins/highlight-keywords/prism-highlight-keywords.js"></script>
     <script src="/static/lib/prism/plugins/line-highlight/prism-line-highlight.js"></script>
 
-    <script src="/static/react/bundle.js"></script>
+    <!-- <script src="/static/react/bundle.js"></script> -->
   </body>
 </html>
