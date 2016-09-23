@@ -12,8 +12,8 @@
                 {% endif %}
         <!--<span class="badge">{{g['count']}}</span>-->
           <!-- Behavioral Misfire {{ g['group_id'] }} -->
-          <span class="badge">{{ clusters[i].size }}</span>
-                  <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
+        <span class="badge ui label label-size-{{ math.floor(clusters[i].size/10) }}">{{ clusters[i].size }}</span>
+        <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
                   <b>Cluster {{i}}</b></br>
         <span>test case</span>
         <span class="code">{{clusters[i].test[0]['input']}}</span>
