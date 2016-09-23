@@ -270,7 +270,7 @@ def close_db(error):
 def get_fixes(question_number):
     #todo: add question number to schema and db.execute call
     db = get_db()
-    cur = db.execute('select title, cluster_id, text from entries order by id desc')
+    cur = db.execute('select title, cluster_id, text, question_number, tab_id from entries order by id desc')
     fixes = cur.fetchall()
     return fixes
 
@@ -291,26 +291,38 @@ def show_detail(question_number, tab_id, cluster_id):
     #print (questions[question_number].rule_based_cluster[0][0].fixes)
     if (tab_id==0):
         return render_template('show_fixes_by_rules.html',
-                                question_name = question_files[question_number],
-                                question_number = question_number,
-                                clusters = questions[question_number].rule_based_cluster,
-                                fixes = fixes, cluster_id=cluster_id,
-                                question_instructions = questions[question_number].question_instructions, math=math),
+            question_name = question_files[question_number],
+            question_number = question_number,
+            clusters = questions[question_number].rule_based_cluster,
+            fixes = fixes,
+            cluster_id = cluster_id,
+            tab_id = tab_id,
+            question_instructions = questions[question_number].question_instructions,
+            math = math
+        )
     elif (tab_id==1):
 
         return render_template('show_fixes_by_test.html',
-                                question_name = questions[question_number],
-                                question_number = question_number,
-                                clusters = questions[question_number].test_based_cluster,
-                                fixes = fixes, cluster_id=cluster_id,
-                                question_instructions = questions[question_number].question_instructions, math=math)
+            question_name = questions[question_number],
+            question_number = question_number,
+            clusters = questions[question_number].test_based_cluster,
+            fixes = fixes,
+            cluster_id = cluster_id,
+            tab_id = tab_id,
+            question_instructions = questions[question_number].question_instructions,
+            math=math
+        )
     elif (tab_id==2):
         return render_template('show_fixes_by_testsxrules.html',
-                                question_name = questions[question_number],
-                                question_number = question_number,
-                                clusters = questions[question_number].rule_and_test_based_cluster,
-                                fixes = fixes, cluster_id=cluster_id,
-                                question_instructions = questions[question_number].question_instructions, math=math)
+            question_name = questions[question_number],
+            question_number = question_number,
+            clusters = questions[question_number].rule_and_test_based_cluster,
+            fixes = fixes,
+            cluster_id = cluster_id,
+            tab_id = tab_id,
+            question_instructions = questions[question_number].question_instructions,
+            math = math
+        )
     elif (tab_id==3):
         item1 = {}
         code_before = """def accumulate(combiner, base, n, term):
@@ -380,7 +392,6 @@ def show_detail(question_number, tab_id, cluster_id):
 @app.route('/add', methods=['POST'])
 def add_hint():
     print('adding hint',request.form['question_number'], request.form['cluster_id'], request.form['tab_id'], request.form['text'])
-
     db = get_db()
     db.execute('insert into entries (title, question_number, cluster_id, tab_id, text) values (?, ?, ?, ?, ?)',
                  ['title', request.form['question_number'], request.form['cluster_id'], request.form['tab_id'], request.form['text']])
