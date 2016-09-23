@@ -1,1 +1,3 @@
 static/react/node_modules
+*.pyc
+.python-version
