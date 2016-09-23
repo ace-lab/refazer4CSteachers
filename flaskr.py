@@ -295,7 +295,7 @@ def show_detail(question_number, tab_id, cluster_id):
                                 question_number = question_number,
                                 clusters = questions[question_number].rule_based_cluster,
                                 fixes = fixes, cluster_id=cluster_id,
-                                question_instructions = questions[question_number].question_instructions)
+                                question_instructions = questions[question_number].question_instructions, math=math),
     elif (tab_id==1):
 
         return render_template('show_fixes_by_test.html',
@@ -303,14 +303,14 @@ def show_detail(question_number, tab_id, cluster_id):
                                 question_number = question_number,
                                 clusters = questions[question_number].test_based_cluster,
                                 fixes = fixes, cluster_id=cluster_id,
-                                question_instructions = questions[question_number].question_instructions)
+                                question_instructions = questions[question_number].question_instructions, math=math)
     elif (tab_id==2):
         return render_template('show_fixes_by_testsxrules.html',
                                 question_name = questions[question_number],
                                 question_number = question_number,
                                 clusters = questions[question_number].rule_and_test_based_cluster,
                                 fixes = fixes, cluster_id=cluster_id,
-                                question_instructions = questions[question_number].question_instructions)
+                                question_instructions = questions[question_number].question_instructions, math=math)
     elif (tab_id==3):
         item1 = {}
         code_before = """def accumulate(combiner, base, n, term):
