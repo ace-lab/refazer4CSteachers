@@ -369,9 +369,6 @@ def show_detail(question_number, tab_id, cluster_id):
             print(data.content)
             return render_template('grade.html', ok = False, error = data.content,question_number = question_number)
 
-
-
-
 # @app.route('/delete', methods=['POST'])
 # def delete_hint():
 #     db = get_db()
@@ -379,17 +376,18 @@ def show_detail(question_number, tab_id, cluster_id):
 #     db.commit()
 #     return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=0 cluster_id=request.form['cluster_id']))
 
+
 @app.route('/add', methods=['POST'])
 def add_hint():
-    print('adding hint',request.form['question_number'], request.form['cluster_id'], request.form['tab'], request.form['text'])
+    print('adding hint',request.form['question_number'], request.form['cluster_id'], request.form['tab_id'], request.form['text'])
 
     db = get_db()
-    db.execute('insert into entries (title, question_number, cluster_id, tab, text) values (?, ?, ?, ?)',
-                 ['title', request.form['question_number'], request.form['cluster_id'], request.form['tab'], request.form['text']])
+    db.execute('insert into entries (title, question_number, cluster_id, tab_id, text) values (?, ?, ?, ?, ?)',
+                 ['title', request.form['question_number'], request.form['cluster_id'], request.form['tab_id'], request.form['text']])
     db.commit()
 
     #does this need to be updated? TODO
-    return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=request.form['tab'], cluster_id=request.form['cluster_id']))
+    return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=request.form['tab_id'], cluster_id=request.form['cluster_id']))
 
 if __name__ == '__main__':
     # initdb_command()
