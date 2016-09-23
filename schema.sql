@@ -4,5 +4,6 @@ create table entries (
   title text not null,
   cluster_id integer not null,
   question_number integer not null,
+  tab_id integer not null,
   'text' text not null
 );
