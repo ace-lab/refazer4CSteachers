@@ -1,6 +1,14 @@
 {% extends "show_fixes.html" %}
 {% block clusters %}
 <div class="col-md-3">
+
+  <div class="progress" style="margin-top: 10px;">
+    <div class="progress-bar" style="width: {{ (fixes|selectattr('tab_id', 'equalto', 0)|list|length / clusters|length * 100) | round | int
+    }}%;">
+    {{ (fixes|selectattr('tab_id', 'equalto', 0)|list|length / clusters|length * 100) | round | int }} %
+    </div>
+  </div>
+
   <ul class="list-group">
     {% for i in range(clusters|length) %}
       <a href="/{{question_number}}/0/{{i}}">
@@ -10,8 +18,8 @@
         <li class="list-group-item">
       {% endif %}
 
-        <span class="badge ui label label-size-{{ math.floor(clusters[i].size/10) }}">{{ clusters[i].size }}</span>
-        <span class="notabadge">{% if (entries|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
+        <span class="badge ui label label-size-{{ (clusters[i].size/10) | round | int }}">{{ clusters[i].size }}</span>
+        <span class="notabadge">{% if (fixes|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
 
         <b>Cluster {{i}}</b>
         {% for line in clusters[i].fixes[0].diff_lines %}
