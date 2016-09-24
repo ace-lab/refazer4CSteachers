@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="/static/lib/semantic-ui/semantic.min.css">
     <link rel="stylesheet" href="/static/lib/prism/themes/prism.css">
     <link rel="stylesheet" href="/static/lib/prism/plugins/line-highlight/prism-line-highlight.css">
+    <link rel="stylesheet" href="/static/lib/font-awesome/css/font-awesome.css">
 
 
     <link rel="stylesheet" href="/static/react/css/main.css">
@@ -58,6 +59,7 @@
       font-family: "Courier New", Courier, monospace;
       font-size: 12px;
     }
+
     .label-size-4, .label-size-5 {
       background-color: #d01919!important;
       border-color: #d01919!important;
@@ -81,6 +83,19 @@
     .label-size-0{
       background-color: #838383!important;
       border-color: #838383!important;
+      color: #FFF!important;
+    }
+    .selected-cluster li {
+      color: #298fc3 !important;
+      background-color: #d9edf7 !important;
+    }
+    .finished-cluster li {
+      color: green;
+      background-color: #d9f7e3;
+    }
+    .finished-cluster .label {
+      background-color: #009c95 !important;
+      border-color: #009c95 !important;
       color: #FFF!important;
     }
     /*.returned .expected {
@@ -134,7 +149,13 @@
           $('#edit-hint').hide()
           $('#show-hint').show()
         })
-        $('.progress').progress();
+        $('.ui.progress').progress();
+        $('.ui.checkbox').checkbox({
+          onChange: function() {
+            var href = $(this).data('href')
+            window.location.replace(href);
+          }
+        });
 
     });
     {% block script %}{% endblock %}
