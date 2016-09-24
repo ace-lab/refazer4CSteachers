@@ -17,7 +17,7 @@
 
   <div class="ui form" style="margin-bottom: 10px">
     <div class="inline field">
-      <div class="ui toggle checkbox">
+      <div id="filter-checkbox" class="ui toggle checkbox">
         {% if current_filter == 'True' %}
           <input type="checkbox" tabindex="0" class="hidden" data-href="/{{question_number}}/{{tab_id}}/{{cluster_id}}" checked>
           <label>Filter: ON (Hide finished)</label>
@@ -79,7 +79,7 @@
             </script>
           {% endif %}
 
-          <!-- Test x Rule-based Tab -->
+          <!-- TestxRule-based Tab -->
           {% if tab_id == 2 %}
             <div style="border : 1px dotted; margin-top : 2px; padding: 2px; border-radius: 5px;">
             {% for line in clusters[i].fixes[0].diff_lines %}

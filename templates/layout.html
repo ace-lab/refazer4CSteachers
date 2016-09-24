@@ -139,23 +139,37 @@
             $(this).tab('show');
         });
 
-        $('#edit-hint-button').click(function(event) {
+        $('#edit-hint-button').click( function (event) {
           event.preventDefault()
           $('#edit-hint').show()
           $('#show-hint').hide()
         })
-        $('#cancel-hint-button').click(function(event) {
+        $('#cancel-hint-button').click( function (event) {
           event.preventDefault()
           $('#edit-hint').hide()
           $('#show-hint').show()
         })
         $('.ui.progress').progress();
-        $('.ui.checkbox').checkbox({
+        $('#filter-checkbox.ui.checkbox').checkbox({
           onChange: function() {
             var href = $(this).data('href')
             window.location.replace(href);
           }
         });
+        $('#reuse-checkbox.ui.checkbox').checkbox({
+          onChange: function() {
+            var text = $(this).data('text')
+            $('#add-hint textarea').val(text)
+          }
+        });
+        $('#reuse-hints-button').click( function (eveng) {
+          event.preventDefault()
+          $('#previous-hints').show()
+        })
+        $('#hide-reuse-hints-button').click( function (eveng) {
+          event.preventDefault()
+          $('#previous-hints').hide()
+        })
 
     });
     {% block script %}{% endblock %}
