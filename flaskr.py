@@ -267,12 +267,12 @@ def close_db(error):
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
 
-def get_fixes(question_number):
-    #todo: add question number to schema and db.execute call
-    db = get_db()
-    cur = db.execute('SELECT title, cluster_id, text, question_number, tab_id FROM entries ORDER BY id DESC')
-    fixes = cur.fetchall()
-    return fixes
+# def get_fixes(question_number):
+#     #todo: add question number to schema and db.execute call
+#     db = get_db()
+#     cur = db.execute('SELECT title, cluster_id, text, question_number, tab_id FROM entries ORDER BY id DESC')
+#     fixes = cur.fetchall()
+#     return fixes
 
 def get_hint(question_number, cluster_id, tab_id):
     #todo: add question number to schema and db.execute call
@@ -297,10 +297,8 @@ def show_question(question_number):
 def show_fixes():
     return redirect(url_for('show_detail', question_number=1, tab_id=0, cluster_id=0, group_id=0))
 
-
 @app.route('/<int:question_number>/<int:tab_id>/<int:cluster_id>')
 def show_detail(question_number, tab_id, cluster_id):
-    fixes = get_fixes(question_number)
     hint = get_hint(question_number, cluster_id, tab_id)
     finished_cluster_ids = get_finished_cluster_ids(question_number, tab_id)
     current_filter = request.args.get('filter')
@@ -308,39 +306,17 @@ def show_detail(question_number, tab_id, cluster_id):
     #coverage_percentage = get_coverage(question_number, fixes)
     #print('question_instructions',question_instructions)
     #print (questions[question_number].rule_based_cluster[0][0].fixes)
-    if (tab_id==0):
-        return render_template('show_fixes_by_rules.html',
+    if (tab_id < 3):
+        if (tab_id == 0):
+            clusters = questions[question_number].rule_based_cluster
+        elif (tab_id == 1):
+            clusters = questions[question_number].test_based_cluster
+        elif (tab_id == 2):
+            clusters = questions[question_number].rule_and_test_based_cluster
+        return render_template('index.html',
             question_name = question_files[question_number],
             question_number = question_number,
-            clusters = questions[question_number].rule_based_cluster,
-            fixes = fixes,
-            cluster_id = cluster_id,
-            tab_id = tab_id,
-            hint = hint,
-            question_instructions = questions[question_number].question_instructions,
-            finished_cluster_ids = finished_cluster_ids,
-            current_filter = current_filter
-        )
-    elif (tab_id==1):
-
-        return render_template('show_fixes_by_test.html',
-            question_name = questions[question_number],
-            question_number = question_number,
-            clusters = questions[question_number].test_based_cluster,
-            fixes = fixes,
-            cluster_id = cluster_id,
-            tab_id = tab_id,
-            hint = hint,
-            question_instructions = questions[question_number].question_instructions,
-            finished_cluster_ids = finished_cluster_ids,
-            current_filter = current_filter
-        )
-    elif (tab_id==2):
-        return render_template('show_fixes_by_testsxrules.html',
-            question_name = questions[question_number],
-            question_number = question_number,
-            clusters = questions[question_number].rule_and_test_based_cluster,
-            fixes = fixes,
+            clusters = clusters,
             cluster_id = cluster_id,
             tab_id = tab_id,
             hint = hint,
