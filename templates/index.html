@@ -2,13 +2,16 @@
 {% block clusters %}
 <div class="col-md-3">
 
-  <div class="progress" style="margin-top: 10px;">
-    <div class="progress-bar" style="width: {{
-      (finished_count / total_count * 100) | round | int
-    }}%;">
-    {{
-      (finished_count / total_count * 100) | round | int
-    }} %
+  <div style="margin-top: 5px;">
+    <b>You gave hints for {{ finished_count }} / {{ total_count }} bugs</b>
+    <div class="progress" style="margin-top: 10px;">
+      <div class="progress-bar" style="width: {{
+        (finished_count / total_count * 100) | round | int
+      }}%;">
+      {{
+        (finished_count / total_count * 100) | round | int
+      }} %
+      </div>
     </div>
   </div>
 
@@ -29,7 +32,8 @@
     </div>
   </div>
 
-  <ul class="list-group">
+  Total number of clusters: {{ clusters | length - finished_cluster_ids | length }} / {{ clusters | length }}
+  <ul class="list-group" style="margin-top: 10px">
     {% for i in range(clusters|length) %}
       <a href="/{{question_number}}/0/{{i}}?filter={{current_filter}}" class="{{ 'finished-cluster' if i in finished_cluster_ids }} {{ 'selected-cluster' if i == cluster_id }}">
         <li class="list-group-item">
