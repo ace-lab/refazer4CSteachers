@@ -281,6 +281,13 @@ def get_hint(question_number, cluster_id, tab_id):
     hint = cur.fetchone()
     return hint
 
+def get_previous_hints(question_number):
+    db = get_db()
+    cur = db.execute('SELECT title, cluster_id, text, question_number, tab_id FROM entries WHERE question_number=? ORDER BY id DESC', [question_number])
+    previous_hints = cur.fetchall()
+    return previous_hints
+
+
 def get_finished_cluster_ids(question_number, tab_id):
     #todo: add question number to schema and db.execute call
     db = get_db()
@@ -306,6 +313,7 @@ def show_detail(question_number, tab_id, cluster_id):
     elif (tab_id == 2):
         clusters = questions[question_number].rule_and_test_based_cluster
     hint = get_hint(question_number, cluster_id, tab_id)
+    previous_hints = get_previous_hints(question_number)
     finished_cluster_ids = get_finished_cluster_ids(question_number, tab_id)
 
     finished_count = 0
@@ -327,6 +335,7 @@ def show_detail(question_number, tab_id, cluster_id):
             cluster_id = cluster_id,
             tab_id = tab_id,
             hint = hint,
+            previous_hints = previous_hints,
             total_count = total_count,
             finished_count = finished_count,
             finished_cluster_ids = finished_cluster_ids,

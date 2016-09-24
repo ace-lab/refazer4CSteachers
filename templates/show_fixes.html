@@ -63,19 +63,38 @@
     <div>{{question_instructions|safe}}</div>
     <h3>Hints</h3>
 
-    <div class=entries>
+    <div class="hint">
       {% if hint == None %}
         <i>No hint</i>
         <br>
-        <form class="ui form" action="{{ url_for('add_hint') }}" method="POST">
+        <form id="add-hint" class="ui form" action="{{ url_for('add_hint') }}" method="POST">
           <div class="field">
-            <textarea name="text" rows=3 cols=40></textarea>
+            <textarea name="text" rows=8 cols=40></textarea>
             <input type="hidden" name="cluster_id" value={{cluster_id}}>
             <input type="hidden" name="tab_id" value={{tab_id}}>
             <input type="hidden" name="question_number" value={{question_number}}>
           </div>
-          <input class="ui primary button" type="submit" value="Add">
+          <div class="field">
+            <input class="ui primary button" type="submit" value="Add">
+            <a href="#" id="reuse-hints-button">Reuse previous hints</a>
+          </div>
+          <div id="previous-hints" class="field" style="display: none">
+            <label>
+              Reuse Previous hints
+              <a href="#" id="hide-reuse-hints-button">Hide</a>
+            </label>
+            {% for previous_hint in previous_hints %}
+            <div class="field previous-hint">
+              <div id="reuse-checkbox" class="ui radio checkbox">
+                <input type="radio" name="fruit" tabindex="0" class="hidden" data-text="{{ previous_hint.text }}">
+                <label>{{ previous_hint.text }}</label>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
         </form>
+
+
       {% else %}
         <div id="show-hint">
         {{hint.text }}
