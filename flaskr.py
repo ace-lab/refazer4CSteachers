@@ -299,20 +299,27 @@ def show_fixes():
 
 @app.route('/<int:question_number>/<int:tab_id>/<int:cluster_id>')
 def show_detail(question_number, tab_id, cluster_id):
+    if (tab_id == 0):
+        clusters = questions[question_number].rule_based_cluster
+    elif (tab_id == 1):
+        clusters = questions[question_number].test_based_cluster
+    elif (tab_id == 2):
+        clusters = questions[question_number].rule_and_test_based_cluster
     hint = get_hint(question_number, cluster_id, tab_id)
     finished_cluster_ids = get_finished_cluster_ids(question_number, tab_id)
+
+    finished_count = 0
+    total_count = 0
+    for i in range(len(clusters)):
+        if (i in finished_cluster_ids):
+            finished_count += clusters[i].size
+        total_count += clusters[i].size
     current_filter = request.args.get('filter')
 
     #coverage_percentage = get_coverage(question_number, fixes)
     #print('question_instructions',question_instructions)
     #print (questions[question_number].rule_based_cluster[0][0].fixes)
     if (tab_id < 3):
-        if (tab_id == 0):
-            clusters = questions[question_number].rule_based_cluster
-        elif (tab_id == 1):
-            clusters = questions[question_number].test_based_cluster
-        elif (tab_id == 2):
-            clusters = questions[question_number].rule_and_test_based_cluster
         return render_template('index.html',
             question_name = question_files[question_number],
             question_number = question_number,
@@ -320,9 +327,11 @@ def show_detail(question_number, tab_id, cluster_id):
             cluster_id = cluster_id,
             tab_id = tab_id,
             hint = hint,
-            question_instructions = questions[question_number].question_instructions,
+            total_count = total_count,
+            finished_count = finished_count,
             finished_cluster_ids = finished_cluster_ids,
-            current_filter = current_filter
+            current_filter = current_filter,
+            question_instructions = questions[question_number].question_instructions
         )
     elif (tab_id==3):
         item1 = {}

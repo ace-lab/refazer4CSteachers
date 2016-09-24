@@ -3,9 +3,12 @@
 <div class="col-md-3">
 
   <div class="progress" style="margin-top: 10px;">
-    <div class="progress-bar" style="width: {{ (finished_cluster_ids | length / clusters|length * 100) | round | int
+    <div class="progress-bar" style="width: {{
+      (finished_count / total_count * 100) | round | int
     }}%;">
-    {{ (finished_cluster_ids | length / clusters|length * 100) | round | int }} %
+    {{
+      (finished_count / total_count * 100) | round | int
+    }} %
     </div>
   </div>
 
