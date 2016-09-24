@@ -305,7 +305,7 @@ def show_fixes():
     return redirect(url_for('show_detail', question_number=1, tab_id=0, cluster_id=0, group_id=0))
 
 @app.route('/<int:question_number>/<int:tab_id>/<int:cluster_id>')
-def show_detail(question_number, tab_id, cluster_id):
+def show_detail(question_number, tab_id, cluster_id, filter=None):
     if (tab_id == 0):
         clusters = questions[question_number].rule_based_cluster
     elif (tab_id == 1):
@@ -322,7 +322,8 @@ def show_detail(question_number, tab_id, cluster_id):
         if (i in finished_cluster_ids):
             finished_count += clusters[i].size
         total_count += clusters[i].size
-    current_filter = request.args.get('filter')
+    if not filter:
+        current_filter = request.args.get('filter')
 
     #coverage_percentage = get_coverage(question_number, fixes)
     #print('question_instructions',question_instructions)
@@ -417,14 +418,14 @@ def add_hint():
     db.commit()
 
     #does this need to be updated? TODO
-    return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=request.form['tab_id'], cluster_id=request.form['cluster_id']))
+    return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=request.form['tab_id'], cluster_id=request.form['cluster_id'], filter=request.form['filter']))
 
 @app.route('/update', methods=['POST'])
 def update_hint():
     db = get_db()
     db.execute('UPDATE entries SET text=? WHERE cluster_id=? AND question_number=? AND tab_id=?', [request.form['text'], request.form['cluster_id'], request.form['question_number'], request.form['tab_id']])
     db.commit()
-    return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=request.form['tab_id'], cluster_id=request.form['cluster_id']))
+    return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=request.form['tab_id'], cluster_id=request.form['cluster_id'], filter=request.form['filter']))
 
 
 if __name__ == '__main__':
