@@ -9,29 +9,45 @@
     </div>
   </div>
 
+  <div class="ui form" style="margin-bottom: 10px">
+    <div class="inline field">
+      <div class="ui toggle checkbox">
+        {% if current_filter == 'True' %}
+          <input type="checkbox" tabindex="0" class="hidden" data-href="/{{question_number}}/{{tab_id}}/{{cluster_id}}" checked>
+          <label>Filter: ON (Hide finished)</label>
+          <style>
+            .finished-cluster { display: none; }
+          </style>
+        {% else %}
+          <input type="checkbox" tabindex="0" class="hidden" data-href="/{{question_number}}/{{tab_id}}/{{cluster_id}}?filter=True">
+          <label>Filter: OFF (Show finished)</label>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
   <ul class="list-group">
     {% for i in range(clusters|length) %}
-      <a href="/{{question_number}}/0/{{i}}">
-      {% if cluster_id == i %}
-        <li class="list-group-item list-group-item-info">
-      {% else %}
+      <a href="/{{question_number}}/0/{{i}}?filter={{current_filter}}" class="{{ 'finished-cluster' if i in finished_cluster_ids }} {{ 'selected-cluster' if i == cluster_id }}">
         <li class="list-group-item">
-      {% endif %}
+          <span class="badge ui label label-size-{{ (clusters[i].size/10) | round | int if i not in finished_cluster_ids }}">
+            {{ clusters[i].size }}
+            {% if i in finished_cluster_ids %}
+              <i class="fa fa-check fa-fw"></i>
+            {% endif %}
+          </span>
 
-        <span class="badge ui label label-size-{{ (clusters[i].size/10) | round | int }}">{{ clusters[i].size }}</span>
-        <span class="notabadge">{% if (fixes|selectattr("cluster_id", "equalto", i)|list|length) != 0 %} &#9989; {% else %} &#10008; {% endif %}</span>
-
-        <b>Cluster {{i}}</b>
-        {% for line in clusters[i].fixes[0].diff_lines %}
-          {% if line.tag == "insert" %}
-            <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
-          {% elif line.tag == "delete" %}
-            <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
-          {% elif line.tag == "replace" %}
-            <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
-          {% endif %}
-        {% endfor %}
-      </li></a>
+          <b>Cluster {{i}}</b>
+          {% for line in clusters[i].fixes[0].diff_lines %}
+            {% if line.tag == "insert" %}
+              <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
+            {% elif line.tag == "delete" %}
+              <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
+            {% elif line.tag == "replace" %}
+              <div class="highlight-source code">{{ line.contents | escape | truncate(45, True)}}</div>
+            {% endif %}
+          {% endfor %}
+        </li></a>
     {% endfor %}
   </ul>
 </div>

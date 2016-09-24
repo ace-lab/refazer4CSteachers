@@ -270,9 +270,24 @@ def close_db(error):
 def get_fixes(question_number):
     #todo: add question number to schema and db.execute call
     db = get_db()
-    cur = db.execute('select title, cluster_id, text, question_number, tab_id from entries order by id desc')
+    cur = db.execute('SELECT title, cluster_id, text, question_number, tab_id FROM entries ORDER BY id DESC')
     fixes = cur.fetchall()
     return fixes
+
+def get_hint(question_number, cluster_id, tab_id):
+    #todo: add question number to schema and db.execute call
+    db = get_db()
+    cur = db.execute('SELECT title, cluster_id, text, question_number, tab_id FROM entries WHERE question_number=? AND cluster_id=? AND tab_id=? ORDER BY id DESC', [question_number, cluster_id, tab_id])
+    hint = cur.fetchone()
+    return hint
+
+def get_finished_cluster_ids(question_number, tab_id):
+    #todo: add question number to schema and db.execute call
+    db = get_db()
+    cur = db.execute('SELECT cluster_id FROM entries WHERE question_number=? AND tab_id=?', [question_number, tab_id])
+    results = cur.fetchall()
+    cluster_ids = list(map(lambda item: item['cluster_id'], results))
+    return cluster_ids
 
 @app.route('/<int:question_number>')
 def show_question(question_number):
@@ -286,6 +301,10 @@ def show_fixes():
 @app.route('/<int:question_number>/<int:tab_id>/<int:cluster_id>')
 def show_detail(question_number, tab_id, cluster_id):
     fixes = get_fixes(question_number)
+    hint = get_hint(question_number, cluster_id, tab_id)
+    finished_cluster_ids = get_finished_cluster_ids(question_number, tab_id)
+    current_filter = request.args.get('filter')
+
     #coverage_percentage = get_coverage(question_number, fixes)
     #print('question_instructions',question_instructions)
     #print (questions[question_number].rule_based_cluster[0][0].fixes)
@@ -297,7 +316,10 @@ def show_detail(question_number, tab_id, cluster_id):
             fixes = fixes,
             cluster_id = cluster_id,
             tab_id = tab_id,
+            hint = hint,
             question_instructions = questions[question_number].question_instructions,
+            finished_cluster_ids = finished_cluster_ids,
+            current_filter = current_filter
         )
     elif (tab_id==1):
 
@@ -308,7 +330,10 @@ def show_detail(question_number, tab_id, cluster_id):
             fixes = fixes,
             cluster_id = cluster_id,
             tab_id = tab_id,
+            hint = hint,
             question_instructions = questions[question_number].question_instructions,
+            finished_cluster_ids = finished_cluster_ids,
+            current_filter = current_filter
         )
     elif (tab_id==2):
         return render_template('show_fixes_by_testsxrules.html',
@@ -318,7 +343,10 @@ def show_detail(question_number, tab_id, cluster_id):
             fixes = fixes,
             cluster_id = cluster_id,
             tab_id = tab_id,
+            hint = hint,
             question_instructions = questions[question_number].question_instructions,
+            finished_cluster_ids = finished_cluster_ids,
+            current_filter = current_filter
         )
     elif (tab_id==3):
         item1 = {}
