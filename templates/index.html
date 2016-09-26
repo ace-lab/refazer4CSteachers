@@ -64,7 +64,7 @@
           {% endif %}
 
           <!-- Test-based Tab -->
-          {% if tab_id == 1 %}
+          {% if tab_id == 1 or tab_id == 4 %}
             <span>test case</span>
             <span class="code">{{clusters[i].test[0]['input']}}</span>
             <br>
