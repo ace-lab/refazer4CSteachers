@@ -393,7 +393,9 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
         print('Number of submissions sent  to Refazer')
         print(len(questions[question_number].submissions))
 
+
         clusters = questions[question_number].test_based_cluster
+        #print(json.dumps([clu['before'] for clu in clusters[cluster_id].fixes],indent=2))
         hint = get_hint(question_number, cluster_id, tab_id)
         previous_hints = get_previous_hints(question_number)
         finished_cluster_ids = get_finished_cluster_ids(question_number, tab_id)
@@ -406,7 +408,7 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
             total_count += clusters[i].size
         if not filter:
             current_filter = request.args.get('filter')        
-        return render_template('index.html',
+        return render_template('grade.html',
             question_name = question_files[question_number],
             question_number = question_number,
             clusters = clusters,
