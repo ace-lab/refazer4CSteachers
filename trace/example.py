@@ -9,13 +9,13 @@ def finalizer(output_list):
   # output_json = json.dumps(output_list)
   pp.pprint(output_list)
 
-file = open('test/test-0.py', 'r')
+file = open('test/test-1.py', 'r')
 script_str = file.read()
+print('====== Input code ======')
+print(script_str)
+print('')
 
-raw_input_json = ''
-options_json = ''
-
-# pg_logger.exec_script_str(script_str, raw_input_json, options_json, finalizer)
+print('===== Output trace =====')
 pg_logger.exec_script_str(script_str, finalizer)
 
 
