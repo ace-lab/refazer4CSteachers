@@ -388,22 +388,51 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
         item3['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
         return render_template('task.html', item1 = item1, item2 = item2, item3 = item3, question_number = question_number)
     elif (tab_id==4):
-        for fix in questions[question_number].submissions:
-            fix['diff_lines'] = []
+        # for fix in questions[question_number].submissions:
+        #     fix['diff_lines'] = []
         print('Number of submissions sent  to Refazer')
         print(len(questions[question_number].submissions))
-        data = requests.post('http://localhost:53530/api/refazer', 
-            json={"submissions":list(questions[question_number].submissions), "Examples" : 
-            [{"before" : questions[question_number].submissions[1]['before'],"after" : 
-            questions[question_number].submissions[1]['SynthesizedAfter']}]})
-        if data.ok:
-            print("Number of submissions returned")
-            print(len(data.json()))
-            return render_template('grade.html', ok = True, fixes  = len(data.json()), error = "",question_number = question_number)
-        else:
-            print("problem found")
-            print(data.content)
-            return render_template('grade.html', ok = False, error = data.content,question_number = question_number)
+
+        clusters = questions[question_number].test_based_cluster
+        hint = get_hint(question_number, cluster_id, tab_id)
+        previous_hints = get_previous_hints(question_number)
+        finished_cluster_ids = get_finished_cluster_ids(question_number, tab_id)
+
+        finished_count = 0
+        total_count = 0
+        for i in range(len(clusters)):
+            if (i in finished_cluster_ids):
+                finished_count += clusters[i].size
+            total_count += clusters[i].size
+        if not filter:
+            current_filter = request.args.get('filter')        
+        return render_template('index.html',
+            question_name = question_files[question_number],
+            question_number = question_number,
+            clusters = clusters,
+            cluster_id = cluster_id,
+            tab_id = tab_id,
+            hint = hint,
+            previous_hints = previous_hints,
+            total_count = total_count,
+            finished_count = finished_count,
+            finished_cluster_ids = finished_cluster_ids,
+            current_filter = current_filter,
+            question_instructions = questions[question_number].question_instructions
+        )
+
+        # data = requests.post('http://localhost:53530/api/refazer', 
+        #     json={"submissions":list(questions[question_number].submissions), "Examples" : 
+        #     [{"before" : questions[question_number].submissions[1]['before'],"after" : 
+        #     questions[question_number].submissions[1]['SynthesizedAfter']}]})
+        # if data.ok:
+        #     print("Number of submissions returned")
+        #     print(len(data.json()))
+        #     return render_template('grade.html', ok = True, fixes  = len(data.json()), error = "",question_number = question_number)
+        # else:
+        #     print("problem found")
+        #     print(data.content)
+        #     return render_template('grade.html', ok = False, error = data.content,question_number = question_number)
 
 # @app.route('/delete', methods=['POST'])
 # def delete_hint():
