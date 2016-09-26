@@ -314,6 +314,7 @@ def exec_script_str(script_str, finalizer_func, ignore_id=False):
   pg_logger = PGLogger(finalizer_func, ignore_id)
   pg_logger._runscript(script_str)
   pg_logger.finalize()
+  return pg_logger
 
 
 def exec_file_and_pretty_print(mainpyfile):
