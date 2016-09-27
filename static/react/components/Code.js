@@ -1,8 +1,17 @@
 import React, { Component } from 'react'
 import Slider from 'rc-slider'
-import Prism from 'prismjs'
 import { PrismCode } from 'react-prism'
+import Prism from 'prismjs'
+import '../node_modules/prismjs/components/prism-python'
+import '../node_modules/prismjs/plugins/line-numbers/prism-line-numbers'
+
 import Output from './Output'
+
+import brace from 'brace'
+import AceEditor from 'react-ace'
+import 'brace/mode/python'
+import 'brace/theme/github'
+
 
 class Code extends Component {
 
@@ -28,17 +37,26 @@ class Code extends Component {
     this.props.actions.updateStep(step)
   }
 
+        // <AceEditor
+        //   mode="python"
+        //   theme="github"
+        //   name="ace-editor"
+        //   height="300"
+        //   tabSize="2"
+        //   value="{{props.data.code}}"
+        // />
+
   render() {
     return (
       <div>
         <pre>
           <i id="tick" className="fa fa-arrow-right" style={{top: this.props.data.height}}></i>
-          <PrismCode className="language-python" data-line="1">{this.props.data.code}</PrismCode>
+          <PrismCode className="language-python line-numbers line-highlight" data-start="1" data-line="1">{this.props.data.code}</PrismCode>
           <Output
             store={this.props.store}
             code={this.props.data.code}
             step={this.props.data.step}
-            stream={this.props.data.stream.slice(0, this.props.data.step)}
+            traces={this.props.data.traces.slice(0, this.props.data.step)}
             actions={this.props.actions}
           />
         </pre>

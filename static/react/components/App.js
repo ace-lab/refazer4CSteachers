@@ -16,7 +16,7 @@ class App extends Component {
     $.get('/static/react/sample/data-2.json', function (res) {
       let state = {
         step: 0,
-        stream: res,
+        traces: res,
         max: res.length-1,
       }
       this.props.store.dispatch(actions.initState(state))
