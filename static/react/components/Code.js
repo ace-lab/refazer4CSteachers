@@ -7,11 +7,6 @@ import '../node_modules/prismjs/plugins/line-numbers/prism-line-numbers'
 
 import Output from './Output'
 
-import brace from 'brace'
-import AceEditor from 'react-ace'
-import 'brace/mode/python'
-import 'brace/theme/github'
-
 
 class Code extends Component {
 
@@ -36,15 +31,6 @@ class Code extends Component {
     let step = Math.floor(value)
     this.props.actions.updateStep(step)
   }
-
-        // <AceEditor
-        //   mode="python"
-        //   theme="github"
-        //   name="ace-editor"
-        //   height="300"
-        //   tabSize="2"
-        //   value="{{props.data.code}}"
-        // />
 
   render() {
     return (
