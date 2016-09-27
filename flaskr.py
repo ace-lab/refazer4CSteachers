@@ -8,6 +8,7 @@ import highlight
 import requests
 import math
 import sys
+import inspect
 from io import StringIO
 
 
@@ -447,6 +448,40 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
 #     return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=0 cluster_id=request.form['cluster_id']))
 
 
+@app.route('/evaluate', methods=['POST'])
+def evaluate():
+
+    code_text = request.form['code']
+    results = evaluate_function(
+        code_text=code_text,
+        function_name='accumulate',
+        input_value_tuples=[
+            (lambda x, y: x + y, 1, 3, lambda x: x * x),
+            (lambda x, y: x * y, 3, 4, lambda x: x + 1),
+        ],
+        expected_outputs=[
+            15,
+            360,
+        ],
+    )
+
+    # Stringify the results.  This means:
+    # 1. Adding a lambda's source as a string
+    # 2. Adding the names of exceptions instead of their classes
+    for result in results['test_cases']:
+        input_values = list(result['input_values'])
+        for index, input_value in enumerate(input_values, start=0):
+            if callable(input_value):
+                input_values[index] = inspect.getsource(input_value)
+        if not result['exec_success']:
+            result['exec_exception']['type'] = result['exec_exception']['type'].__name__
+        if not result['runtime_success']:
+            result['runtime_exception']['type'] = result['runtime_exception']['type'].__name__
+        result['input_values'] = tuple(input_values)
+
+    return jsonify(results)
+
+
 def evaluate_function(code_text, function_name, input_value_tuples, expected_outputs):
 
     results = {
@@ -475,6 +510,8 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
         'input_values': input_values,
         'expected': expected_output,
         'success': False,  # we assume the test case failed until it completely succeeds
+        'runtime_success': False,
+        'exec_success': False,
     }
 
     # Save the original stdout so we can resume them after this function runs
@@ -505,7 +542,6 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
             exec(code, global_scope, local_scope)
             result['exec_success'] = True
         except Exception as e:
-            result['exec_success'] = False
             result['exec_exception'] = {
                 'type': type(e),
                 'args': e.args,
@@ -523,8 +559,7 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
             output = local_scope[function_name](*input_values)
             result['runtime_success'] = True
         except Exception as e:
-            result['runtime_success'] = False
-            result['exception'] = {
+            result['runtime_exception'] = {
                 'type': type(e),
                 'args': e.args,
             }

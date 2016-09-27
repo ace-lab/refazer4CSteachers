@@ -96,7 +96,7 @@ class EvaluateSolutionTest(unittest.TestCase):
             input_values=("test_input",),
             expected_output=1,
         )
-        self.assertEqual(result['exception']['type'], KeyError)
+        self.assertEqual(result['runtime_exception']['type'], KeyError)
 
     def test_evaluation_returns_syntaxerror(self):
         result = evaluate_function_once(
