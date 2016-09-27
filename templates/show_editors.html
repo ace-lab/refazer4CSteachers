@@ -77,9 +77,10 @@
 </div>
 
 <script>
-    var editors = document.querySelectorAll(".solution_editor");
-    editors.forEach(function (item) {
-        CodeMirror.fromTextArea(item, {
+$(function() {
+    var editors = $(".solution_editor");
+    editors.each(function () {
+        CodeMirror.fromTextArea($(this)[0], {
             lineNumbers: true,
             mode: 'python',
             viewportMargin: Infinity
@@ -95,6 +96,7 @@
       });
       console.log('submitCode clicked')
     });
+});
 </script>
 {% endblock %}
 
