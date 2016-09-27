@@ -3,4 +3,5 @@ flaskr.db
 .python-version
 
 static/react/node_modules
+static/react/dist
 static/react/dist/*.hot-update.*
