@@ -6,8 +6,8 @@
   <div class="col-md-6">
     <div style="overflow-y: scroll; height: 5000px;">
       {% for item in clusters[cluster_id].fixes %}
-          <textarea class='solution_editor'>{{item.before}}</textarea>
-          <input class="ui primary button submitCode" type="submit" value="Save and Test">
+          <textarea data-index={{ loop.index }} class='solution_editor'>{{item.before}}</textarea>
+          <input data-index={{ loop.index }} class="ui primary button submitCode" type="submit" value="Save and Test">
       {% endfor %}
     </div>
 
@@ -78,23 +78,31 @@
 
 <script>
 $(function() {
-    var editors = $(".solution_editor");
-    editors.each(function () {
-        CodeMirror.fromTextArea($(this)[0], {
+
+    var editor_panes = $(".solution_editor");
+    var editors = [];
+
+    editor_panes.each(function () {
+        var editorIndex = $(this).data('index');
+        var newEditor = CodeMirror.fromTextArea($(this)[0], {
             lineNumbers: true,
             mode: 'python',
             viewportMargin: Infinity
         });
+        editors[editorIndex] = newEditor;
     });
-    $('.submitCode').click(function(){
-      $.post('/submit', {
-          code: "The code!"
-      }, function(data) {
-          console.log("Data", data);
-          $('input[type=submit]').text(data.success);
-          $('input[type=submit]').val(data.success);
-      });
-      console.log('submitCode clicked')
+
+    $('.submitCode').click(function() {
+
+        var editorIndex = $(this).data('index');
+        var editor = editors[editorIndex];
+
+        $.post('/evaluate', {
+            code: editor.getValue(),
+        }, function(data) {
+            console.log(data);
+        });
+
     });
 });
 </script>
