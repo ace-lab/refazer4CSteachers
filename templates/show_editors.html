@@ -4,27 +4,27 @@
 <div class="row">
   {% block clusters %}{% endblock %}
   <div class="col-md-6">
-    <div style="overflow-y: scroll; height: 5000px;">
+    <div style="overflow-y: scroll; height: 2400px;">
       {% for item in clusters[cluster_id].fixes %}
-          <textarea class='solution_editor'>{{item.before}}</textarea>
-          <input class="ui primary button submitCode" type="submit" value="Save and Test">
-          <table>
+          <textarea data-index={{ loop.index }} class='solution_editor'>{{item.before}}</textarea>
+          <input data-index={{ loop.index }} class="ui primary button submitCode" type="submit" value="Save and Test">
+          <table data-index={{ loop.index }} class="table">
           {% for key, value in item.input_output_before.items() %}
-            <tr><td>
+              <tr>
+                  <td>
                   {% if not key.startswith('print ') %}
-                    {{key}}
+                      {{key}}
                   {% else %}
-                    {{key.lstrip('print ')}}
+                      {{key.lstrip('print ')}}
                   {% endif %}
-                </td>
-                <td>&rarr;</td>
-                <td>{{value}}</td>
-            </tr>
+                  </td>
+                  <td>&rarr;</td>
+                  <td>{{value}}</td>
+               </tr>
           {% endfor %}
           </table>
       {% endfor %}
     </div>
-
     
   </div>
   <div class="col-md-3">
@@ -91,24 +91,39 @@
 </div>
 
 <script>
-    var editors = document.querySelectorAll(".solution_editor");
-    editors.forEach(function (item) {
-        CodeMirror.fromTextArea(item, {
+$(function() {
+
+    var editor_panes = $(".solution_editor");
+    var editors = [];
+
+    editor_panes.each(function () {
+        var editorIndex = $(this).data('index');
+        var newEditor = CodeMirror.fromTextArea($(this)[0], {
             lineNumbers: true,
             mode: 'python',
             viewportMargin: Infinity
         });
+        editors[editorIndex] = newEditor;
     });
-    $('.submitCode').click(function(){
-      $.post('/submit', {
-          code: "The code!"
-      }, function(data) {
-          console.log("Data", data);
-          $('input[type=submit]').text(data.success);
-          $('input[type=submit]').val(data.success);
-      });
-      console.log('submitCode clicked')
+
+    $('.submitCode').click(function() {
+
+        var editorIndex = $(this).data('index');
+        var editor = editors[editorIndex];
+
+        $.post('/evaluate', {
+            code: editor.getValue(),
+        }, function(results) {
+            results.test_cases.forEach(function(result, index) {
+                var successClass = result['success'] ? 'test_success' : 'test_failure';
+                $('table[data-index=' + editorIndex +'] ' + 
+                  'tr:nth-of-type(' + (index + 1) + ') td'
+                 ).addClass(successClass);
+            });
+        });
+
     });
+});
 </script>
 {% endblock %}
 
