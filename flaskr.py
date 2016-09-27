@@ -457,12 +457,18 @@ def evaluate():
         code_text=code_text,
         function_name='accumulate',
         input_value_tuples=[
-            (lambda x, y: x + y, 1, 3, lambda x: x * x),
-            (lambda x, y: x * y, 3, 4, lambda x: x + 1),
+            (lambda x, y: x + y, 11, 5, lambda x: x),
+            (lambda x, y: x + y, 0, 5, lambda x: x),
+            (lambda x, y: x * y, 2, 3, lambda x: x * x),
+            (lambda x, y: x + y, 11, 0, lambda x: x),
+            (lambda x, y: x + y, 11, 3, lambda x: x * x),
         ],
         expected_outputs=[
+            26,
             15,
-            360,
+            72,
+            11,
+            25,
         ],
     )
 
