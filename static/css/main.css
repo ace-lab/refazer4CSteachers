@@ -8,6 +8,8 @@
 
 pre code  {
   font-family: Menlo,Monaco,Consolas,'Courier New',monospace !important;
+  line-height: 20px !important;
+  margin-top: 0px !important;
 }
 
 .dashed {

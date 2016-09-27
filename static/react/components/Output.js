@@ -5,7 +5,7 @@ class Output extends Component {
 
   render () {
     let outputs = {}
-    this.props.stream.forEach( (data, i ) => {
+    this.props.traces.forEach( (data, i ) => {
       let line = data.line
       let output = data.output
       outputs[line] = output
@@ -13,7 +13,7 @@ class Output extends Component {
 
     let error
     try {
-      let current = this.props.stream[this.props.step-1]
+      let current = this.props.traces[this.props.step-1]
       error = {
         x: current.output.data,
         o: current.error.data
@@ -25,20 +25,23 @@ class Output extends Component {
       this.props.actions.stopPlay()
     }
 
+          // {
+          //   this.props.code.split('\n').map( (c, i) => {
+          //     return (
+          //       <div id={`line-${i+1}`}>
+          //         <If condition={outputs[i+1]}>
+          //           <span className='output-var'>{outputs[i+1].name}</span> = <span className='output-data'>{outputs[i+1].data}</span>
+          //         </If>
+          //       </div>
+          //     )
+          //   })
+          // }
+
+
     return (
       <div>
         <div id="output">
-          {
-            this.props.code.split('\n').map( (c, i) => {
-              return (
-                <div id={`line-${i+1}`}>
-                  <If condition={outputs[i+1]}>
-                    <span className='output-var'>{outputs[i+1].name}</span> = <span className='output-data'>{outputs[i+1].data}</span>
-                  </If>
-                </div>
-              )
-            })
-          }
+
         </div>
         <div id="outer">
           <If condition={error}>
