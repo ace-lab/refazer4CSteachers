@@ -169,11 +169,14 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
             fix = submission_pair
             code_before = submission_pair['before']
             code_after = submission_pair['SynthesizedAfter']
+            code_student_after = submission_pair['after']
             filename = 'filename-' + str(submission_pair['Id'])
-            diff_lines = highlight.diff_file(filename, code_before, code_after, 'full')
+
+            fix['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
+            fix['diff_student_lines'] = highlight.diff_file(filename, code_before, code_student_after, 'full')
 
             test = get_test(submission_pair['failed'])
-            fix['diff_lines'] = diff_lines
+            
             fix['tests'] = test
             fix['before'] = code_before
             fix['input_output_before'] = submission_pair['augmented_tidy_before_testcase_to_output']
