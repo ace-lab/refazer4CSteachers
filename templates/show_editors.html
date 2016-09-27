@@ -8,6 +8,20 @@
       {% for item in clusters[cluster_id].fixes %}
           <textarea class='solution_editor'>{{item.before}}</textarea>
           <input class="ui primary button submitCode" type="submit" value="Save and Test">
+          <table>
+          {% for key, value in item.input_output_before.items() %}
+            <tr><td>
+                  {% if not key.startswith('print ') %}
+                    {{key}}
+                  {% else %}
+                    {{key.lstrip('print ')}}
+                  {% endif %}
+                </td>
+                <td>&rarr;</td>
+                <td>{{value}}</td>
+            </tr>
+          {% endfor %}
+          </table>
       {% endfor %}
     </div>
 
