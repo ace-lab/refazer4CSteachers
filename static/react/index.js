@@ -11,7 +11,7 @@ let initialStore = {
   error: '',
   hints: [],
   reveal: 0,
-  stream: [{
+  traces: [{
     line: 0,
     output: []
   }],
