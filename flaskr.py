@@ -172,6 +172,7 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
             fix['diff_lines'] = diff_lines
             fix['tests'] = test
             fix['before'] = code_before
+            fix['input_output_before'] = submission_pair['augmented_tidy_before_testcase_to_output']
             fix['synthesized_after'] = code_after
             fix['is_fixed'] = True;
             try:
