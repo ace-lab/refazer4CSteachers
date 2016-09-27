@@ -4,11 +4,14 @@
 <div class="row">
   {% block clusters %}{% endblock %}
   <div class="col-md-6">
-    <div style="overflow-y: scroll; height: 1000px;">
+    <div style="overflow-y: scroll; height: 5000px;">
       {% for item in clusters[cluster_id].fixes %}
           <textarea class='solution_editor'>{{item.before}}</textarea>
+          <input class="ui primary button submitCode" type="submit" value="Save and Test">
       {% endfor %}
     </div>
+
+    
   </div>
   <div class="col-md-3">
     <h3>Instructions for Students</h3>
@@ -78,8 +81,19 @@
     editors.forEach(function (item) {
         CodeMirror.fromTextArea(item, {
             lineNumbers: true,
-            mode: 'python'
+            mode: 'python',
+            viewportMargin: Infinity
         });
+    });
+    $('.submitCode').click(function(){
+      $.post('/submit', {
+          code: "The code!"
+      }, function(data) {
+          console.log("Data", data);
+          $('input[type=submit]').text(data.success);
+          $('input[type=submit]').val(data.success);
+      });
+      console.log('submitCode clicked')
     });
 </script>
 {% endblock %}

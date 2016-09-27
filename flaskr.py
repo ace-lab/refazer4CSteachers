@@ -2,7 +2,7 @@
 import os
 import sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, \
-     render_template, flash
+     render_template, flash, jsonify
 import json
 import highlight
 import requests
@@ -443,6 +443,10 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
 #     db.commit()
 #     return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=0 cluster_id=request.form['cluster_id']))
 
+@app.route('/submit', methods=['POST'])
+def submit_code():
+    print(request.form)
+    return jsonify(success=True)
 
 @app.route('/add', methods=['POST'])
 def add_hint():
