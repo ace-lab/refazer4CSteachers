@@ -9,6 +9,8 @@ import requests
 import math
 import sys
 import inspect
+import time
+from multiprocessing import Manager, Process
 from io import StringIO
 
 
@@ -57,6 +59,7 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 ordered_clusters = []
 group_id_to_test = {}
+PROCESS_TIMEOUT = .5
 
 question_files = {
     1:'accumulate-mistakes.json',
@@ -557,8 +560,9 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
         'input_values': input_values,
         'expected': expected_output,
         'success': False,  # we assume the test case failed until it completely succeeds
-        'runtime_success': False,
         'exec_success': False,
+        'timeout': True,
+        'runtime_success': False,
     }
 
     # Save the original stdout so we can resume them after this function runs
@@ -597,12 +601,8 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
 
     if cant_run_code is False:
 
-        # Create a new version of stdout to capture what gets printed
-        capturable_stdout = StringIO()
-        sys.stdout = capturable_stdout
-        
-        # Execute the code with the test inputs
-        try:
+        def run_function(function, function_name, input_values, result):
+
             # It's critical to do a few things here:
             # 1. Transfer the input values into the sandbox scope
             # 2. Transfer the function name into the sandbox global scope so it can be called
@@ -610,24 +610,53 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
             # 3. Store the output in a sandbox variable and retrieve it later.
             local_scope['input_values'] = input_values
             global_scope[function_name] = local_scope[function_name]
-            exec('output = ' + function_name + '(*input_values)', global_scope, local_scope)
-            output = local_scope['output']
-            result['runtime_success'] = True
-        except Exception as e:
-            result['runtime_exception'] = {
-                'type': type(e),
-                'args': e.args,
-            }
 
-        # Transfer the results to the return value
-        if result['runtime_success']:
-            result['returned'] = output
-            result['success'] = (output == expected_output)
+            # Create a new version of stdout to capture what gets printed
+            capturable_stdout = StringIO()
+            sys.stdout = capturable_stdout
 
-        result['stdout'] = capturable_stdout.getvalue()
+            try:
+                exec('output = ' + function_name + '(*input_values)', global_scope, local_scope)
+                output = local_scope['output']
+                result['returned'] = output
+                result['stdout'] = capturable_stdout.getvalue()
+                result['runtime_success'] = True
+            except Exception as e:
+                result['runtime_exception'] = {
+                    'type': type(e),
+                    'args': e.args,
+                }
 
-    # Return stdout to original
-    sys.stdout = original_stdout
+        # Create a new process to run the test function, so we can terminate it if it loops
+        result_shared_data = Manager().dict()
+        process = Process(
+            target=run_function,
+            args=(
+                local_scope[function_name],
+                function_name,
+                input_values,
+                result_shared_data,
+            )
+        )
+
+        # Run the function, and terminate it if it runs too long
+        process.start()
+        start = time.time()
+        while time.time() < start + PROCESS_TIMEOUT:
+            if process.is_alive():
+                time.sleep(.1)
+            else:
+                result['timeout'] = False
+                break
+
+        process.terminate()
+
+        # Merge the results from the function that was run with the  main results
+        result.update(result_shared_data)
+        result['success'] = (result['returned'] == expected_output) if 'returned' in result else False
+
+        # Return stdout to original
+        sys.stdout = original_stdout
     
     return result
 
