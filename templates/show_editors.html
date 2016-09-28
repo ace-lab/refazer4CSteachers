@@ -119,7 +119,8 @@ $(function() {
 
         $.post('/evaluate', {
             code: editor.getValue(),
-            before_id: sol_id //$(this).data('before-code')
+            before_id: sol_id,
+            question_number: {{question_number}}
         }, function(results) {
             console.log(results)
             results.test_cases.forEach(function(result, index) {

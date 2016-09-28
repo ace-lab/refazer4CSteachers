@@ -457,6 +457,7 @@ def evaluate():
 
     print('before_id',request.form['before_id'])
     before_id = request.form['before_id']
+    question_number = int(request.form['question_number'])
 
     code_text = request.form['code']
     results = evaluate_function(
@@ -487,27 +488,33 @@ def evaluate():
             if callable(input_value):
                 input_values[index] = inspect.getsource(input_value)
         if not result['exec_success']:
+            print(result.keys(),result)
             result['exec_exception']['type'] = result['exec_exception']['type'].__name__
         if not result['runtime_success']:
             result['runtime_exception']['type'] = result['runtime_exception']['type'].__name__
         result['input_values'] = tuple(input_values)
 
-    if results['overall_success']:
-        # make call to Gustavo's server
-        before_code = [sol['before'] for sol in questions[question_number].submissions if sol['Id']==before_id][0]
-        data = requests.post('http://refazer2.azurewebsites.net/api/refazer', 
-           json={
-            "submissions":list(questions[question_number].submissions), 
-            "Examples" : [{
-                "before" : before_code,
-                "after" : code_text}]
-            }
-        )
-        if data.ok:
-           print("Number of submissions returned")
-           submssions = data.json()
-        else:
-            print(data)
+    #if results['overall_success']:
+    # make call to Gustavo's server
+    print(questions.keys())
+    before_code = [sol['before'] for sol in questions[question_number].submissions if sol['Id']==before_id]
+    print('before_code',before_code)
+    for sub in questions[question_number].submissions:
+        sub['diff_lines'] = []
+        sub['diff_student_lines'] = []
+    data = requests.post('http://refazer2.azurewebsites.net/api/refazer', 
+       json={
+        "submissions":list(questions[question_number].submissions), 
+        "Examples" : [{
+            "before" : before_code,
+            "after" : code_text}]
+        }
+    )
+    if data.ok:
+       print("Number of submissions returned")
+       submssions = data.json()
+    else:
+        print(data)
 
     return jsonify(results)
 
