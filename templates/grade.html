@@ -35,7 +35,7 @@
   Total number of clusters: {{ clusters | length - finished_cluster_ids | length }} / {{ clusters | length }}
   <ul class="list-group" style="margin-top: 10px">
     {% for i in range(clusters|length) %}
-      <a href="/{{question_number}}/0/{{i}}?filter={{current_filter}}" class="{{ 'finished-cluster' if i in finished_cluster_ids }} {{ 'selected-cluster' if i == cluster_id }}">
+      <a href="/{{question_number}}/4/{{i}}?filter={{current_filter}}" class="{{ 'finished-cluster' if i in finished_cluster_ids }} {{ 'selected-cluster' if i == cluster_id }}">
         <li class="list-group-item">
           <span class="badge ui label label-size-{{ (clusters[i].size/10) | round | int if i not in finished_cluster_ids }}">
             {{ clusters[i].size }}

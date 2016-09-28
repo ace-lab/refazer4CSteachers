@@ -6,7 +6,7 @@
   <div class="col-md-6">
     <div style="overflow-y: scroll; height: 2400px;">
       {% for item in clusters[cluster_id].fixes %}
-          <textarea data-index={{ loop.index }} class='solution_editor'>{{item.before}}</textarea>
+          <textarea data-index={{ loop.index }} class='solution_editor' id={{item.Id}}>{{item.before}}</textarea>
           <input data-index={{ loop.index }} class="ui primary button submitCode" type="submit" value="Save and Test">
           <table data-index={{ loop.index }} class="table">
           {% for key, value in item.input_output_before.items() %}
@@ -103,17 +103,26 @@ $(function() {
             mode: 'python',
             viewportMargin: Infinity
         });
-        editors[editorIndex] = newEditor;
+        editors[editorIndex] = [newEditor,$(this).attr('id')];
+        //console.log('editors',editors)
     });
 
     $('.submitCode').click(function() {
 
         var editorIndex = $(this).data('index');
-        var editor = editors[editorIndex];
+        //var editor, sol_id
+        var editor = editors[editorIndex][0];
+        var sol_id = editors[editorIndex][1];
+        console.log('id',editor,editorIndex,sol_id)
+
+        //console.log(this, $(this), $(this).data('before-code'))
 
         $.post('/evaluate', {
             code: editor.getValue(),
+            before_id: sol_id,
+            question_number: {{question_number}}
         }, function(results) {
+            console.log(results)
             results.test_cases.forEach(function(result, index) {
                 var successClass = result['success'] ? 'test_success' : 'test_failure';
                 $('table[data-index=' + editorIndex +'] ' + 
