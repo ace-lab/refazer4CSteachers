@@ -130,6 +130,27 @@ class EvaluateSolutionTest(unittest.TestCase):
             expected_output=4,
         )
         self.assertEqual(result['success'], True)
+        self.assertEqual(result['timeout'], False)
+        self.assertEqual(result['runtime_success'], True)
+
+    def test_terminate_infinite_loops(self):
+        # Earlier, we had problems running code with recursion as the name of
+        # the compiled function couldn't be found in the scope of that running
+        # function.  This test makes sure we can handle recursion.
+        result = evaluate_function_once(
+            code_text='\n'.join([
+                "def func(input_):",
+                "    while True:",
+                "        pass",
+                "    return input_",
+            ]),
+            function_name='func',
+            input_values=(3,),
+            expected_output=3,
+        )
+        self.assertEqual(result['timeout'], True)
+        self.assertEqual(result['success'], False)
+
 
 class EvaluateMultipleSolutionsTest(unittest.TestCase):
 
