@@ -68,18 +68,16 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
         }
         cant_run_code = True
 
-    if cant_run_code is False:
+    # Set up fresh scopes for the code to run within
+    local_scope = {}
+    global_scope = {}
 
-        # Set up fresh scopes for the code to run within
-        local_scope = {}
-        global_scope = {}
+    if cant_run_code is False:
 
         # Run the code to capture the function definition
         try:
             exec(code, global_scope, local_scope)
             result['exec_success'] = True
-            local_scope['accumulate'](lambda x, y: x + y, 0, 5, lambda x: x)
-            print("test")
         except Exception as e:
             result['exec_exception'] = {
                 'type': type(e),
@@ -93,8 +91,10 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
         sys.stdout = capturable_stdout                
         # Execute the code with the test inputs        
         try:
-            output = local_scope[function_name](*input_values)
-            print(output)
+            local_scope['input_values'] = input_values
+            global_scope[function_name] = local_scope[function_name]
+            exec('output = ' + function_name + '(*input_values)', global_scope, local_scope)
+            output = local_scope['output']
             result['runtime_success'] = True
         except Exception as e:
             result['runtime_exception'] = {
@@ -121,20 +121,21 @@ with open('data/accumulate_all_attempts.json') as data:
 for attempt in attempts :
     result = evaluate_function(attempt['before'], "accumulate",
      input_value_tuples, expected_outputs)
-    print (attempt['before'])
     failure = {}
     for test in result['test_cases']: 
+
         if test['success'] is False:
-            print (test)
+            # print (test)
             failure['expected'] = test['expected']
-#            if test['runtime_success']:
-#                failure['output'] = test['returned']
-#            else :
-#                failure['output'] = test['runtime_exception']['args']
-            break
+            if test['runtime_success']:
+                failure['output'] = test['returned']
+            else :
+                failure['output'] = test['runtime_exception']['args']
+            # break
+
+        else:
+            print("Success!")
+
     attempt['failed'] = failure
-    #print(attempt['failed'])
-    break
-
-
-
+    print(attempt['failed'])
+    # break
