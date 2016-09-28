@@ -398,8 +398,8 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
     elif (tab_id==4):
         # for fix in questions[question_number].submissions:
         #     fix['diff_lines'] = []
-        print('Number of submissions sent  to Refazer')
-        print(len(questions[question_number].submissions))
+        #print('Number of submissions sent  to Refazer')
+        #print(len(questions[question_number].submissions))
 
 
         clusters = questions[question_number].test_based_cluster
@@ -455,6 +455,9 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
 @app.route('/evaluate', methods=['POST'])
 def evaluate():
 
+    print('before_id',request.form['before_id'])
+    before_id = request.form['before_id']
+
     code_text = request.form['code']
     results = evaluate_function(
         code_text=code_text,
@@ -488,6 +491,23 @@ def evaluate():
         if not result['runtime_success']:
             result['runtime_exception']['type'] = result['runtime_exception']['type'].__name__
         result['input_values'] = tuple(input_values)
+
+    if results['overall_success']:
+        # make call to Gustavo's server
+        before_code = [sol['before'] for sol in questions[question_number].submissions if sol['Id']==before_id][0]
+        data = requests.post('http://refazer2.azurewebsites.net/api/refazer', 
+           json={
+            "submissions":list(questions[question_number].submissions), 
+            "Examples" : [{
+                "before" : before_code,
+                "after" : code_text}]
+            }
+        )
+        if data.ok:
+           print("Number of submissions returned")
+           submssions = data.json()
+        else:
+            print(data)
 
     return jsonify(results)
 
