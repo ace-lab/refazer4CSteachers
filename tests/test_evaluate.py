@@ -113,6 +113,23 @@ class EvaluateSolutionTest(unittest.TestCase):
         self.assertEqual(result['syntax_error']['lineno'], 1)
         self.assertEqual(result['syntax_error']['offset'], 17)
 
+    def test_recursive_solution_works(self):
+        # Earlier, we had problems running code with recursion as the name of
+        # the compiled function couldn't be found in the scope of that running
+        # function.  This test makes sure we can handle recursion.
+        result = evaluate_function_once(
+            code_text='\n'.join([
+                "def func(input_):",
+                "    if input_ == 0:",
+                "        return 1",
+                "    else:",
+                "        return 1 + func(input_ - 1)",
+            ]),
+            function_name='func',
+            input_values=(3,),
+            expected_output=4,
+        )
+        self.assertEqual(result['success'], True)
 
 class EvaluateMultipleSolutionsTest(unittest.TestCase):
 
