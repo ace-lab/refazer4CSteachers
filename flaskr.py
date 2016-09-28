@@ -113,6 +113,9 @@ def get_test(failed):
     }]
     return results
 
+def create_grader_question(question_number):
+    #TODO: read in all data, not just what was fixed, produce clusters, empty synthesized fixes and turn isFixed's to false
+    return create_question(question_number)
 
 def create_question(question_number):
 
@@ -169,11 +172,14 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
             fix = submission_pair
             code_before = submission_pair['before']
             code_after = submission_pair['SynthesizedAfter']
+            code_student_after = submission_pair['after']
             filename = 'filename-' + str(submission_pair['Id'])
-            diff_lines = highlight.diff_file(filename, code_before, code_after, 'full')
+
+            fix['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
+            fix['diff_student_lines'] = highlight.diff_file(filename, code_before, code_student_after, 'full')
 
             test = get_test(submission_pair['failed'])
-            fix['diff_lines'] = diff_lines
+            
             fix['tests'] = test
             fix['before'] = code_before
             fix['input_output_before'] = submission_pair['augmented_tidy_before_testcase_to_output']
@@ -234,11 +240,14 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
 def init_app():
     global group_id_to_test
     group_id_to_test = {}
-    global questions
+    global questions, grader_questions
     questions = {}
+    grader_questions = {}
     for question_number in question_files.keys():
         questions[question_number] = create_question(question_number)
+        grader_questions[question_number] = create_grader_question(question_number)
     print(questions)
+    print(grader_questions)
 
 def connect_db():
     """Connects to the specific database."""
@@ -395,11 +404,11 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
     elif (tab_id==4):
         # for fix in questions[question_number].submissions:
         #     fix['diff_lines'] = []
-        print('Number of submissions sent  to Refazer')
-        print(len(questions[question_number].submissions))
+        #print('Number of submissions sent  to Refazer')
+        #print(len(questions[question_number].submissions))
 
 
-        clusters = questions[question_number].test_based_cluster
+        clusters = grader_questions[question_number].test_based_cluster
         #print(json.dumps([clu['before'] for clu in clusters[cluster_id].fixes],indent=2))
         hint = get_hint(question_number, cluster_id, tab_id)
         previous_hints = get_previous_hints(question_number)
@@ -425,7 +434,7 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
             finished_count = finished_count,
             finished_cluster_ids = finished_cluster_ids,
             current_filter = current_filter,
-            question_instructions = questions[question_number].question_instructions
+            question_instructions = grader_questions[question_number].question_instructions
         )
 
         # data = requests.post('http://localhost:53530/api/refazer', 
@@ -451,6 +460,10 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
 
 @app.route('/evaluate', methods=['POST'])
 def evaluate():
+
+    print('before_id',request.form['before_id'])
+    before_id = request.form['before_id']
+    question_number = int(request.form['question_number'])
 
     code_text = request.form['code']
     results = evaluate_function(
@@ -481,10 +494,37 @@ def evaluate():
             if callable(input_value):
                 input_values[index] = inspect.getsource(input_value)
         if not result['exec_success']:
+            print(result.keys(),result)
             result['exec_exception']['type'] = result['exec_exception']['type'].__name__
         if not result['runtime_success']:
             result['runtime_exception']['type'] = result['runtime_exception']['type'].__name__
         result['input_values'] = tuple(input_values)
+
+    #if results['overall_success']:
+    # make call to Gustavo's server
+    print(questions.keys())
+    before_code = [sol['before'] for sol in grader_questions[question_number].submissions if int(sol['Id'])==int(before_id)][0]
+    fake_after_code = [sol['SynthesizedAfter'] for sol in grader_questions[question_number].submissions if int(sol['Id'])==int(before_id)][0]
+    print('before_code',before_code)
+    for sub in grader_questions[question_number].submissions:
+        sub['diff_lines'] = []
+        sub['diff_student_lines'] = []
+        sub['is_fixed'] = False
+    data = requests.post('http://refazer2.azurewebsites.net/api/refazer', 
+       json={
+        "submissions":list(grader_questions[question_number].submissions), 
+        "Examples" : [{
+            "before" : before_code,
+            "after" : fake_after_code #code_text
+            }]
+        })
+    if data.ok:
+       print("Number of submissions returned")
+       submssions = data.json()
+       len_fixed_submissions = len([sub for sub in submssions['submissions'] if sub['is_fixed']])
+       print(len_fixed_submissions)
+    else:
+        print(data.content)
 
     return jsonify(results)
 

@@ -2,3 +2,5 @@ static/react/node_modules
 flaskr.db
 *.pyc
 .python-version
+venv/
+.DS_Store
