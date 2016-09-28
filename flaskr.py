@@ -514,7 +514,7 @@ def evaluate():
        print("Number of submissions returned")
        submssions = data.json()
     else:
-        print(data)
+        print(data.content)
 
     return jsonify(results)
 
