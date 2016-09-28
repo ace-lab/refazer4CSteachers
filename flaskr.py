@@ -58,7 +58,6 @@ class Question:
 app = Flask(__name__)
 app.config.from_object(__name__)
 ordered_clusters = []
-group_id_to_test = {}
 PROCESS_TIMEOUT = .5
 
 question_files = {
@@ -121,31 +120,6 @@ def create_grader_question(question_number):
     return create_question(question_number)
 
 def create_question(question_number):
-
-    question_instructions = {
-    1:'''<code>accumulate(combiner, base, n, term)</code> takes the following arguments:
-    <ul>
-    <li>
-        <code>term</code and <code>n</code: the same arguments as in <code>summation</code> and <code>product</code>
-    </li>
-    <li>
-        <code>combiner</code>: a two-argument function that specifies how the current term combined with the previously accumulated terms.
-    </li>
-    <li>
-        <code>base</code>: value that specifies what value to use to start the accumulation.
-    </li>
-    </ul>
-    For example, <code>accumulate(add, 11, 3, square)</code> is <code>11 + square(1) + square(2) + square(3)</code>.''',
-    2:'''A mathematical function G on positive integers is defined by two cases:
-
-<code>G(n) = n</code> if <code>n <= 3</code>
-<code>G(n) = G(n - 1) + 2 * G(n - 2) + 3 * G(n - 3)</code> if <code>n > 3</code>
-
-Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
-    3:'TODO: RETRIEVE DIRECTIONS FOR Product-mistakes.json',
-    4:'TODO: RETRIEVE DIRECTIONS FOR repeated-mistakes.json'
-    }
-
     ordered_clusters = []
 
     with open('data/'+question_files[question_number]) as data_file:
@@ -242,16 +216,38 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
     return question
 
 def init_app():
-    global group_id_to_test
-    group_id_to_test = {}
-    global questions, grader_questions
+    global questions, grader_questions, question_instructions
     questions = {}
     grader_questions = {}
     for question_number in question_files.keys():
         questions[question_number] = create_question(question_number)
         grader_questions[question_number] = create_grader_question(question_number)
+    question_instructions = {
+        1:'''<code>accumulate(combiner, base, n, term)</code> takes the following arguments:
+        <ul>
+        <li>
+            <code>term</code and <code>n</code: the same arguments as in <code>summation</code> and <code>product</code>
+        </li>
+        <li>
+            <code>combiner</code>: a two-argument function that specifies how the current term combined with the previously accumulated terms.
+        </li>
+        <li>
+            <code>base</code>: value that specifies what value to use to start the accumulation.
+        </li>
+        </ul>
+        For example, <code>accumulate(add, 11, 3, square)</code> is <code>11 + square(1) + square(2) + square(3)</code>.''',
+        2:'''A mathematical function G on positive integers is defined by two cases:
+
+    <code>G(n) = n</code> if <code>n <= 3</code>
+    <code>G(n) = G(n - 1) + 2 * G(n - 2) + 3 * G(n - 3)</code> if <code>n > 3</code>
+
+    Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
+        3:'TODO: RETRIEVE DIRECTIONS FOR Product-mistakes.json',
+        4:'TODO: RETRIEVE DIRECTIONS FOR repeated-mistakes.json'
+    }
     print(questions)
     print(grader_questions)
+    print(question_instructions)
 
 def connect_db():
     """Connects to the specific database."""
@@ -513,6 +509,7 @@ def evaluate():
     for sub in grader_questions[question_number].submissions:
         sub['diff_lines'] = []
         sub['diff_student_lines'] = []
+        sub['diff_but_not_diff'] = []
         #sub['is_fixed'] = False
     data = requests.post('http://refazer2.azurewebsites.net/api/refazer', 
        json={
