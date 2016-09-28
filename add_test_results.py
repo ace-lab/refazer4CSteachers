@@ -1,6 +1,9 @@
 import json
 import sys
 from io import StringIO
+from flaskr import evaluate_function_once
+from concurrent.futures import ThreadPoolExecutor
+
 
 input_value_tuples=[
 (lambda x, y: x + y, 11, 5, lambda x: x),
@@ -25,21 +28,22 @@ def evaluate_function(code_text, function_name, input_value_tuples, expected_out
         'test_cases': []
     }
 
-    # Compute the result of each individual test
-    for test_index in range(len(input_value_tuples)):
-        results['test_cases'].append(evaluate_function_once(
-            code_text=code_text,
-            function_name=function_name,
-            input_values=input_value_tuples[test_index],
-            expected_output=expected_outputs[test_index],
-        ))
-    
+    # XXX: This is super hacky as we are sparking off a bunch of threads that will then
+    # create a bunch of processes.  To speed this up, we should find a way to optimize the
+    # creation of processes in the `evaluate_function_once` function.
+    pool = ThreadPoolExecutor(max_workers=10)
+    results['test_cases'] = pool.map(
+        lambda io: evaluate_function_once(code_text, function_name, io[0], io[1]),
+        zip(input_value_tuples, expected_outputs)
+    )
+
     # Compute the overall success across all tests
     results['overall_success'] = all(r['success'] for r in results['test_cases'])
 
     return results
 
 
+'''
 def evaluate_function_once(code_text, function_name, input_values, expected_output):
 
     cant_run_code = False
@@ -113,6 +117,7 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
     sys.stdout = original_stdout
     
     return result
+'''
 
 with open('data/accumulate_all_attempts.json') as data:
     attempts = json.load(data)
@@ -129,8 +134,12 @@ for attempt in attempts :
             failure['expected'] = test['expected']
             if test['runtime_success']:
                 failure['output'] = test['returned']
-            else :
+            elif 'runtime_exception' in test:
                 failure['output'] = test['runtime_exception']['args']
+            elif test['timeout']:
+                failure['output'] = "Timeout"
+            else:
+                failure['output'] = "Other"
             # break
 
         else:
