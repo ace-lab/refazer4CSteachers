@@ -11,7 +11,7 @@
             <table class="highlight">
               <tbody>
                 {% if tab_id == 1 %}
-                  {% for line in item.diff_student_lines %}
+                  {% for line in item.diff_but_not_a_diff %}
                     <tr class="fixed-width-font highlight-{{ line.tag }}" data-line={{ line.line_after }}>
                       {% if line.is_diff %}
                         {{ line_number(line.line_before) }}

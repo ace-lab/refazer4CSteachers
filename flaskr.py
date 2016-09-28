@@ -180,6 +180,7 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
 
             fix['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
             fix['diff_student_lines'] = highlight.diff_file(filename, code_before, code_student_after, 'full')
+            fix['diff_but_not_a_diff'] = highlight.diff_file(filename, code_before, code_before, 'full')
 
             test = get_test(submission_pair['failed'])
             
