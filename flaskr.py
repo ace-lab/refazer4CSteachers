@@ -114,7 +114,7 @@ def get_test(failed):
     return results
 
 def create_grader_question(question_number):
-    #TODO: read in all data, not just what was fixed, produce clusters, empty synthesized fixes and turn isFixed's to false
+    #TODO: read in all data, not just what was fixed, produce clusters, empty synthesized fixes and turn isFixed's to false, initialize isFixed to false
     return create_question(question_number)
 
 def create_question(question_number):
@@ -504,18 +504,18 @@ def evaluate():
     # make call to Gustavo's server
     print(questions.keys())
     before_code = [sol['before'] for sol in grader_questions[question_number].submissions if int(sol['Id'])==int(before_id)][0]
-    fake_after_code = [sol['SynthesizedAfter'] for sol in grader_questions[question_number].submissions if int(sol['Id'])==int(before_id)][0]
+    #fake_after_code = [sol['SynthesizedAfter'] for sol in grader_questions[question_number].submissions if int(sol['Id'])==int(before_id)][0]
     print('before_code',before_code)
     for sub in grader_questions[question_number].submissions:
         sub['diff_lines'] = []
         sub['diff_student_lines'] = []
-        sub['is_fixed'] = False
+        #sub['is_fixed'] = False
     data = requests.post('http://refazer2.azurewebsites.net/api/refazer', 
        json={
         "submissions":list(grader_questions[question_number].submissions), 
         "Examples" : [{
             "before" : before_code,
-            "after" : fake_after_code #code_text
+            "after" : code_text
             }]
         })
     if data.ok:
