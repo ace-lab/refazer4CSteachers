@@ -578,11 +578,11 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
         }
         cant_run_code = True
 
-    if cant_run_code is False:
+    # Set up fresh scopes for the code to run within
+    local_scope = {}
+    global_scope = {}
 
-        # Set up fresh scopes for the code to run within
-        local_scope = {}
-        global_scope = {}
+    if cant_run_code is False:
 
         # Run the code to capture the function definition
         try:
@@ -603,7 +603,15 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
         
         # Execute the code with the test inputs
         try:
-            output = local_scope[function_name](*input_values)
+            # It's critical to do a few things here:
+            # 1. Transfer the input values into the sandbox scope
+            # 2. Transfer the function name into the sandbox global scope so it can be called
+            #    recursively (otherwise, it can't be found for recursive calls)
+            # 3. Store the output in a sandbox variable and retrieve it later.
+            local_scope['input_values'] = input_values
+            global_scope[function_name] = local_scope[function_name]
+            exec('output = ' + function_name + '(*input_values)', global_scope, local_scope)
+            output = local_scope['output']
             result['runtime_success'] = True
         except Exception as e:
             result['runtime_exception'] = {
