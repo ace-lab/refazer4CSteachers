@@ -163,12 +163,12 @@ def create_grader_question(question_number):
     def_seq_diff = []
     num_fixed = []
 
-    for submission_pair in submission_pairs[0:10]:
+    for submission_pair in submission_pairs:
         submission_pair['IsFixed'] = False #initialized to false
         #submission_pair['SynthesizedAfter'] =  ''
         num_fixed.append(submission_pair)
         rule = submission_pair['UsedFix']
-        rule = rule.replace('\\', '')
+        # rule = rule.replace('\\', '')
 
         fix = submission_pair
         code_before = submission_pair['before']
@@ -176,9 +176,9 @@ def create_grader_question(question_number):
         code_student_after = submission_pair['after']
         filename = 'filename-' + str(submission_pair['Id'])
 
-        fix['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
-        fix['diff_student_lines'] = highlight.diff_file(filename, code_before, code_student_after, 'full')
-        fix['diff_but_not_a_diff'] = highlight.diff_file(filename, code_before, code_before, 'full')
+        # fix['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
+        # fix['diff_student_lines'] = highlight.diff_file(filename, code_before, code_student_after, 'full')
+        # fix['diff_but_not_a_diff'] = highlight.diff_file(filename, code_before, code_before, 'full')
 
         test = get_test(submission_pair['failed'])
         
@@ -514,6 +514,14 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
         previous_hints = get_previous_hints(question_number)
         finished_cluster_ids = get_finished_cluster_ids(question_number, tab_id)
 
+        fixes = []
+        for cluster in clusters:
+            fixes.extend(cluster.fixes)
+
+        submission = fixes[cluster_id]
+        test_results = run_code_evaluations(submission['before'])
+        print(json.dumps(test_results, indent=2))
+
         finished_count = 0
         total_count = 0
         for i in range(len(clusters)):
@@ -534,7 +542,10 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
             finished_count = finished_count,
             finished_cluster_ids = finished_cluster_ids,
             current_filter = current_filter,
-            question_instructions = grader_questions[question_number].question_instructions
+            question_instructions = grader_questions[question_number].question_instructions,
+            submissions = fixes,
+            submission = submission,
+            test_results = test_results,
         )
 
         # data = requests.post('http://localhost:53530/api/refazer', 
@@ -558,14 +569,8 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
 #     return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=0 cluster_id=request.form['cluster_id']))
 
 
-@app.route('/evaluate', methods=['POST'])
-def evaluate():
+def run_code_evaluations(code_text):
 
-    print('before_id',request.form['before_id'])
-    before_id = request.form['before_id']
-    question_number = int(request.form['question_number'])
-
-    code_text = request.form['code']
     results = evaluate_function(
         code_text=code_text,
         function_name='accumulate',
@@ -588,18 +593,49 @@ def evaluate():
     # Stringify the results.  This means:
     # 1. Adding a lambda's source as a string
     # 2. Adding the names of exceptions instead of their classes
+    # 3. Setting the value of the displayable result
     for result in results['test_cases']:
         input_values = list(result['input_values'])
         for index, input_value in enumerate(input_values, start=0):
+            # We use a heuristic if there are lambdas:
+            # Just find the source code of the line where this set of examples
+            # was defined, and add that source code line here.
             if callable(input_value):
-                input_values[index] = inspect.getsource(input_value)
+                result['input_values'] = inspect.getsource(input_value).strip()
+                print("Found one")
+                break
         if not result['exec_success']:
             print(result.keys(),result)
             result['exec_exception']['type'] = result['exec_exception']['type'].__name__
         if not result['runtime_success']:
             result['runtime_exception']['type'] = result['runtime_exception']['type'].__name__
-        result['input_values'] = tuple(input_values)
+        result['input_values'] = result['input_values'].strip(',()')
 
+        print(result)
+
+        if result['runtime_success']:
+            result['human_readable_result'] = result['returned']
+        elif not result['runtime_success']:
+            result['human_readable_result'] = result['runtime_exception']['type']
+        elif not result['exec_success']:
+            result['human_readable_result'] = result['exec_exception']['type']
+        elif not result['compile_success']:
+            result['human_readable_result'] = 'N/A'
+
+    return results
+
+
+@app.route('/evaluate', methods=['POST'])
+def evaluate():
+
+    print('before_id',request.form['before_id'])
+    before_id = request.form['before_id']
+    question_number = int(request.form['question_number'])
+
+    code_text = request.form['code']
+    results = run_code_evaluations(code_text)
+
+    '''
     #if results['overall_success']:
     # make call to Gustavo's server
     print(questions.keys())
@@ -627,6 +663,7 @@ def evaluate():
        print(len_fixed_submissions)
     else:
         print(data.content)
+    '''
 
     return jsonify(results)
 

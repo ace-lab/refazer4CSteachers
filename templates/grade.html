@@ -2,6 +2,7 @@
 {% block clusters %}
 <div class="col-md-3">
 
+  <!--
   <div style="margin-top: 5px;">
     <b>You gave hints for {{ finished_count }} / {{ total_count }} bugs</b>
     <div class="progress" style="margin-top: 10px;">
@@ -14,7 +15,9 @@
       </div>
     </div>
   </div>
+  -->
 
+  <!--
   <div class="ui form" style="margin-bottom: 10px">
     <div class="inline field">
       <div id="filter-checkbox" class="ui toggle checkbox">
@@ -31,42 +34,23 @@
       </div>
     </div>
   </div>
+  -->
 
+  <!--
   Total number of clusters: {{ clusters | length - finished_cluster_ids | length }} / {{ clusters | length }}
-  <ul class="list-group" style="margin-top: 10px">
-    {% for i in range(clusters|length) %}
-      <a href="/{{question_number}}/4/{{i}}?filter={{current_filter}}" class="{{ 'finished-cluster' if i in finished_cluster_ids }} {{ 'selected-cluster' if i == cluster_id }}">
-        <li class="list-group-item">
-          <span class="badge ui label label-size-{{ (clusters[i].size/10) | round | int if i not in finished_cluster_ids }}">
-            {{ clusters[i].size }}
-            {% if i in finished_cluster_ids %}
-              <i class="fa fa-check fa-fw"></i>
-            {% endif %}
-          </span>
+  -->
 
-          <b>Cluster {{i}}</b>
-
-          
-          <!-- Test-based Tab -->
-          {% if tab_id == 1 or tab_id == 4 %}
-            <!-- <span>test case</span> -->
-            <span class="code">{{clusters[i].test[0]['input']}}</span>
-            <br>
-            <span>returned</span>
-            <span class="code">{{clusters[i].test[0]['output']}}</span>
-            <br>
-            <span>instead of</span>
-            <span class="code">{{clusters[i].test[0]['expected']}}</span>
-
-            <script>
-              $("#grader-tab").addClass("active");
-            </script>
-          {% endif %}
-
-         
-        </li></a>
-    {% endfor %}
-  </ul>
+  <div style="overflow-y: scroll; height: 1000px;">
+    <ul class="list-group" style="margin-top: 10px">
+      {% for i in range(submissions|length) %}
+        <a href="/{{question_number}}/4/{{i}}" class="{{ 'selected-cluster' if i == cluster_id }}">
+          <li class="list-group-item">
+            <b>Submission {{i}}</b>
+          </li>
+        </a>
+      {% endfor %}
+    </ul>
+  </div>
 
 </div>
 {% endblock %}
