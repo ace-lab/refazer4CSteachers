@@ -101,7 +101,8 @@ $(function() {
         var newEditor = CodeMirror.fromTextArea($(this)[0], {
             lineNumbers: true,
             mode: 'python',
-            viewportMargin: Infinity
+            viewportMargin: Infinity,
+            lineWrapping: true
         });
         editors[editorIndex] = [newEditor,$(this).attr('id')];
         //console.log('editors',editors)
