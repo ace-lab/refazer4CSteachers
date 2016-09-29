@@ -103,11 +103,37 @@
       color: #FFF!important;
     }
 
-    td.test_success {
+    p.test_overall_success {
+      width: 80%;
+      font-size: large;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    table.test_results {
+      width: 80%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    input.submitCode {
+      width: 100%;
+    }
+    tr.success td {
       background-color: rgb(219, 255, 219);
     }
-    td.test_failure {
+    tr.failure td {
       background-color: rgb(255, 221, 221);
+    }
+    td.input, td.result {
+      font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
+    }
+    div.editor_choice {
+      width: 80%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    div.editor_choice div.checkbox label, label#which_label {
+      margin-top: .5em;
+      font-size: large;
     }
 
     /*.returned .expected {
@@ -116,6 +142,7 @@
     }*/
     .CodeMirror {
       height: auto;
+      font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
     }
     </style>
   </head>

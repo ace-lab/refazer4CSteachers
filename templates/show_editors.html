@@ -5,25 +5,53 @@
   {% block clusters %}{% endblock %}
   <div class="col-md-6">
     <div style="overflow-y: scroll; height: 2400px;">
-      {% for item in clusters[cluster_id].fixes %}
-          <textarea data-index={{ loop.index }} class='solution_editor' id={{item.Id}}>{{item.before}}</textarea>
-          <input data-index={{ loop.index }} class="ui primary button submitCode" type="submit" value="Save and Test">
-          <table data-index={{ loop.index }} class="table">
-          {% for key, value in item.input_output_before.items() %}
-              <tr>
-                  <td>
-                  {% if not key.startswith('print ') %}
-                      {{key}}
-                  {% else %}
-                      {{key.lstrip('print ')}}
-                  {% endif %}
-                  </td>
-                  <td>&rarr;</td>
-                  <td>{{value}}</td>
-               </tr>
+      <textarea data-index=1 class='solution_editor' id={{ submission.Id }}>
+          {{ submission.before }}
+      </textarea>
+      <form>
+          <div class="ui form editor_choice">
+              <div class="inline fields">
+                  <label id="which_label">Show which code?</label>
+                  <div class="field">
+                      <div class="ui radio checkbox">
+                          <input name="editor_choice" data-mode="original" type="radio">
+                          <label>Original submission</label>
+                      </div>
+                  </div>
+                  <div class="field">
+                      <div class="ui radio checkbox">
+                          <input name="editor_choice" data-mode="debug" type="radio">
+                          <label>Debug</label>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </form>
+      <script>
+      </script>
+      <p class="test_overall_success"><b>Test results:</b>
+          {% if not test_results.test_cases[0].compile_success %}
+              <i>Syntax error.</i>{{ test_results.test_cases[0].syntax_error.text }}
+          {% elif test_results.overall_success %}
+              All tests succeeded!
+          {% else %}
+              Some tests failed
+          {% endif %}</p>
+      <table data-index=1 class="table test_results">
+          <tr>
+              <th>Input</th>
+              <th></th>
+              <th>Result</th>
+          </tr>
+          {% for test_case in test_results.test_cases %}
+          <tr class={% if test_case.success %}"success"{% else %}"failure"{% endif %}>
+              <td class='input'>{{ test_case.input_values }}</td>
+              <td>&rarr;</td>
+              <td class='result'>{{ test_case.human_readable_result }}</td>
+          </tr>
           {% endfor %}
-          </table>
-      {% endfor %}
+      </table>
+      <input data-index=1 class="ui primary button submitCode" type="submit" value="Save and Test">
     </div>
     
   </div>
@@ -102,7 +130,7 @@ $(function() {
             lineNumbers: true,
             mode: 'python',
             viewportMargin: Infinity,
-            lineWrapping: true
+            // lineWrapping: true
         });
         editors[editorIndex] = [newEditor,$(this).attr('id')];
         //console.log('editors',editors)
@@ -125,14 +153,34 @@ $(function() {
         }, function(results) {
             console.log(results)
             results.test_cases.forEach(function(result, index) {
-                var successClass = result['success'] ? 'test_success' : 'test_failure';
-                $('table[data-index=' + editorIndex +'] ' + 
-                  'tr:nth-of-type(' + (index + 1) + ') td'
-                 ).addClass(successClass);
+                var successClass = result['success'] ? 'success' : 'failure';
+                var row = $('tr:nth-of-type(' + (index + 2) + ')');
+                row.removeClass('success');
+                row.removeClass('failure');
+                row.addClass(successClass);
+                $(row.children()[0]).text(result['input_values']);
+                console.log(result['human_readable_result']);
+                $(row.children()[2]).text(result['human_readable_result']);
             });
         });
 
     });
+
+    var editor = editors[1][0];
+    var originalCode = editor.getValue();
+    var debuggedCode = originalCode;
+    $('.checkbox').checkbox({
+        onChange: function() {
+            var mode = $(this).data('mode');
+            if (mode === 'debug') {
+                editor.setValue(debuggedCode);
+            } else if (mode === 'original') {
+                debuggedCode = editor.getValue();
+                editor.setValue(originalCode);
+            }
+        },
+    });
+
 });
 </script>
 {% endblock %}
