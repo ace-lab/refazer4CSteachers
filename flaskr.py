@@ -604,10 +604,14 @@ def run_code_evaluations(code_text):
                 result['input_values'] = inspect.getsource(input_value).strip()
                 print("Found one")
                 break
-        if not result['exec_success']:
+        if not result['compile_success']:
+            pass
+        elif result['timeout']:
+            pass
+        elif not result['exec_success']:
             print(result.keys(),result)
             result['exec_exception']['type'] = result['exec_exception']['type'].__name__
-        if not result['runtime_success']:
+        elif not result['runtime_success']:
             result['runtime_exception']['type'] = result['runtime_exception']['type'].__name__
         result['input_values'] = result['input_values'].strip(',()')
 
@@ -615,12 +619,14 @@ def run_code_evaluations(code_text):
 
         if result['runtime_success']:
             result['human_readable_result'] = result['returned']
-        elif not result['runtime_success']:
-            result['human_readable_result'] = result['runtime_exception']['type']
-        elif not result['exec_success']:
-            result['human_readable_result'] = result['exec_exception']['type']
         elif not result['compile_success']:
             result['human_readable_result'] = 'N/A'
+        elif result['timeout']:
+            result['human_readable_result'] = 'Timeout'
+        elif not result['exec_success']:
+            result['human_readable_result'] = result['exec_exception']['type']
+        elif not result['runtime_success']:
+            result['human_readable_result'] = result['runtime_exception']['type']
 
     return results
 
