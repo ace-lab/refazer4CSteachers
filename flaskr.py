@@ -67,6 +67,30 @@ question_files = {
     # 4:'repeated-mistakes.json'
     }
 
+question_instructions = {
+    1:'''<code>accumulate(combiner, base, n, term)</code> takes the following arguments:
+    <ul>
+    <li>
+        <code>term</code and <code>n</code: the same arguments as in <code>summation</code> and <code>product</code>
+    </li>
+    <li>
+        <code>combiner</code>: a two-argument function that specifies how the current term combined with the previously accumulated terms.
+    </li>
+    <li>
+        <code>base</code>: value that specifies what value to use to start the accumulation.
+    </li>
+    </ul>
+    For example, <code>accumulate(add, 11, 3, square)</code> is <code>11 + square(1) + square(2) + square(3)</code>.''',
+    2:'''A mathematical function G on positive integers is defined by two cases:
+
+<code>G(n) = n</code> if <code>n <= 3</code>
+<code>G(n) = G(n - 1) + 2 * G(n - 2) + 3 * G(n - 3)</code> if <code>n > 3</code>
+
+Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
+    3:'TODO: RETRIEVE DIRECTIONS FOR Product-mistakes.json',
+    4:'TODO: RETRIEVE DIRECTIONS FOR repeated-mistakes.json'
+}
+
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, 'flaskr.db'),
     SECRET_KEY='development key',
@@ -116,10 +140,109 @@ def get_test(failed):
     return results
 
 def create_grader_question(question_number):
+    global question_instructions
+
     #TODO: read in all data, not just what was fixed, produce clusters, empty synthesized fixes and turn isFixed's to false, initialize isFixed to false
-    return create_question(question_number)
+    ordered_clusters = []
+
+    with open('data/'+question_files[question_number]) as data_file:
+        submission_pairs = json.load(data_file)
+
+    clustered_fixes_by_rule = {}
+    clustered_fixes_by_test = {}
+    clustered_fixes_by_rule_and_test = {}
+    group_id_to_test_for_a_question = {}
+    fixes = []
+
+    group_id = -1
+    checked_tests = []
+
+    rule_and_test_based_cluster = []
+
+    no_sequence_diff = []
+    def_seq_diff = []
+    num_fixed = []
+
+    for submission_pair in submission_pairs[0:10]:
+        submission_pair['IsFixed'] = False #initialized to false
+        #submission_pair['SynthesizedAfter'] =  ''
+        num_fixed.append(submission_pair)
+        rule = submission_pair['UsedFix']
+        rule = rule.replace('\\', '')
+
+        fix = submission_pair
+        code_before = submission_pair['before']
+        code_after = '' #submission_pair['SynthesizedAfter'] #old correctino is erased
+        code_student_after = submission_pair['after']
+        filename = 'filename-' + str(submission_pair['Id'])
+
+        fix['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
+        fix['diff_student_lines'] = highlight.diff_file(filename, code_before, code_student_after, 'full')
+        fix['diff_but_not_a_diff'] = highlight.diff_file(filename, code_before, code_before, 'full')
+
+        test = get_test(submission_pair['failed'])
+        
+        fix['tests'] = test
+        fix['before'] = code_before
+        fix['input_output_before'] = {} #submission_pair['augmented_tidy_before_testcase_to_output']
+        fix['synthesized_after'] = ''
+        try:
+            fix['dynamic_diff'] = submission_pair['sequence_comparison_diff']
+        except:
+            no_sequence_diff.append(submission_pair)
+
+        id = submission_pair['Id']
+
+        if (rule in clustered_fixes_by_rule.keys()):
+            clustered_fixes_by_rule[rule].append(fix)
+        else:
+            clustered_fixes_by_rule[rule] = [fix]
+
+        if (test in checked_tests):
+            group_id = checked_tests.index(test)
+            clustered_fixes_by_test[checked_tests.index(test)].append(fix)
+        else:
+            checked_tests.append(test)
+            group_id = len(checked_tests)
+            clustered_fixes_by_test[checked_tests.index(test)] = [fix]
+
+        key = Rule_and_test(test=test,rule=rule)
+        if key in clustered_fixes_by_rule_and_test.keys():
+            clustered_fixes_by_rule_and_test[key].append(fix)
+        else:
+            clustered_fixes_by_rule_and_test[key] = [fix]
+
+        fix['group_id'] = group_id
+        group_id_to_test_for_a_question[group_id] = test
+        fixes.append(fix)
+
+    for key,value in clustered_fixes_by_rule.items():
+        cluster = Rule_based_cluster(rule=key, fixes = value, size=len(value))
+        ordered_clusters.append(cluster)
+
+    test_based_clusters = []
+    for key,value in clustered_fixes_by_test.items():
+        cluster = Test_based_cluster(test=checked_tests[key], fixes = value, size=len(value))
+        test_based_clusters.append(cluster)
+
+    for key,value in clustered_fixes_by_rule_and_test.items():
+        cluster = Rule_and_test_based_cluster(test=key.test, rule=key.rule, fixes = value, size = len(value))
+        rule_and_test_based_cluster.append(cluster)
+
+    ordered_clusters.sort(key = lambda x : len(x.fixes), reverse= True)
+    test_based_clusters.sort(key = lambda x : len(x.fixes), reverse= True)
+    rule_and_test_based_cluster.sort(key = lambda  x : len(x.fixes), reverse=True)
+    question = Question(question_id=question_number, rule_based_cluster = ordered_clusters,
+                        test_based_cluster = test_based_clusters, rule_and_test_based_cluster=rule_and_test_based_cluster,
+                        question_instructions = question_instructions[question_number], submissions= fixes)
+
+    return question
+
+    #return create_question(question_number)
 
 def create_question(question_number):
+
+    global question_instructions
     ordered_clusters = []
 
     with open('data/'+question_files[question_number]) as data_file:
@@ -216,35 +339,12 @@ def create_question(question_number):
     return question
 
 def init_app():
-    global questions, grader_questions, question_instructions
+    global questions, grader_questions
     questions = {}
     grader_questions = {}
     for question_number in question_files.keys():
         questions[question_number] = create_question(question_number)
         grader_questions[question_number] = create_grader_question(question_number)
-    question_instructions = {
-        1:'''<code>accumulate(combiner, base, n, term)</code> takes the following arguments:
-        <ul>
-        <li>
-            <code>term</code and <code>n</code: the same arguments as in <code>summation</code> and <code>product</code>
-        </li>
-        <li>
-            <code>combiner</code>: a two-argument function that specifies how the current term combined with the previously accumulated terms.
-        </li>
-        <li>
-            <code>base</code>: value that specifies what value to use to start the accumulation.
-        </li>
-        </ul>
-        For example, <code>accumulate(add, 11, 3, square)</code> is <code>11 + square(1) + square(2) + square(3)</code>.''',
-        2:'''A mathematical function G on positive integers is defined by two cases:
-
-    <code>G(n) = n</code> if <code>n <= 3</code>
-    <code>G(n) = G(n - 1) + 2 * G(n - 2) + 3 * G(n - 3)</code> if <code>n > 3</code>
-
-    Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
-        3:'TODO: RETRIEVE DIRECTIONS FOR Product-mistakes.json',
-        4:'TODO: RETRIEVE DIRECTIONS FOR repeated-mistakes.json'
-    }
     print(questions)
     print(grader_questions)
     print(question_instructions)
@@ -509,11 +609,12 @@ def evaluate():
     for sub in grader_questions[question_number].submissions:
         sub['diff_lines'] = []
         sub['diff_student_lines'] = []
-        sub['diff_but_not_diff'] = []
+        sub['diff_but_not_a_diff'] = []
         #sub['is_fixed'] = False
+    print('sub',sub)
     data = requests.post('http://refazer2.azurewebsites.net/api/refazer', 
        json={
-        "submissions":list(grader_questions[question_number].submissions), 
+        "submissions": list(grader_questions[question_number].submissions)[0:10], 
         "Examples" : [{
             "before" : before_code,
             "after" : code_text
@@ -522,7 +623,7 @@ def evaluate():
     if data.ok:
        print("Number of submissions returned")
        submssions = data.json()
-       len_fixed_submissions = len([sub for sub in submssions['submissions'] if sub['is_fixed']])
+       len_fixed_submissions = len([sub for sub in submssions['submissions'] if sub['isFixed']])
        print(len_fixed_submissions)
     else:
         print(data.content)
