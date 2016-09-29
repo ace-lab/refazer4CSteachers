@@ -8,17 +8,16 @@ import _ from 'lodash'
 class App extends Component {
 
   componentDidMount() {
-    $.get('/static/react/sample/data-1.py', function (code) {
+    $.get('/static/react/sample/data-2.py', function (code) {
       console.log('app init code')
       this.props.store.dispatch(actions.initCode(code))
     }.bind(this))
 
-    $.get('/static/react/sample/data-1.json', function (res) {
+    $.get('/static/react/sample/data-2.json', function (res) {
       let state = {
         step: 0,
-        stream: res.stream,
-        max: res.stream.length-1,
-        hints: res.hints
+        traces: res,
+        max: res.length-1,
       }
       this.props.store.dispatch(actions.initState(state))
     }.bind(this))

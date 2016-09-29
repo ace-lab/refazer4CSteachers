@@ -1,6 +1,9 @@
-static/react/node_modules
 flaskr.db
 *.pyc
 .python-version
 venv/
 .DS_Store
+static/react/node_modules
+static/react/dist
+static/react/dist/*.hot-update.*
+
