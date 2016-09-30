@@ -113,70 +113,54 @@
     
   </div>
   <div class="col-md-3">
-    <h3>Instructions for Students</h3>
-    <div>{{question_instructions|safe}}</div>
-    <h3>Hints</h3>
 
-    <div class="hint">
-      {% if hint == None %}
-        <i>No hint</i>
-        <br>
-        <form id="add-hint" class="ui form" action="{{ url_for('add_hint') }}" method="POST">
-          <div class="field">
-            <textarea name="text" rows=8 cols=40></textarea>
-            <input type="hidden" name="cluster_id" value={{cluster_id}}>
-            <input type="hidden" name="tab_id" value={{tab_id}}>
-            <input type="hidden" name="question_number" value={{question_number}}>
-            <input type="hidden" name="filter" value={{current_filter}}>
-          </div>
-          <div class="field">
-            <input class="ui primary button" type="submit" value="Add">
-            <a href="#" id="reuse-hints-button">Reuse previous hints</a>
-          </div>
-          <div id="previous-hints" class="field" style="display: none">
-            <label>
-              Reuse Previous hints
-              <a href="#" id="hide-reuse-hints-button">Hide</a>
-            </label>
-            {% for previous_hint in previous_hints %}
-            <div class="field previous-hint">
-              <div id="reuse-checkbox" class="ui radio checkbox">
-                <input type="radio" name="fruit" tabindex="0" class="hidden" data-text="{{ previous_hint.text }}">
-                <label>{{ previous_hint.text }}</label>
-              </div>
+        <form id="grade_form" class="ui form">
+
+            <div>
+                <label for="grade">Grade</label>
+                <input type="text" name="grade"></input> / 10
             </div>
-            {% endfor %}
-          </div>
+
+            <div id="notes_form">
+                <label for="reason">Notes</label>
+                <input type="text" name="reason"></input>
+                <input type="button" class="ui button" name="add" value="Add"></input>
+            </div>
+
+            <div id='notes'>
+            </div>
+
         </form>
-
-
-      {% else %}
-        <div id="show-hint">
-        {{hint.text }}
-        <br>
-        <a href="#" id="edit-hint-button">Edit</a>
-        </div>
-        <div id="edit-hint" style="display:none;">
-          <form class="ui form" action="{{ url_for('update_hint') }}" method="POST">
-            <div class="field">
-              <textarea name="text" rows=3 cols=40>{{hint.text}}</textarea>
-              <input type="hidden" name="cluster_id" value={{cluster_id}}>
-              <input type="hidden" name="tab_id" value={{tab_id}}>
-              <input type="hidden" name="question_number" value={{question_number}}>
-              <input type="hidden" name="filter" value={{current_filter}}>
-            </div>
-            <input class="ui primary button" type="submit" value="Add">
-            <button id="cancel-hint-button" class="ui button">Cancel</button>
-          </form>
-        </div>
-      {% endif %}
-    </div>
 
   </div>
 </div>
 
 <script>
 $(function() {
+
+    $('input[name=reason]').autocomplete({
+        source: [
+            "-1: Simple syntax error",
+            "-3: Missing base case",
+            "-10: Don't know what student was trying to do",
+        ]
+    });
+    $('input[name=add]').click(function() {
+        var newNote = $('<div></div>');
+        newNote.addClass('note');
+        var noteText = $('<div></div>');
+        noteText.addClass('note_text')
+        noteText.text($('input[name=reason]').val());
+        var noteDelete = $('<div>X</div>');
+        noteDelete.addClass('note_delete');
+        newNote.append(noteText);
+        newNote.append(noteDelete);
+        noteDelete.click(function() {
+          newNote.remove();
+        });
+        $('input[name=reason]').val('');
+        $('div#notes').append(newNote);
+    });
 
     var editor_panes = $(".solution_editor");
     var editors = [];

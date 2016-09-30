@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -176,7 +175,7 @@
       margin-top: .5em;
       padding-left: .2em;
       padding-right: .8em;
-      font-size: x-large;
+      font-size: large;
     }
     div.solution_diff {
       font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
@@ -196,6 +195,9 @@
       height: auto;
       font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
     }
+    .CodeMirror-scroll {
+      height: auto;
+    }
     .CodeMirror.solution_editor_codemirror {
       padding: 0;
     }
@@ -214,6 +216,57 @@
       background-color: rgb(255, 221, 221);
       padding: 1em;
     }
+
+    #grade_form {
+      margin-top: 2em;
+    }
+    #grade_form input[name=grade] {
+      width: 3em;
+    }
+    #grade_form input[name=reason] {
+      width: 50%;
+    }
+    #grade_form input {
+      margin-top: .25em;
+      margin-bottom: .25em;
+      display: inline;
+      margin-left: .5em;
+      vertical-align: middle;
+    }
+    #grade_form label {
+      display: inline;
+      vertical-align: middle;
+    }
+    div#notes_form {
+      margin-top: .5em;
+    }
+    div.note {
+      margin-top: .5em;
+      padding: .5em;
+      border: 1px solid grey;
+      border-radius: 5px;
+      width: 80%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    div.note .note_text {
+      width: 95%;
+      height: 1.5em;
+      line-height: 1.5em;
+      overflow-x: hidden;
+      overflow-y: hidden;
+      display:inline-block;
+      vertical-align: middle;
+    }
+    div.note .note_delete {
+      width: 4%;
+      height: 1.5em;
+      line-height: 1.5em;
+      display:inline-block;
+      vertical-align: middle;
+      cursor: pointer;
+    }
+
     </style>
   </head>
 
@@ -301,6 +354,10 @@
     <script src="/static/lib/prism/components/prism-python.js"></script>
     <script src="/static/lib/prism/plugins/highlight-keywords/prism-highlight-keywords.js"></script>
     <script src="/static/lib/prism/plugins/line-highlight/prism-line-highlight.js"></script>
+
+    <!-- jQuery UI (for autocomplete) -->
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
     <!-- <script src="/static/react/bundle.js"></script> -->
   </body>
