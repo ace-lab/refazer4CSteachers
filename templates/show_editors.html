@@ -4,7 +4,7 @@
 <div class="row">
   {% block clusters %}{% endblock %}
   <div class="col-md-6">
-    <div style="overflow-y: scroll; height: 2400px;">
+    <div>
       <form>
           <div class="ui form editor_choice">
               <div class="inline fields">
@@ -238,6 +238,7 @@ $(function() {
     var editor = editors[1][0];
     var originalCode = editor.getValue();
     var debuggedCode = originalCode;
+    var lastMode;
 
     // Control the editor with the checkboxes that let the user
     // control whether they are looking at the student's
@@ -247,14 +248,9 @@ $(function() {
 
             var newMode = $(this).data('mode');
 
-            // Set the content to the debug or original solution
-            if (newMode === 'debug') {
-                editor.setValue(debuggedCode);
-            } else {
+            if (newMode !== 'debug' && lastMode === 'debug') {
+                console.log("Saving code");
                 debuggedCode = editor.getValue();
-                if (newMode === 'original') {
-                    editor.setValue(originalCode);
-                }
             }
 
             // If user wants to see diff, hide the code editor and show the diff
@@ -272,12 +268,28 @@ $(function() {
                     $('div.solution_diff').removeClass('loading');
                 });
             } else {
-                $(editor.getWrapperElement()).css('display', 'block');
-                $('div.solution_diff_element').css('display', 'none');
+                if (lastMode === 'diff') {
+                    $('div.solution_diff_element').css('display', 'none');
+                    $(editor.getWrapperElement()).css('display', 'block');
+                }
+
+                // Set the content to the debug or original solution
+                if (newMode === 'debug') {
+                    console.log("Restoring code");
+                    editor.setValue(debuggedCode);
+                } else if (newMode === 'original') {
+                    editor.setValue(originalCode);
+                }
+
             }
+
+            lastMode = newMode;
 
         },
     });
+
+    // Always start out with the original code
+    $('input[name=editor_choice][data-mode=original]').prop('checked', true);
 
     // Start out by hiding the solution diff
     $('div.solution_diff_element').css('display', 'none');
