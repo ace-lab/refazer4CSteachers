@@ -5,9 +5,6 @@
   {% block clusters %}{% endblock %}
   <div class="col-md-6">
     <div style="overflow-y: scroll; height: 2400px;">
-      <textarea data-index=1 class='solution_editor' id={{ submission.Id }}>
-          {{ submission.before }}
-      </textarea>
       <form>
           <div class="ui form editor_choice">
               <div class="inline fields">
@@ -15,18 +12,31 @@
                   <div class="field">
                       <div class="ui radio checkbox">
                           <input checked=true name="editor_choice" data-mode="original" type="radio">
-                          <label>Show original submission</label>
+                          <label>Show original</label>
                       </div>
                   </div>
                   <div class="field">
                       <div class="ui radio checkbox">
                           <input name="editor_choice" data-mode="debug" type="radio">
-                          <label>Edit code</label>
+                          <label>Edit</label>
+                      </div>
+                  </div>
+                  <div class="field">
+                      <div class="ui radio checkbox">
+                          <input name="editor_choice" data-mode="diff" type="radio">
+                          <label>Show diff</label>
                       </div>
                   </div>
               </div>
           </div>
       </form>
+      <textarea data-index=1 class='solution_editor' id={{ submission.Id }}>
+          {{ submission.before }}
+      </textarea>
+      <div class="ui segment solution_diff_element">
+          <div class="solution_diff"></div>
+          <div id="diff_loader" class="ui loader"></div>
+      </div>
       <div class="test_code">
           <button data-index=1 class="ui primary button submitCode">Run the tests again</button>
       </div>
@@ -35,9 +45,9 @@
           {% if not test_results.test_cases[0].compile_success %}
               <i>Syntax error.</i>{{ test_results.test_cases[0].syntax_error.text }}
           {% elif test_results.overall_success %}
-              All tests succeeded!
+              All tests <span class='success_text'>succeeded</span>
           {% else %}
-              Some tests failed
+              Some tests <span class='failure_text'>failed</span>
           {% endif %}</p>
           </span></b>
       </p>
@@ -181,6 +191,7 @@ $(function() {
             // lineWrapping: true
         });
         editors[editorIndex] = [newEditor,$(this).attr('id')];
+        $(newEditor.getWrapperElement()).addClass('solution_editor_codemirror');
         //console.log('editors',editors)
     });
 
@@ -233,15 +244,43 @@ $(function() {
     // current submission or a version they can debug.
     $('.checkbox').checkbox({
         onChecked: function() {
+
             var newMode = $(this).data('mode');
+
+            // Set the content to the debug or original solution
             if (newMode === 'debug') {
                 editor.setValue(debuggedCode);
-            } else if (newMode === 'original') {
+            } else {
                 debuggedCode = editor.getValue();
-                editor.setValue(originalCode);
+                if (newMode === 'original') {
+                    editor.setValue(originalCode);
+                }
             }
+
+            // If user wants to see diff, hide the code editor and show the diff
+            if (newMode === 'diff') {
+                $(editor.getWrapperElement()).css('display', 'none');
+                $('div.solution_diff_element').css('display', 'block');
+                $('#diff_loader').addClass('active');
+                $('div.solution_diff').addClass('loading');
+                $.post('/diff', {
+                    code_version_1: originalCode,
+                    code_version_2: debuggedCode,
+                }, function(result) {
+                    $('div.solution_diff').html(result.diff_html);
+                    $('#diff_loader').removeClass('active');
+                    $('div.solution_diff').removeClass('loading');
+                });
+            } else {
+                $(editor.getWrapperElement()).css('display', 'block');
+                $('div.solution_diff_element').css('display', 'none');
+            }
+
         },
     });
+
+    // Start out by hiding the solution diff
+    $('div.solution_diff_element').css('display', 'none');
 
     // If someone starts editing code and they're on the student's code,
     // switch into the debug tab.
@@ -289,11 +328,16 @@ $(function() {
                     " (line " + firstTestCaseResult.syntax_error.lineno +
                     ", character " + firstTestCaseResult.syntax_error.offset + ")";
             } else if (results.overall_success) {
-                overallResultHtml = "All tests succeeded.";
+                overallResultHtml = "All tests <span class='success_text'>succeeded<span>";
             } else if (results.overall_success === false) {
-                overallResultHtml = "Some tests failed.";
+                overallResultHtml = "Some tests <span class='failure_text'>failed</span>";
             }
             $('span.test_results').html(overallResultHtml);
+            var originalResultsTextSize = Number($('span.test_results').css('font-size').replace('px', ''));
+            $('span.test_results').css('font-size', (originalResultsTextSize + 1) + 'px');
+            $('span.test_results').animate({
+                'font-size': originalResultsTextSize + 'px',
+            }, 200);
 
             results.test_cases.forEach(function(result, index) {
 

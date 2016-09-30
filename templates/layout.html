@@ -21,7 +21,6 @@
     <link rel="stylesheet" href="/static/lib/prism/plugins/line-highlight/prism-line-highlight.css">
     <link rel="stylesheet" href="/static/lib/font-awesome/css/font-awesome.css">
 
-
     <link rel="stylesheet" href="/static/react/css/main.css">
     <link rel="stylesheet" href="/static/react/css/rc-slider.css">
 
@@ -30,6 +29,8 @@
     <link rel="stylesheet" href="https://codemirror.net/lib/codemirror.css">
     <script src="https://codemirror.net/lib/codemirror.js"></script>
     <script src="http://codemirror.net/mode/python/python.js"></script>
+
+    <script src="/static/lib/jsdiff/diff.js"></script>
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -104,7 +105,7 @@
     }
 
     p.test_header {
-      width: 80%;
+      width: 100%;
       font-size: large;
       margin-top: 1.5em;
       margin-left: auto;
@@ -115,18 +116,24 @@
       margin-top: 0em;
     }
     p.output_header {
-      width: 80%;
+      width: 100%;
       font-size: large;
       margin-left: auto;
       margin-right: auto;
     }
+    span.success_text {
+      color: green;
+    }
+    span.failure_text {
+      color: red;
+    }
     table.test_results {
-      width: 80%;
+      width: 100%;
       margin-left: auto;
       margin-right: auto;
     }
     div.test_code {
-      width: 80%;
+      width: 100%;
       margin-left: auto;
       margin-right: auto;
     }
@@ -159,13 +166,26 @@
       font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
     }
     div.editor_choice {
-      width: 80%;
+      width: 100%;
+      margin-top: 1em;
+      margin-bottom: 1em;
       margin-left: auto;
       margin-right: auto;
     }
     div.editor_choice div.checkbox label, label#which_label {
       margin-top: .5em;
-      font-size: large;
+      padding-left: .3em;
+      padding-right: .6em;
+      font-size: x-large;
+    }
+    div.solution_diff {
+      font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
+    }
+    div.solution_diff.loading {
+      opacity: .5;
+    }
+    div.solution_diff_element {
+      min-height: 6em;
     }
 
     /*.returned .expected {
@@ -176,14 +196,17 @@
       height: auto;
       font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
     }
+    .CodeMirror.solution_editor_codemirror {
+      padding: 0;
+    }
     .CodeMirror.stdout_display {
-      width: 80%;
+      width: 100%;
       margin-left: auto;
       margin-right: auto;
       border: 1px black solid;
     }
     div.error_display {
-      width: 80%;
+      width: 100%;
       margin-left: auto;
       margin-right: auto;
       border: 1px black solid;

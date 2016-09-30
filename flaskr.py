@@ -631,6 +631,22 @@ def run_code_evaluations(code_text):
     return results
 
 
+@app.route('/diff', methods=['POST'])
+def diff():
+
+    code_version_1 = request.form['code_version_1']
+    code_version_2 = request.form['code_version_2']
+
+    from jinja2 import Environment, FileSystemLoader
+    env = Environment(loader=FileSystemLoader('templates'))
+    template = env.get_template('diff.html')
+    html = template.render(diff_lines=highlight.diff_file('_', code_version_1, code_version_2, 'full'))
+
+    return jsonify({
+        'diff_html': html,
+    })
+
+
 @app.route('/evaluate', methods=['POST'])
 def evaluate():
 
