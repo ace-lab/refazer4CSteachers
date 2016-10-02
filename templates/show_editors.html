@@ -5,6 +5,14 @@
   {% block clusters %}{% endblock %}
   <div class="col-md-6">
     <div>
+      <div id='next_back_pane'>
+          <a href="/{{ question_number }}/4/{{ cluster_id - 1 }}">
+              <input type=button name="back_button" class="ui button" value="Back" />
+          </a>
+          <a href="/{{ question_number }}/4/{{ cluster_id + 1 }}">
+              <input type=button name="next_button" class="ui button" value="Next" />
+          </a>
+      </div>
       <form>
           <div class="ui form editor_choice">
               <div class="inline fields">
@@ -30,9 +38,7 @@
               </div>
           </div>
       </form>
-      <textarea data-index=1 class='solution_editor' id={{ submission.Id }}>
-          {{ submission.before }}
-      </textarea>
+      <textarea data-index=1 class='solution_editor' id={{ submission.Id }}>{{ submission.before }}</textarea>
       <div class="ui segment solution_diff_element">
           <div class="solution_diff"></div>
           <div id="diff_loader" class="ui loader"></div>
@@ -112,7 +118,25 @@
     </div>
     
   </div>
+
   <div class="col-md-3">
+
+        {% if fix_exists %}
+        <div id="past_fix">
+            <p>
+                This wrong answer can be "fixed" with the edits for
+                <a href="/{{ question_number }}/4/{{ fix_submission_id }}">submission {{ fix_submission_id }}</a>
+                .  This is the fix:
+            </p>
+            <div class="fix_diff">
+                {{ fix_diff|safe }}
+            </div>
+            <p>Do you want to use the other submission's grade as a starting point?</p>
+            <input type='hidden' name='fix_grade' value={{ fix_grade }} />
+            <input type='hidden' name='fix_notes' value='{{ fix_notes|tojson }}' />
+            <input type="button" class="ui button" name="apply_grade" value="⬐ Apply grade ⬎"></input>
+        </div>
+        {% endif %}
 
         <form id="grade_form" class="ui form">
 
@@ -130,6 +154,8 @@
             <div id='notes'>
             </div>
 
+            <input type="button" class="ui primary button" name="submit_grade" value="Submit grade"></input>
+
         </form>
 
   </div>
@@ -138,6 +164,11 @@
 <script>
 $(function() {
 
+    // Grade button starts out disabled.
+    // It will be enabled after a user adds a grade or a note.
+    $('input[name=submit_grade]').prop('disabled', true);
+
+    // Populate the autocomplete with notes about past submissions
     $('input[name=reason]').autocomplete({
         source: [
             "-1: Simple syntax error",
@@ -145,21 +176,69 @@ $(function() {
             "-10: Don't know what student was trying to do",
         ]
     });
-    $('input[name=add]').click(function() {
+
+    function addNote(text) {
         var newNote = $('<div></div>');
         newNote.addClass('note');
         var noteText = $('<div></div>');
         noteText.addClass('note_text')
-        noteText.text($('input[name=reason]').val());
+        noteText.text(text);
         var noteDelete = $('<div>X</div>');
         noteDelete.addClass('note_delete');
         newNote.append(noteText);
         newNote.append(noteDelete);
         noteDelete.click(function() {
-          newNote.remove();
+            newNote.remove();
         });
-        $('input[name=reason]').val('');
         $('div#notes').append(newNote);
+        $('input[name=submit_grade]').prop('disabled', false);
+    };
+
+    $('input[name=apply_grade]').click(function() {
+        $('input[name=grade]').val($('input[name=fix_grade]').val());
+        var noteTexts = JSON.parse($('input[name=fix_notes]').val());
+        noteTexts.forEach(function (text) {
+            addNote(text);
+        });
+    });
+
+    $('input[name=add]').click(function() {
+        var newNoteText = ($('input[name=reason]').val());
+        addNote(newNoteText);
+        $('input[name=reason]').val('');
+    });
+
+    $('input[name=grade]').on("change paste keyup", function() {
+        $('input[name=submit_grade]').prop('disabled', false);
+    });
+
+    // Submit a grade
+    $('input[name=submit_grade]').click(function() {
+        var note_text = [];
+        $('.note_text').each(function() {
+            note_text.push($(this).text());
+        });
+        $('input[name=submit_grade]').addClass('loading');
+        $.post('/grade', {
+            grade: $('input[name=grade]').val(),
+            notes: note_text,
+        }, function(result) {
+            $('input[name=submit_grade]').prop('disabled', true);
+            $('input[name=submit_grade]').removeClass('loading');
+            $.post('/synthesize', {
+                submission_id: {{ cluster_id }},
+            }, function(results) {
+                results.submissions.forEach(function(submission_id) {
+                    var submission_link = $('<a></a>');
+                    submission_link.prop('href', '/{{ question_number }}/4/' + submission_id);
+                    var list_item = $('<li></li>');
+                    list_item.text("Submission " + submission_id);
+                    list_item.addClass('list-group-item submission');
+                    submission_link.append(list_item);
+                    $('ul#synthesis_list').append(submission_link);
+                });
+            });
+        });
     });
 
     var editor_panes = $(".solution_editor");

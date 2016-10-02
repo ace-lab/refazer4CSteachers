@@ -4,3 +4,5 @@ flaskr.db
 .python-version
 venv/
 .DS_Store
+.*.swp
+.*.swo
