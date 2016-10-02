@@ -574,9 +574,11 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
         if fix_exists:
             (fixed_submission_id, before, after) = row
             fix_diff = get_diff_html(before, after)
+            fixed_code = after
             (fix_grade, fix_notes) = get_grade(question_number, fixed_submission_id)
         else:
             fix_diff = None
+            fixed_code = None
             fixed_submission_id = None
             fix_grade = None
             fix_notes = None
@@ -635,9 +637,14 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
             grade_status = grade_status,
             submission_ids = range(len(fixes)),
             fixed_submissions = ungraded_fixed_submissions,
-            fix_exists = True,
+            fix_exists = fix_exists,
             fix_submission_id = fixed_submission_id,
             fix_diff = fix_diff,
+            # XXX We provide the fixed code as a dictionary with a single key
+            # so that we can use Jinja2's built-in escaping of JSON when we
+            # store it in a hidden input's value.  This is a hacky way to
+            # make sure we can store the fixed code in the HTML.
+            fixed_code = {'code': fixed_code},
             fix_grade_exists = fix_grade_exists,
             fix_grade = fix_grade,
             fix_notes = fix_notes,
