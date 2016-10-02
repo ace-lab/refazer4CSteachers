@@ -160,6 +160,7 @@
                 <label for="reason">Notes</label>
                 <input type="text" name="reason"></input>
                 <input type="button" class="ui button" name="add" value="Add"></input>
+                <input type=hidden name="note_options" value='{{ note_options|tojson }}' />
             </div>
 
             <div id='notes'>
@@ -198,11 +199,7 @@ $(function() {
 
     // Populate the autocomplete with notes about past submissions
     $('input[name=reason]').autocomplete({
-        source: [
-            "-1: Simple syntax error",
-            "-3: Missing base case",
-            "-10: Don't know what student was trying to do",
-        ]
+        source: JSON.parse($('input[name=note_options]').val())
     });
 
     // Functions for adding notes about grades while grading
