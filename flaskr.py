@@ -522,6 +522,8 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
         test_results = run_code_evaluations(submission['before'])
         print(json.dumps(test_results, indent=2))
 
+        fix_diff="""<table>    <tbody>                <tr class="fixed-width-font highlight-header" data-line=None>                          <td class="line-number" data-line-number=""></td>                        <td class="line-number" data-line-number=""></td>          <td>            <span class="highlight-source">@@ -1,8 +1,8 @@</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=1>                          <td class="line-number" data-line-number="1"></td>                        <td class="line-number" data-line-number="1"></td>          <td>            <span class="highlight-source">           </span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=2>                          <td class="line-number" data-line-number="2"></td>                        <td class="line-number" data-line-number="2"></td>          <td>            <span class="highlight-source"> def accumulate(combiner, base, n, term):</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-delete" data-line=None>                          <td class="line-number" data-line-number="3"></td>                        <td class="line-number" data-line-number=""></td>          <td>            <span class="highlight-source">-    combiner = lambda f: f(x, y)</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-insert" data-line=3>                          <td class="line-number" data-line-number=""></td>                        <td class="line-number" data-line-number="3"></td>          <td>            <span class="highlight-source">+    # combiner = lambda f: f(x, y)</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=4>                          <td class="line-number" data-line-number="4"></td>                        <td class="line-number" data-line-number="4"></td>          <td>            <span class="highlight-source">     if n==0:</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=5>                          <td class="line-number" data-line-number="5"></td>                        <td class="line-number" data-line-number="5"></td>          <td>            <span class="highlight-source">         return base</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=6>                          <td class="line-number" data-line-number="6"></td>                        <td class="line-number" data-line-number="6"></td>          <td>            <span class="highlight-source">     else:</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=7>                          <td class="line-number" data-line-number="7"></td>                        <td class="line-number" data-line-number="7"></td>          <td>            <span class="highlight-source">         return combiner(term(n), accumulate(combiner, base, n-1, term))</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=8>                          <td class="line-number" data-line-number="8"></td>                        <td class="line-number" data-line-number="8"></td>          <td>            <span class="highlight-source">       </span>          </td>        </tr>                    </tbody></table>"""
+
         finished_count = 0
         total_count = 0
         for i in range(len(clusters)):
@@ -546,6 +548,11 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
             submissions = fixes,
             submission = submission,
             test_results = test_results,
+            fix_exists = True,
+            fix_submission_id = 17,
+            fix_diff = fix_diff,
+            fix_grade = 8,
+            fix_notes = ["Note 1", "Note 2"],
         )
 
         # data = requests.post('http://localhost:53530/api/refazer', 
@@ -644,6 +651,29 @@ def diff():
 
     return jsonify({
         'diff_html': html,
+    })
+
+
+@app.route('/grade', methods=['POST'])
+def grade():
+
+    # TODO Actually save these somewhere!
+    grade = request.form['grade']
+    notes = request.form.getlist('notes[]')
+
+    return jsonify({
+        'success': True,
+    })
+
+
+@app.route('/synthesize', methods=['POST'])
+def synthesize():
+
+    # TODO Synthesize the results
+    submission_id = request.form['submission_id']
+
+    return jsonify({
+        'submissions': [18, 73, 112]
     })
 
 
