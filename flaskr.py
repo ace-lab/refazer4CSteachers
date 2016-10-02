@@ -11,6 +11,7 @@ import sys
 import inspect
 import time
 from multiprocessing import Manager, Process
+from jinja2 import Environment, FileSystemLoader
 from io import StringIO
 
 
@@ -185,7 +186,7 @@ def create_grader_question(question_number):
         fix['tests'] = test
         fix['before'] = code_before
         fix['input_output_before'] = {} #submission_pair['augmented_tidy_before_testcase_to_output']
-        fix['synthesized_after'] = ''
+        fix['synthesized_after'] = submission_pair['SynthesizedAfter']
         try:
             fix['dynamic_diff'] = submission_pair['sequence_comparison_diff']
         except:
@@ -419,6 +420,35 @@ def show_question(question_number):
 def show_fixes():
     return redirect(url_for('show_detail', question_number=1, tab_id=0, cluster_id=0, group_id=0))
 
+def get_grade(question_number, submission_id):
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # Fetch grade if one has already been given
+    cursor.execute('\n'.join([
+        "SELECT id, grade FROM grades WHERE",
+        "question_number = ? AND",
+        "submission_id = ?"
+    ]), (question_number, submission_id))
+    row = cursor.fetchone()
+    if row is not None:
+        (grade_id, grade) = row
+        # Fetch the notes if there was a grade
+        notes = []
+        cursor.execute('\n'.join([
+            "SELECT \"text\" FROM",
+            "notes JOIN gradenotes ON notes.id = note_id",
+            "WHERE grade_id = ?"
+        ]), (grade_id,))
+        for row in cursor.fetchall():
+            notes.append(row[0])
+    else:
+        grade = None
+        notes = None
+
+    return grade, notes
+
 @app.route('/<int:question_number>/<int:tab_id>/<int:cluster_id>')
 def show_detail(question_number, tab_id, cluster_id, filter=None):
     #coverage_percentage = get_coverage(question_number, fixes)
@@ -502,14 +532,8 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
         item3['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
         return render_template('task.html', item1 = item1, item2 = item2, item3 = item3, question_number = question_number)
     elif (tab_id==4):
-        # for fix in questions[question_number].submissions:
-        #     fix['diff_lines'] = []
-        #print('Number of submissions sent  to Refazer')
-        #print(len(questions[question_number].submissions))
-
 
         clusters = grader_questions[question_number].test_based_cluster
-        #print(json.dumps([clu['before'] for clu in clusters[cluster_id].fixes],indent=2))
         hint = get_hint(question_number, cluster_id, tab_id)
         previous_hints = get_previous_hints(question_number)
         finished_cluster_ids = get_finished_cluster_ids(question_number, tab_id)
@@ -520,38 +544,67 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
 
         submission = fixes[cluster_id]
         test_results = run_code_evaluations(submission['before'])
-        print(json.dumps(test_results, indent=2))
-
-        fix_diff="""<table>    <tbody>                <tr class="fixed-width-font highlight-header" data-line=None>                          <td class="line-number" data-line-number=""></td>                        <td class="line-number" data-line-number=""></td>          <td>            <span class="highlight-source">@@ -1,8 +1,8 @@</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=1>                          <td class="line-number" data-line-number="1"></td>                        <td class="line-number" data-line-number="1"></td>          <td>            <span class="highlight-source">           </span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=2>                          <td class="line-number" data-line-number="2"></td>                        <td class="line-number" data-line-number="2"></td>          <td>            <span class="highlight-source"> def accumulate(combiner, base, n, term):</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-delete" data-line=None>                          <td class="line-number" data-line-number="3"></td>                        <td class="line-number" data-line-number=""></td>          <td>            <span class="highlight-source">-    combiner = lambda f: f(x, y)</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-insert" data-line=3>                          <td class="line-number" data-line-number=""></td>                        <td class="line-number" data-line-number="3"></td>          <td>            <span class="highlight-source">+    # combiner = lambda f: f(x, y)</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=4>                          <td class="line-number" data-line-number="4"></td>                        <td class="line-number" data-line-number="4"></td>          <td>            <span class="highlight-source">     if n==0:</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=5>                          <td class="line-number" data-line-number="5"></td>                        <td class="line-number" data-line-number="5"></td>          <td>            <span class="highlight-source">         return base</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=6>                          <td class="line-number" data-line-number="6"></td>                        <td class="line-number" data-line-number="6"></td>          <td>            <span class="highlight-source">     else:</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=7>                          <td class="line-number" data-line-number="7"></td>                        <td class="line-number" data-line-number="7"></td>          <td>            <span class="highlight-source">         return combiner(term(n), accumulate(combiner, base, n-1, term))</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=8>                          <td class="line-number" data-line-number="8"></td>                        <td class="line-number" data-line-number="8"></td>          <td>            <span class="highlight-source">       </span>          </td>        </tr>                    </tbody></table>"""
 
         db = get_db()
         cursor = db.cursor()
 
-        # Fetch grade if one has already been given
+        # This is what one can do to save a synthesized fix to a submission
+        '''
+        for fix_index, fix in enumerate(fixes, start=0):
+            if fix['synthesized_after'] is not None and len(fix['synthesized_after']) > 0:
+                cursor.execute('\n'.join([
+                    "INSERT OR IGNORE INTO fixes (question_number, submission_id,",
+                    "   fixed_submission_id, before, after)",
+                    "VALUES (?, ?, ?, ?, ?)",
+                ]), (question_number, fix_index, 10, fix['before'], fix['synthesized_after']))
+        db.commit()
+        '''
+
+        # Get any grades and notes that have been saved for this submission
+        (grade, notes) = get_grade(question_number, cluster_id)
+
+        # Look for existing, applicable fixes, and grades
         cursor.execute('\n'.join([
-            "SELECT id, grade FROM grades WHERE",
+            "SELECT fixed_submission_id, before, after FROM fixes WHERE",
             "question_number = ? AND",
-            "submission_id = ?"
+            "submission_id = ?",
         ]), (question_number, cluster_id))
         row = cursor.fetchone()
-        if row is not None:
-            (grade_id, grade) = row
-            # Fetch the notes if there was a grade
-            notes = []
-            print("Grade ID:", grade_id)
-            cursor.execute('\n'.join([
-                "SELECT \"text\" FROM",
-                "notes JOIN gradenotes ON notes.id = note_id",
-                "WHERE grade_id = ?"
-            ]), (grade_id,))
-            for row in cursor.fetchall():
-                notes.append(row[0])
+        fix_exists = (row is not None)
+        if fix_exists:
+            (fixed_submission_id, before, after) = row
+            fix_diff = get_diff_html(before, after)
+            (fix_grade, fix_notes) = get_grade(question_number, fixed_submission_id)
         else:
-            grade = None
-            notes = None
+            fix_diff = None
+            fixed_submission_id = None
+            fix_grade = None
+            fix_notes = None
+        fix_grade_exists = (fix_grade is not None)
 
-        print("Grade:", grade)
-        print("Notes:", notes)
+        # Fetch a list of which submission shave already been graded
+        cursor.execute('\n'.join([
+            "SELECT DISTINCT(submission_id) FROM grades",
+            "WHERE question_number = ?",
+        ]), (question_number,))
+        graded_submissions = [r[0] for r in cursor.fetchall()]
+        grade_status = {}
+        for graded_submission_id in graded_submissions:
+            grade_status[graded_submission_id] = 'graded'
+
+        # Get the list of submissions for which some synthesized fix exists
+        cursor.execute('\n'.join([
+            "SELECT DISTINCT(submission_id) FROM fixes",
+            "WHERE question_number = ?",
+        ]), (question_number,))
+        fixed_submissions = [r[0] for r in cursor.fetchall()]
+        ungraded_fixed_submissions = []
+        for id_ in fixed_submissions:
+            if id_ not in graded_submissions:
+                ungraded_fixed_submissions.append(id_)
+        for ungraded_fixed_submission_id in ungraded_fixed_submissions:
+            grade_status[ungraded_fixed_submission_id] = "fixed"
+
         finished_count = 0
         total_count = 0
         for i in range(len(clusters)):
@@ -559,7 +612,8 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
                 finished_count += clusters[i].size
             total_count += clusters[i].size
         if not filter:
-            current_filter = request.args.get('filter')        
+            current_filter = request.args.get('filter')
+
         return render_template('grade.html',
             question_name = question_files[question_number],
             question_number = question_number,
@@ -578,23 +632,15 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
             test_results = test_results,
             grade = grade,
             notes = notes,
-            grade_status = {
-                0: 'graded',
-                3: 'graded',
-                10: 'graded',
-                11: 'graded',
-                1: 'fixed',
-                2: 'fixed',
-                3: 'fixed',
-                13: 'fixed',
-            },
+            grade_status = grade_status,
             submission_ids = range(len(fixes)),
-            fixed_submissions = [1, 2, 3, 9],
+            fixed_submissions = ungraded_fixed_submissions,
             fix_exists = True,
-            fix_submission_id = 17,
+            fix_submission_id = fixed_submission_id,
             fix_diff = fix_diff,
-            fix_grade = 8,
-            fix_notes = ["Note 1", "Note 2"],
+            fix_grade_exists = fix_grade_exists,
+            fix_grade = fix_grade,
+            fix_notes = fix_notes,
         )
 
         # data = requests.post('http://localhost:53530/api/refazer', 
@@ -679,6 +725,12 @@ def run_code_evaluations(code_text):
 
     return results
 
+def get_diff_html(code_before, code_after):
+    env = Environment(loader=FileSystemLoader('templates'))
+    template = env.get_template('diff.html')
+    html = template.render(diff_lines=highlight.diff_file(
+        '_', code_before, code_after, 'full'))
+    return html
 
 @app.route('/diff', methods=['POST'])
 def diff():
@@ -686,15 +738,9 @@ def diff():
     code_version_1 = request.form['code_version_1']
     code_version_2 = request.form['code_version_2']
 
-    from jinja2 import Environment, FileSystemLoader
-    env = Environment(loader=FileSystemLoader('templates'))
-    template = env.get_template('diff.html')
-    html = template.render(diff_lines=highlight.diff_file('_', code_version_1, code_version_2, 'full'))
-
     return jsonify({
-        'diff_html': html,
+        'diff_html': get_diff_html(code_version_1, code_version_2),
     })
-
 
 @app.route('/grade', methods=['POST'])
 def grade():
