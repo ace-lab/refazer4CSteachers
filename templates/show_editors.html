@@ -142,7 +142,7 @@
 
             <div>
                 <label for="grade">Grade</label>
-                <input type="text" name="grade"></input> / 10
+                <input type="text" name="grade"{% if grade %} value={{ grade }}{% endif %}></input> / 10
             </div>
 
             <div id="notes_form">
@@ -152,6 +152,9 @@
             </div>
 
             <div id='notes'>
+                {% if notes %}
+                    <input type=hidden name="initial_notes" value='{{ notes|tojson }}'/>
+                {% endif %}
             </div>
 
             <input type="button" class="ui primary button" name="submit_grade" value="Submit grade"></input>
@@ -208,6 +211,14 @@ $(function() {
         $('input[name=submit_grade]').prop('disabled', false);
     };
 
+    // Populate initial notes if there were some in the database
+    if ($('input[name=initial_notes]').length > 0) {
+        var initialNotes = JSON.parse($('input[name=initial_notes]').val());
+        initialNotes.forEach(function(note) {
+            addNote(note);
+        });
+    }
+
     $('input[name=apply_grade]').click(function() {
         $('input[name=grade]').val($('input[name=fix_grade]').val());
         var noteTexts = JSON.parse($('input[name=fix_notes]').val());
@@ -236,6 +247,8 @@ $(function() {
         $.post('/grade', {
             grade: $('input[name=grade]').val(),
             notes: note_text,
+            question_number: {{ question_number }},
+            submission_id: {{ cluster_id }},
         }, function(result) {
             $('input[name=submit_grade]').prop('disabled', true);
             $('input[name=submit_grade]').removeClass('loading');
