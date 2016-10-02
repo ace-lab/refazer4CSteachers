@@ -131,10 +131,21 @@
             <div class="fix_diff">
                 {{ fix_diff|safe }}
             </div>
-            <p>Do you want to use the other submission's grade as a starting point?</p>
+            <input type="button" class="ui button" name="apply_fix"
+                value="&larr; Apply this fix to the student's code "></input>
+            <input type=hidden name="fixed_code" value='{{ fixed_code|tojson }}' />
+            
+            {% if fix_grade_exists %}
+            <p>
+                Another student with this same problem has already been graded.
+                Do you want to use their grade here?
+            </p>
             <input type='hidden' name='fix_grade' value={{ fix_grade }} />
             <input type='hidden' name='fix_notes' value='{{ fix_notes|tojson }}' />
-            <input type="button" class="ui button" name="apply_grade" value="⬐ Apply grade ⬎"></input>
+            <input type="button" class="ui button" name="apply_grade"
+                value="⬐ Use existing grade ⬎"></input>
+            {% endif %}
+
         </div>
         {% endif %}
 
@@ -194,6 +205,7 @@ $(function() {
         ]
     });
 
+    // Functions for adding notes about grades while grading
     function addNote(text) {
         var newNote = $('<div></div>');
         newNote.addClass('note');
@@ -211,22 +223,6 @@ $(function() {
         $('input[name=submit_grade]').prop('disabled', false);
     };
 
-    // Populate initial notes if there were some in the database
-    if ($('input[name=initial_notes]').length > 0) {
-        var initialNotes = JSON.parse($('input[name=initial_notes]').val());
-        initialNotes.forEach(function(note) {
-            addNote(note);
-        });
-    }
-
-    $('input[name=apply_grade]').click(function() {
-        $('input[name=grade]').val($('input[name=fix_grade]').val());
-        var noteTexts = JSON.parse($('input[name=fix_notes]').val());
-        noteTexts.forEach(function (text) {
-            addNote(text);
-        });
-    });
-
     $('input[name=add]').click(function() {
         var newNoteText = ($('input[name=reason]').val());
         addNote(newNoteText);
@@ -235,6 +231,23 @@ $(function() {
 
     $('input[name=grade]').on("change paste keyup", function() {
         $('input[name=submit_grade]').prop('disabled', false);
+    });
+
+    // Populate initial notes if there were some in the database
+    if ($('input[name=initial_notes]').length > 0) {
+        var initialNotes = JSON.parse($('input[name=initial_notes]').val());
+        initialNotes.forEach(function(note) {
+            addNote(note);
+        });
+    }
+
+    // Apply an existing fix's grade to this submission
+    $('input[name=apply_grade]').click(function() {
+        $('input[name=grade]').val($('input[name=fix_grade]').val());
+        var noteTexts = JSON.parse($('input[name=fix_notes]').val());
+        noteTexts.forEach(function (text) {
+            addNote(text);
+        });
     });
 
     // Submit a grade
@@ -339,7 +352,6 @@ $(function() {
             var newMode = $(this).data('mode');
 
             if (newMode !== 'debug' && lastMode === 'debug') {
-                console.log("Saving code");
                 debuggedCode = editor.getValue();
             }
 
@@ -380,6 +392,7 @@ $(function() {
 
     // Always start out with the original code
     $('input[name=editor_choice][data-mode=original]').prop('checked', true);
+    lastMode = 'original';
 
     // Start out by hiding the solution diff
     $('div.solution_diff_element').css('display', 'none');
@@ -396,8 +409,17 @@ $(function() {
         // clicks on the "original submission" button.
         if (editor.getValue() !== originalCode) {
             $('input[name=editor_choice][data-mode=debug]').prop('checked', true);
+            lastMode = 'debug';
         }
 
+    });
+
+    // If there is a synthesized fix, and a user chooses to apply it,
+    // substitute the fixed code into the editor
+    $('input[name=apply_fix]').click(function() {
+        var fixedCodeData = $('input[name=fixed_code]').val();
+        var fixedCode = JSON.parse(fixedCodeData).code;
+        editor.setValue(fixedCode);
     });
 
     // When the submit button is clicked, run the test cases.

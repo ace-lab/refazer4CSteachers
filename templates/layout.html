@@ -189,7 +189,7 @@
       padding-right: .8em;
       font-size: large;
     }
-    div.solution_diff {
+    div.solution_diff, div.fix_diff {
       font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
     }
     div.solution_diff.loading {
@@ -242,7 +242,10 @@
     div#past_fix {
       margin-top: 2em;
     }
-    input[name=apply_grade] {
+    input[name=apply_fix].ui.button {
+      margin-top: 2em;
+    }
+    input[name=apply_grade], input[name=apply_fix] {
       width: 100%;
     }
     div.fix_diff {
