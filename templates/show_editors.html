@@ -119,7 +119,7 @@
     
   </div>
 
-  <div class="col-md-3">
+  <div class="col-md-4">
 
         {% if fix_exists %}
         <div id="past_fix">
@@ -163,6 +163,20 @@
 
 <script>
 $(function() {
+
+    // Scroll the list to the selected element
+    // REUSE: Based on tip at
+    // http://stackoverflow.com/questions/2905867/how-to-scroll-to-specific-item-using-jquery
+    function scrollList(list) {
+        var selected = list.find('a.selected-cluster');
+        if (selected.length > 0) {
+            list.scrollTop(
+                selected.offset().top - list.offset().top + list.scrollTop()
+            );
+        }
+    }
+    scrollList($('div#submission_list'));
+    scrollList($('div#synthesis_list'));
 
     // Grade button starts out disabled.
     // It will be enabled after a user adds a grade or a note.
