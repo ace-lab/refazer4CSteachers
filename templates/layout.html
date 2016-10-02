@@ -30,8 +30,6 @@
     <script src="https://codemirror.net/lib/codemirror.js"></script>
     <script src="http://codemirror.net/mode/python/python.js"></script>
 
-    <script src="/static/lib/jsdiff/diff.js"></script>
-
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
@@ -93,6 +91,9 @@
     .selected-cluster li {
       color: #298fc3 !important;
       background-color: #d9edf7 !important;
+    }
+    .selected-cluster li.list-group-item.submission {
+      border: 1px solid black;
     }
     .finished-cluster li {
       color: green;
@@ -231,6 +232,12 @@
     .list-group-item.submission {
       border: none;
       padding: 4px 5px;
+    }
+    .list-group-item.submission.graded {
+      background-color: #e5fde1;
+    }
+    .list-group-item.submission.fixed {
+      background-color: #e6edf2;
     }
     div#past_fix {
       margin-top: 2em;

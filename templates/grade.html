@@ -1,6 +1,6 @@
 {% extends "show_editors.html" %}
 {% block clusters %}
-<div class="col-md-3">
+<div class="col-md-2">
 
   <!--
   <div style="margin-top: 5px;">
@@ -41,11 +41,11 @@
   -->
 
   <h3 class='submission_header'>Submissions</h3>
-  <div style="overflow-y: scroll; height: 60%;">
-    <ul class="list-group" style="margin-top: 10px">
-      {% for i in range(submissions|length) %}
+  <div id="submission_list" style="overflow-y: scroll; height: 60%">
+    <ul class="list-group">
+      {% for i in submission_ids %}
         <a href="/{{question_number}}/4/{{i}}" class="{{ 'selected-cluster' if i == cluster_id }}">
-          <li class="list-group-item submission">
+            <li class="list-group-item submission{% if i in grade_status %} {{ grade_status[i] }}{% endif %}">
             Submission {{i}}
           </li>
         </a>
@@ -53,8 +53,15 @@
     </ul>
   </div>
   <h3 class='submission_header'>Grading suggestions</h3>
-  <div style="overflow-y: scroll; height: 40%;">
-    <ul id='synthesis_list' class="list-group" style="margin-top: 10px">
+  <div id="fix_list" style="overflow-y: scroll; height: 40%">
+    <ul id='synthesis_list' class="list-group">
+      {% for i in fixed_submissions %}
+        <a href="/{{question_number}}/4/{{i}}" class="{{ 'selected-cluster' if i == cluster_id }}">
+            <li class="list-group-item submission">
+            Submission {{i}}
+          </li>
+        </a>
+      {% endfor %}
     </ul>
   </div>
 
