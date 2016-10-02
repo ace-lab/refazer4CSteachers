@@ -524,6 +524,34 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
 
         fix_diff="""<table>    <tbody>                <tr class="fixed-width-font highlight-header" data-line=None>                          <td class="line-number" data-line-number=""></td>                        <td class="line-number" data-line-number=""></td>          <td>            <span class="highlight-source">@@ -1,8 +1,8 @@</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=1>                          <td class="line-number" data-line-number="1"></td>                        <td class="line-number" data-line-number="1"></td>          <td>            <span class="highlight-source">           </span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=2>                          <td class="line-number" data-line-number="2"></td>                        <td class="line-number" data-line-number="2"></td>          <td>            <span class="highlight-source"> def accumulate(combiner, base, n, term):</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-delete" data-line=None>                          <td class="line-number" data-line-number="3"></td>                        <td class="line-number" data-line-number=""></td>          <td>            <span class="highlight-source">-    combiner = lambda f: f(x, y)</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-insert" data-line=3>                          <td class="line-number" data-line-number=""></td>                        <td class="line-number" data-line-number="3"></td>          <td>            <span class="highlight-source">+    # combiner = lambda f: f(x, y)</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=4>                          <td class="line-number" data-line-number="4"></td>                        <td class="line-number" data-line-number="4"></td>          <td>            <span class="highlight-source">     if n==0:</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=5>                          <td class="line-number" data-line-number="5"></td>                        <td class="line-number" data-line-number="5"></td>          <td>            <span class="highlight-source">         return base</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=6>                          <td class="line-number" data-line-number="6"></td>                        <td class="line-number" data-line-number="6"></td>          <td>            <span class="highlight-source">     else:</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=7>                          <td class="line-number" data-line-number="7"></td>                        <td class="line-number" data-line-number="7"></td>          <td>            <span class="highlight-source">         return combiner(term(n), accumulate(combiner, base, n-1, term))</span>          </td>        </tr>                        <tr class="fixed-width-font highlight-equal" data-line=8>                          <td class="line-number" data-line-number="8"></td>                        <td class="line-number" data-line-number="8"></td>          <td>            <span class="highlight-source">       </span>          </td>        </tr>                    </tbody></table>"""
 
+        db = get_db()
+        cursor = db.cursor()
+
+        # Fetch grade if one has already been given
+        cursor.execute('\n'.join([
+            "SELECT id, grade FROM grades WHERE",
+            "question_number = ? AND",
+            "submission_id = ?"
+        ]), (question_number, cluster_id))
+        row = cursor.fetchone()
+        if row is not None:
+            (grade_id, grade) = row
+            # Fetch the notes if there was a grade
+            notes = []
+            print("Grade ID:", grade_id)
+            cursor.execute('\n'.join([
+                "SELECT \"text\" FROM",
+                "notes JOIN gradenotes ON notes.id = note_id",
+                "WHERE grade_id = ?"
+            ]), (grade_id,))
+            for row in cursor.fetchall():
+                notes.append(row[0])
+        else:
+            grade = None
+            notes = None
+
+        print("Grade:", grade)
+        print("Notes:", notes)
         finished_count = 0
         total_count = 0
         for i in range(len(clusters)):
@@ -548,6 +576,8 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
             submissions = fixes,
             submission = submission,
             test_results = test_results,
+            grade = grade,
+            notes = notes,
             grade_status = {
                 0: 'graded',
                 3: 'graded',
@@ -669,9 +699,51 @@ def diff():
 @app.route('/grade', methods=['POST'])
 def grade():
 
-    # TODO Actually save these somewhere!
     grade = request.form['grade']
     notes = request.form.getlist('notes[]')
+    question_number = request.form['question_number']
+    submission_id = request.form['submission_id']
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # Insert the new grade and save its ID
+    cursor.execute('\n'.join([
+        "INSERT OR REPLACE INTO grades (id, question_number, submission_id, grade)",
+        "VALUES (",
+        # The select statement below lets us keep the old grade ID
+        "    (SELECT id FROM grades WHERE"
+        "        question_number = ? AND",
+        "        submission_id = ?),"
+        "     ?, ?, ?)"
+    ]), (question_number, submission_id, question_number, submission_id, grade))
+    cursor.execute('\n'.join([
+        "SELECT id FROM grades WHERE",
+        "question_number = ? AND",
+        "submission_id = ?"
+    ]), (question_number, submission_id))
+    grade_id = cursor.fetchone()[0]
+
+    # Create new note records for all that haven't been created yet
+    note_ids = []
+    for note in notes:
+        cursor.execute("INSERT OR IGNORE INTO notes (\"text\") VALUES (?)", (note,))
+        cursor.execute("SELECT id FROM notes WHERE \"text\" = ?", (note,))
+        note_id = cursor.fetchone()[0]
+        note_ids.append(note_id)
+
+    # Flush the old notes for grades and create new ones
+    cursor.execute('\n'.join([
+        "DELETE FROM gradenotes WHERE",
+        "grade_id = ?"
+    ]), (grade_id,))
+    for note_id in note_ids:
+        cursor.execute('\n'.join([
+            "INSERT INTO gradenotes (grade_id, note_id)",
+            "VALUES (?, ?)"
+        ]), (grade_id, note_id))
+
+    db.commit()
 
     return jsonify({
         'success': True,
