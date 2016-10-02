@@ -584,6 +584,10 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
             fix_notes = None
         fix_grade_exists = (fix_grade is not None)
 
+        # Get a list of all notes that can be applied when grading
+        cursor.execute("SELECT \"text\" FROM notes")
+        note_options = [r[0] for r in cursor.fetchall()]
+
         # Fetch a list of which submission shave already been graded
         cursor.execute('\n'.join([
             "SELECT DISTINCT(submission_id) FROM grades",
@@ -648,6 +652,7 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
             fix_grade_exists = fix_grade_exists,
             fix_grade = fix_grade,
             fix_notes = fix_notes,
+            note_options = note_options,
         )
 
         # data = requests.post('http://localhost:53530/api/refazer', 
