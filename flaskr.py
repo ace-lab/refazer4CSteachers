@@ -709,20 +709,16 @@ def run_code_evaluations(code_text):
             # was defined, and add that source code line here.
             if callable(input_value):
                 result['input_values'] = inspect.getsource(input_value).strip()
-                print("Found one")
                 break
         if not result['compile_success']:
             pass
         elif result['timeout']:
             pass
         elif not result['exec_success']:
-            print(result.keys(),result)
             result['exec_exception']['type'] = result['exec_exception']['type'].__name__
         elif not result['runtime_success']:
             result['runtime_exception']['type'] = result['runtime_exception']['type'].__name__
         result['input_values'] = result['input_values'].strip(',()')
-
-        print(result)
 
         if result['runtime_success']:
             result['human_readable_result'] = result['returned']
@@ -808,11 +804,47 @@ def grade():
     })
 
 
+# This function will take a long time to run (at least as long as it takes
+# for Refazer to fulfill the request).  Don't expect to get a response in less
+# than 30 seconds, and it may take minutes.
 @app.route('/synthesize', methods=['POST'])
 def synthesize():
 
-    # TODO Synthesize the results
+    question_number = int(request.form['question_number'])
     submission_id = request.form['submission_id']
+    code_before = request.form['code_before']
+    code_after = request.form['code_after']
+
+    clusters = grader_questions[question_number].test_based_cluster
+    fixes = []
+    for cluster in clusters:
+        fixes.extend(cluster.fixes)
+    code_to_fix = [{'before': f['before'], 'IsFixed': False} for f in fixes]
+
+    # XXX Filter to just a subset of the examples that Refazer has fixed without
+    # failure.  Need to find out why Refazer is failing, and use all ~600 examples.
+    code_to_fix = code_to_fix[:300]
+    print(code_to_fix[264])
+    print(code_to_fix[219])
+    print(code_to_fix[95])
+    print(code_to_fix[24])
+    del code_to_fix[264]
+    del code_to_fix[219]
+    del code_to_fix[95]
+    del code_to_fix[24]
+
+    result = requests.post("http://refazer2.azurewebsites.net/api/refazer", json={
+        'submissions': code_to_fix,
+        'Examples': [{
+            'before': code_before,
+            'after': code_after,
+        }]
+    })
+    fixes = result.json()
+    for fix in fixes:
+        if fix['fixes_worked']:
+            print("Found fixed!")
+            print(json.dumps(fix, indent=2))
 
     return jsonify({
         'submissions': [18, 73, 112]
