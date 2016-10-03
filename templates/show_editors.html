@@ -264,6 +264,9 @@ $(function() {
             $('input[name=submit_grade]').removeClass('loading');
             $.post('/synthesize', {
                 submission_id: {{ cluster_id }},
+                question_number: {{ question_number }},
+                code_before: originalCode,
+                code_after: debuggedCode,
             }, function(results) {
                 results.submissions.forEach(function(submission_id) {
                     var submission_link = $('<a></a>');
