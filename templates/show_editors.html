@@ -134,8 +134,10 @@
             <input type="button" class="ui button" name="apply_fix"
                 value="&larr; Apply this fix to the student's code "></input>
             <input type=hidden name="fixed_code" value='{{ fixed_code|tojson }}' />
-            
-            {% if fix_grade_exists %}
+        </div>  
+
+        {% if fix_grade_exists %}
+        <div id="past_grade">
             <p>
                 Another student with this same problem has already been graded.
                 Do you want to use their grade here?
@@ -144,9 +146,8 @@
             <input type='hidden' name='fix_notes' value='{{ fix_notes|tojson }}' />
             <input type="button" class="ui button" name="apply_grade"
                 value="⬐ Use existing grade ⬎"></input>
-            {% endif %}
-
         </div>
+        {% endif %}
         {% endif %}
 
         <form id="grade_form" class="ui form">
@@ -260,8 +261,10 @@ $(function() {
             question_number: {{ question_number }},
             submission_id: {{ cluster_id }},
         }, function(result) {
+
             $('input[name=submit_grade]').prop('disabled', true);
             $('input[name=submit_grade]').removeClass('loading');
+
             $.post('/synthesize', {
                 submission_id: {{ cluster_id }},
                 question_number: {{ question_number }},
@@ -410,6 +413,12 @@ $(function() {
         if (editor.getValue() !== originalCode) {
             $('input[name=editor_choice][data-mode=debug]').prop('checked', true);
             lastMode = 'debug';
+        }
+
+        // Whenever the text changes in debug mode, save the value into a
+        // variable that we can test and upload.
+        if (lastMode === 'debug') {
+            debuggedCode = editor.getValue();
         }
 
     });
