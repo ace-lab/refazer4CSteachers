@@ -13,6 +13,7 @@
               <input type=button name="next_button" class="ui button" value="Next" />
           </a>
       </div>
+      <h2>Student Submission</h2>
       <form>
           <div class="ui form editor_choice">
               <div class="inline fields">
@@ -44,7 +45,7 @@
           <div id="diff_loader" class="ui loader"></div>
       </div>
       <div class="test_code">
-          <button data-index=1 class="ui primary button submitCode">Run the tests again</button>
+          <button data-index=1 class="ui button submitCode">Run tests again</button>
       </div>
       <p class="test_header"><b>Test results:
           <span class="test_results">
@@ -119,9 +120,12 @@
     
   </div>
 
-  <div class="col-md-4">
+  <div class="col-md-4" id="grading_column">
 
+        <h2>Grading</h2>
+        
         {% if fix_exists %}
+        <h3 class='submission_header'>Student error detected.</h3>
         <div id="past_fix">
             <p>
                 This wrong answer can be "fixed" with the edits for
