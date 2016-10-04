@@ -819,35 +819,65 @@ def synthesize():
     fixes = []
     for cluster in clusters:
         fixes.extend(cluster.fixes)
-    code_to_fix = [{'before': f['before'], 'IsFixed': False} for f in fixes]
+
+    code_to_fix = []
+    for submission_index, f in enumerate(fixes, start=0):
+        code_to_fix.append({
+            'before': f['before'],
+            'submission_id': submission_index,
+            'IsFixed': False,
+        })
 
     # XXX Filter to just a subset of the examples that Refazer has fixed without
     # failure.  Need to find out why Refazer is failing, and use all ~600 examples.
+    # code_to_fix = code_to_fix[23:25]
     code_to_fix = code_to_fix[:300]
-    print(code_to_fix[264])
-    print(code_to_fix[219])
-    print(code_to_fix[95])
-    print(code_to_fix[24])
+    # print(code_to_fix[264])
+    # print(code_to_fix[219])
+    # print(code_to_fix[95])
+    # print(code_to_fix[24])
     del code_to_fix[264]
     del code_to_fix[219]
     del code_to_fix[95]
     del code_to_fix[24]
 
-    result = requests.post("http://refazer2.azurewebsites.net/api/refazer", json={
+    LOCALHOST_URL = "http://172.16.83.130:8000"
+    # REFAZER_URL = "http://refazer2.azurewebsites.net"
+
+    data = {
         'submissions': code_to_fix,
         'Examples': [{
             'before': code_before,
             'after': code_after,
         }]
-    })
+    }
+    result = requests.post(LOCALHOST_URL + "/api/refazer", json=data)
     fixes = result.json()
+
+    # Save all fixes to the database, with a link between the this submission
+    # and the submission for which the fix was produced.
+    fixed_submissions = []
+    db = get_db()
+    cursor = db.cursor()
     for fix in fixes:
         if fix['fixes_worked']:
-            print("Found fixed!")
-            print(json.dumps(fix, indent=2))
+            fixed_submissions.append(fix['submission_id'])
+            cursor.execute('\n'.join([
+                "INSERT OR REPLACE INTO fixes (id, question_number, submission_id,",
+                "   fixed_submission_id, before, after)",
+                "VALUES (",
+                "    (SELECT id FROM fixes WHERE"
+                "        question_number = ? AND",
+                "        submission_id = ? AND",
+                "        fixed_submission_id = ?),",
+                "    ?, ?, ?, ?, ?)",
+            ]), (question_number, fix['submission_id'], submission_id,
+                 question_number, fix['submission_id'], submission_id,
+                 fix['before'], fix['fixed_code']))
+    db.commit()
 
     return jsonify({
-        'submissions': [18, 73, 112]
+        'submissions': fixed_submissions,
     })
 
 
