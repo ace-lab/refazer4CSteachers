@@ -449,6 +449,18 @@ def get_grade(question_number, submission_id):
 
     return grade, notes
 
+def get_graded_submissions(question_number):
+
+    db = get_db()
+    cursor = db.cursor()
+
+    cursor.execute('\n'.join([
+        "SELECT DISTINCT(submission_id) FROM grades",
+        "WHERE question_number = ?",
+    ]), (question_number,))
+    graded_submissions = [r[0] for r in cursor.fetchall()]
+    return graded_submissions
+
 @app.route('/<int:question_number>/<int:tab_id>/<int:cluster_id>')
 def show_detail(question_number, tab_id, cluster_id, filter=None):
     #coverage_percentage = get_coverage(question_number, fixes)
@@ -589,11 +601,7 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
         note_options = [r[0] for r in cursor.fetchall()]
 
         # Fetch a list of which submission shave already been graded
-        cursor.execute('\n'.join([
-            "SELECT DISTINCT(submission_id) FROM grades",
-            "WHERE question_number = ?",
-        ]), (question_number,))
-        graded_submissions = [r[0] for r in cursor.fetchall()]
+        graded_submissions = get_graded_submissions(question_number)
         grade_status = {}
         for graded_submission_id in graded_submissions:
             grade_status[graded_submission_id] = 'graded'
@@ -854,14 +862,18 @@ def synthesize():
     result = requests.post(LOCALHOST_URL + "/api/refazer", json=data)
     fixes = result.json()
 
+    # Fetch a list of all submissions that have been graded so far
+    graded_submissions = get_graded_submissions(question_number)
+
     # Save all fixes to the database, with a link between the this submission
     # and the submission for which the fix was produced.
-    fixed_submissions = []
+    grading_suggestions = []
     db = get_db()
     cursor = db.cursor()
     for fix in fixes:
         if fix['fixes_worked']:
-            fixed_submissions.append(fix['submission_id'])
+            if fix['submission_id'] not in graded_submissions:
+                grading_suggestions.append(fix['submission_id'])
             cursor.execute('\n'.join([
                 "INSERT OR REPLACE INTO fixes (id, question_number, submission_id,",
                 "   fixed_submission_id, before, after)",
@@ -877,7 +889,7 @@ def synthesize():
     db.commit()
 
     return jsonify({
-        'submissions': fixed_submissions,
+        'submissions': grading_suggestions,
     })
 
 
@@ -1077,7 +1089,7 @@ def update_hint():
 
 
 if __name__ == '__main__':
-    # initdb_command()
+    initdb_command()
     init_app()
     port = int(os.environ.get('PORT', 5000))
     app.config.update(
