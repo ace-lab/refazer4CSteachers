@@ -1089,7 +1089,7 @@ def update_hint():
 
 
 if __name__ == '__main__':
-    initdb_command()
+    # initdb_command()
     init_app()
     port = int(os.environ.get('PORT', 5000))
     app.config.update(
