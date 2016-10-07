@@ -8,6 +8,15 @@ create table entries (
   'text' text not null
 );
 
+drop table if exists submissions;
+create table submissions (
+  id integer primary key autoincrement,
+  question_number integer not null,
+  submission_id integer not null,
+  code text note null,
+  unique(question_number, submission_id)
+);
+
 drop table if exists grades;
 create table grades (
   id integer primary key autoincrement,
