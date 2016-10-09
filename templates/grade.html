@@ -2,44 +2,6 @@
 {% block clusters %}
 <div class="col-md-2">
 
-  <!--
-  <div style="margin-top: 5px;">
-    <b>You gave hints for {{ finished_count }} / {{ total_count }} bugs</b>
-    <div class="progress" style="margin-top: 10px;">
-      <div class="progress-bar" style="width: {{
-        (finished_count / total_count * 100) | round | int
-      }}%;">
-      {{
-        (finished_count / total_count * 100) | round | int
-      }} %
-      </div>
-    </div>
-  </div>
-  -->
-
-  <!--
-  <div class="ui form" style="margin-bottom: 10px">
-    <div class="inline field">
-      <div id="filter-checkbox" class="ui toggle checkbox">
-        {% if current_filter == 'True' %}
-          <input type="checkbox" tabindex="0" class="hidden" data-href="/{{question_number}}/{{tab_id}}/{{cluster_id}}" checked>
-          <label>Filter: ON (Hide finished)</label>
-          <style>
-            .finished-cluster { display: none; }
-          </style>
-        {% else %}
-          <input type="checkbox" tabindex="0" class="hidden" data-href="/{{question_number}}/{{tab_id}}/{{cluster_id}}?filter=True">
-          <label>Filter: OFF (Show finished)</label>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-  -->
-
-  <!--
-  Total number of clusters: {{ clusters | length - finished_cluster_ids | length }} / {{ clusters | length }}
-  -->
-
   <h3 class='submission_header'>Submissions</h3>
   <div id="submission_list" style="overflow-y: scroll; height: 60%">
     <ul class="list-group">
@@ -57,7 +19,7 @@
     <ul id='synthesis_list' class="list-group">
       {% for i in fixed_submissions %}
         <a href="/{{question_number}}/4/{{i}}" class="{{ 'selected-cluster' if i == cluster_id }}">
-            <li class="list-group-item submission">
+            <li class="list-group-item submission" data-submission-id={{ i }}>
             Submission {{i}}
           </li>
         </a>
