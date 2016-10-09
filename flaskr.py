@@ -13,6 +13,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from multiprocessing import Manager, Process
+import threading
+import re
 from jinja2 import Environment, FileSystemLoader
 from io import StringIO
 
@@ -63,6 +65,7 @@ app.config.from_object(__name__)
 ordered_clusters = []
 PROCESS_TIMEOUT = .5
 REFAZER_ENDPOINT = "http://172.16.83.130:8000/api/refazer"
+# REFAZER_ENDPOINT = "http://refazer2.azurewebsites.net/api/refazer"
 
 question_files = {
     0:'accumulate-mistakes.json',
@@ -96,7 +99,8 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
 }
 
 app.config.update(dict(
-    DATABASE=os.path.join(app.root_path, 'flaskr.db'),
+    # DATABASE=os.path.join(app.root_path, 'flaskr.db'),
+    DATABASE='/Users/andrew/Adventures/design/code/feedback/flaskr.db',
     SECRET_KEY='development key',
     USERNAME='admin',
     PASSWORD='default'
@@ -111,11 +115,13 @@ def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
     ''' Returns the ID of the last fix returned. '''
 
     # Request a set of new fixes from the server
+    print("Getting fixes for session:", session_id)
     result = requests.get(REFAZER_ENDPOINT + "/GetFixes", params={
         'SessionId': session_id,
         'FixId': next_fix_id,
     })
     fixes = result.json()
+    print("Fixes:", fixes)
 
     # Insert records of this fix into the database
     for fix in fixes:
@@ -129,11 +135,9 @@ def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
         submission_code = row[0]
 
         if fix['Transformation'] is not None and 'Examples' in fix['Transformation']:
-            original_submissions = json.loads(fix['Transformation']['Examples'])
-            one_original_submission_id = original_submissions[0]['submission_id']
-        else:
-            # Goofy placeholder
-            one_original_submission_id = 150
+            original_submissions_string = fix['Transformation']['Examples']
+            one_original_submission_id =\
+                int(re.search("'submission_id': (\d+),", original_submissions_string).group(1))
 
         cursor.execute('\n'.join([
             "INSERT OR REPLACE INTO fixes (id, question_number, submission_id,",
@@ -153,7 +157,7 @@ def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
 
     return next_fix_id
 
-def fetch_results(session_job_queue, database_name):
+def fetch_results(session_job_queue, database_name, interrupt_event):
 
     db = sqlite3.connect(database_name)
     db.row_factory = sqlite3.Row
@@ -161,11 +165,17 @@ def fetch_results(session_job_queue, database_name):
 
     while True:
 
+        # Check to see if an event has been set to break out of this thread
+        if interrupt_event.is_set():
+            return
+
         # Only try to fetch more results if there are sessions in the queue
         if session_job_queue.qsize() > 0:
 
             # Refresh fixes for all sessions in the queue
             for _ in range(session_job_queue.qsize()):
+
+                print("Doing job")
 
                 # Unpack the job
                 session_job = session_job_queue.get()
@@ -534,6 +544,8 @@ def get_grade(question_number, submission_id):
     else:
         grade = None
         notes = None
+    print("Grade:", grade)
+    print("Notes:", notes)
 
     return grade, notes
 
@@ -549,47 +561,30 @@ def get_graded_submissions(question_number):
     graded_submissions = [r[0] for r in cursor.fetchall()]
     return graded_submissions
 
+def get_grade_suggestions(question_number):
+
+    db = get_db()
+    cursor = db.cursor()
+
+    graded_submissions = get_graded_submissions(question_number)
+
+    cursor.execute('\n'.join([
+        "SELECT DISTINCT(submission_id) FROM fixes",
+        "WHERE question_number = ?",
+    ]), (question_number,))
+    fixed_submissions = [r[0] for r in cursor.fetchall()]
+
+    ungraded_fixed_submissions = []
+    for id_ in fixed_submissions:
+        if id_ not in graded_submissions:
+            ungraded_fixed_submissions.append(id_)
+
+    return ungraded_fixed_submissions
+
 @app.route('/<int:question_number>/<int:tab_id>/<int:cluster_id>')
 def show_detail(question_number, tab_id, cluster_id, filter=None):
-    #coverage_percentage = get_coverage(question_number, fixes)
-    #print('question_instructions',question_instructions)
-    #print (questions[question_number].rule_based_cluster[0][0].fixes)
-    #TODO refactor this method to extract sub functions. It's big!! 
-    if (tab_id < 3):
-        if (tab_id == 0):
-            clusters = questions[question_number].rule_based_cluster
-        elif (tab_id == 1):
-            clusters = questions[question_number].test_based_cluster
-        elif (tab_id == 2):
-            clusters = questions[question_number].rule_and_test_based_cluster
-        hint = get_hint(question_number, cluster_id, tab_id)
-        previous_hints = get_previous_hints(question_number)
-        finished_cluster_ids = get_finished_cluster_ids(question_number, tab_id)
 
-        finished_count = 0
-        total_count = 0
-        for i in range(len(clusters)):
-            if (i in finished_cluster_ids):
-                finished_count += clusters[i].size
-            total_count += clusters[i].size
-        if not filter:
-            current_filter = request.args.get('filter')        
-        return render_template('index.html',
-            question_name = question_files[question_number],
-            question_number = question_number,
-            clusters = clusters,
-            cluster_id = cluster_id,
-            tab_id = tab_id,
-            hint = hint,
-            previous_hints = previous_hints,
-            total_count = total_count,
-            finished_count = finished_count,
-            finished_cluster_ids = finished_cluster_ids,
-            current_filter = current_filter,
-            question_instructions = questions[question_number].question_instructions
-        )
-    elif (tab_id==3):
-        item1 = {}
+    '''
         code_before = """def accumulate(combiner, base, n, term):
       if n==1:
           return combiner(base, term(n))
@@ -631,146 +626,92 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
         filename = 'file3'
         item3['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
         return render_template('task.html', item1 = item1, item2 = item2, item3 = item3, question_number = question_number)
+    '''
 
-    elif (tab_id==4):
+    db = get_db()
+    cursor = db.cursor()
 
-        clusters = grader_questions[question_number].test_based_cluster
-        hint = get_hint(question_number, cluster_id, tab_id)
-        previous_hints = get_previous_hints(question_number)
-        finished_cluster_ids = get_finished_cluster_ids(question_number, tab_id)
+    # Fetch all submissions from the database
+    cursor.execute('\n'.join([
+        "SELECT submission_id, code FROM submissions WHERE",
+        "question_number = ?",
+    ]), (question_number,))
+    submissions = [
+        {'submission_id': row[0], 'code': row[1]}
+        for row in cursor.fetchall()
+    ]
 
-        fixes = []
-        for cluster in clusters:
-            fixes.extend(cluster.fixes)
+    submission = submissions[cluster_id]
+    test_results = run_code_evaluations(submission['code'])
 
-        submission = fixes[cluster_id]
-        test_results = run_code_evaluations(submission['before'])
+    # Get any grades and notes that have been saved for this submission
+    (grade, notes) = get_grade(question_number, cluster_id)
 
-        db = get_db()
-        cursor = db.cursor()
+    # Look for existing, applicable fixes, and grades
+    cursor.execute('\n'.join([
+        "SELECT fixed_submission_id, before, after FROM fixes WHERE",
+        "question_number = ? AND",
+        "submission_id = ?",
+    ]), (question_number, cluster_id))
+    row = cursor.fetchone()
+    fix_exists = (row is not None)
+    if fix_exists:
+        (fixed_submission_id, before, after) = row
+        fix_diff = get_diff_html(before, after)
+        fixed_code = after
+        (fix_grade, fix_notes) = get_grade(question_number, fixed_submission_id)
+    else:
+        fix_diff = None
+        fixed_code = None
+        fixed_submission_id = None
+        fix_grade = None
+        fix_notes = None
+    fix_grade_exists = (fix_grade is not None)
 
-        # This is what one can do to save a synthesized fix to a submission
-        '''
-        for fix_index, fix in enumerate(fixes, start=0):
-            if fix['synthesized_after'] is not None and len(fix['synthesized_after']) > 0:
-                cursor.execute('\n'.join([
-                    "INSERT OR IGNORE INTO fixes (question_number, submission_id,",
-                    "   fixed_submission_id, before, after)",
-                    "VALUES (?, ?, ?, ?, ?)",
-                ]), (question_number, fix_index, 10, fix['before'], fix['synthesized_after']))
-        db.commit()
-        '''
+    # Get a list of all notes that can be applied when grading
+    cursor.execute("SELECT \"text\" FROM notes")
+    note_options = [r[0] for r in cursor.fetchall()]
 
-        # Get any grades and notes that have been saved for this submission
-        (grade, notes) = get_grade(question_number, cluster_id)
+    # Fetch a list of which submission shave already been graded
+    graded_submissions = get_graded_submissions(question_number)
+    grade_status = {}
+    for graded_submission_id in graded_submissions:
+        grade_status[graded_submission_id] = 'graded'
 
-        # Look for existing, applicable fixes, and grades
-        cursor.execute('\n'.join([
-            "SELECT fixed_submission_id, before, after FROM fixes WHERE",
-            "question_number = ? AND",
-            "submission_id = ?",
-        ]), (question_number, cluster_id))
-        row = cursor.fetchone()
-        fix_exists = (row is not None)
-        if fix_exists:
-            (fixed_submission_id, before, after) = row
-            fix_diff = get_diff_html(before, after)
-            fixed_code = after
-            (fix_grade, fix_notes) = get_grade(question_number, fixed_submission_id)
-        else:
-            fix_diff = None
-            fixed_code = None
-            fixed_submission_id = None
-            fix_grade = None
-            fix_notes = None
-        fix_grade_exists = (fix_grade is not None)
+    # Get the list of submissions for which some synthesized fix exists
+    grade_suggestions = get_grade_suggestions(question_number)
+    for ungraded_fixed_submission_id in grade_suggestions:
+        grade_status[ungraded_fixed_submission_id] = "fixed"
 
-        # Get a list of all notes that can be applied when grading
-        cursor.execute("SELECT \"text\" FROM notes")
-        note_options = [r[0] for r in cursor.fetchall()]
+    print("Global session id:", global_session_id)
 
-        # Fetch a list of which submission shave already been graded
-        graded_submissions = get_graded_submissions(question_number)
-        grade_status = {}
-        for graded_submission_id in graded_submissions:
-            grade_status[graded_submission_id] = 'graded'
-
-        # Get the list of submissions for which some synthesized fix exists
-        cursor.execute('\n'.join([
-            "SELECT DISTINCT(submission_id) FROM fixes",
-            "WHERE question_number = ?",
-        ]), (question_number,))
-        fixed_submissions = [r[0] for r in cursor.fetchall()]
-        ungraded_fixed_submissions = []
-        for id_ in fixed_submissions:
-            if id_ not in graded_submissions:
-                ungraded_fixed_submissions.append(id_)
-        for ungraded_fixed_submission_id in ungraded_fixed_submissions:
-            grade_status[ungraded_fixed_submission_id] = "fixed"
-
-        finished_count = 0
-        total_count = 0
-        for i in range(len(clusters)):
-            if (i in finished_cluster_ids):
-                finished_count += clusters[i].size
-            total_count += clusters[i].size
-        if not filter:
-            current_filter = request.args.get('filter')
-
-        return render_template('grade.html',
-            question_name = question_files[question_number],
-            question_number = question_number,
-            clusters = clusters,
-            cluster_id = cluster_id,
-            tab_id = tab_id,
-            hint = hint,
-            previous_hints = previous_hints,
-            total_count = total_count,
-            finished_count = finished_count,
-            finished_cluster_ids = finished_cluster_ids,
-            current_filter = current_filter,
-            question_instructions = grader_questions[question_number].question_instructions,
-            submissions = fixes,
-            submission = submission,
-            test_results = test_results,
-            grade = grade,
-            notes = notes,
-            grade_status = grade_status,
-            submission_ids = range(len(fixes)),
-            fixed_submissions = ungraded_fixed_submissions,
-            fix_exists = fix_exists,
-            fix_submission_id = fixed_submission_id,
-            fix_diff = fix_diff,
-            # XXX We provide the fixed code as a dictionary with a single key
-            # so that we can use Jinja2's built-in escaping of JSON when we
-            # store it in a hidden input's value.  This is a hacky way to
-            # make sure we can store the fixed code in the HTML.
-            fixed_code = {'code': fixed_code},
-            fix_grade_exists = fix_grade_exists,
-            fix_grade = fix_grade,
-            fix_notes = fix_notes,
-            note_options = note_options,
-        )
-
-        # data = requests.post('http://localhost:53530/api/refazer', 
-        #     json={"submissions":list(questions[question_number].submissions), "Examples" : 
-        #     [{"before" : questions[question_number].submissions[1]['before'],"after" : 
-        #     questions[question_number].submissions[1]['SynthesizedAfter']}]})
-        # if data.ok:
-        #     print("Number of submissions returned")
-        #     print(len(data.json()))
-        #     return render_template('grade.html', ok = True, fixes  = len(data.json()), error = "",question_number = question_number)
-        # else:
-        #     print("problem found")
-        #     print(data.content)
-        #     return render_template('grade.html', ok = False, error = data.content,question_number = question_number)
-
-# @app.route('/delete', methods=['POST'])
-# def delete_hint():
-#     db = get_db()
-#     db.execute('delete from entries where cluster_id=' + request.form['cluster_id'] + ' and question_number=' + request.form['question_number'])
-#     db.commit()
-#     return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=0 cluster_id=request.form['cluster_id']))
+    return render_template('grade.html',
+        question_name = question_files[question_number],
+        # XXX Eventually the session ID should be generated per user
+        session_id = global_session_id,
+        question_number = question_number,
+        submissions = submissions,
+        submission = submission,
+        test_results = test_results,
+        grade = grade,
+        notes = notes,
+        grade_status = grade_status,
+        cluster_id = cluster_id,
+        submission_ids = range(len(submissions)),
+        fixed_submissions = grade_suggestions,
+        fix_exists = fix_exists,
+        fix_submission_id = fixed_submission_id,
+        fix_diff = fix_diff,
+        # XXX We provide the fixed code as a dictionary with a single key
+        # so that we can use Jinja2's built-in escaping of JSON when we
+        # store it in a hidden input's value.  This is a hacky way to
+        # make sure we can store the fixed code in the HTML.
+        fixed_code = {'code': fixed_code},
+        fix_grade_exists = fix_grade_exists,
+        fix_grade = fix_grade,
+        fix_notes = fix_notes,
+        note_options = note_options,
+    )
 
 
 def run_code_evaluations(code_text):
@@ -901,6 +842,14 @@ def grade():
     })
 
 
+@app.route('/get_grade_suggestions', methods=['GET'])
+def get_grade_suggestions_api_method():
+    question_number = int(request.args.get('question_number'))
+    return jsonify({
+        'grade_suggestions': get_grade_suggestions(question_number)
+    })
+
+
 # This function will take a long time to run (at least as long as it takes
 # for Refazer to fulfill the request).  Don't expect to get a response in less
 # than 30 seconds, and it may take minutes.
@@ -909,49 +858,12 @@ def synthesize():
 
     question_number = int(request.form['question_number'])
     submission_id = request.form['submission_id']
+    session_id = request.form['session_id']
     code_before = request.form['code_before']
     code_after = request.form['code_after']
 
-    clusters = grader_questions[question_number].test_based_cluster
-    fixes = []
-    for cluster in clusters:
-        fixes.extend(cluster.fixes)
-
-    code_to_fix = []
-    for submission_index, f in enumerate(fixes, start=0):
-        code_to_fix.append({
-            'Code': f['before'],
-            'SubmissionId': submission_index,
-        })
-
-    # XXX Filter to just a subset of the examples that Refazer has fixed without
-    # failure.  Need to find out why Refazer is failing, and use all ~600 examples.
-    # code_to_fix = code_to_fix[23:25]
-    # code_to_fix = code_to_fix[:300]
-    # print(code_to_fix[264])
-    # print(code_to_fix[219])
-    # print(code_to_fix[95])
-    # print(code_to_fix[24])
-    # del code_to_fix[264]
-    # del code_to_fix[219]
-    # del code_to_fix[95]
-    # del code_to_fix[24]
-
-    # REFAZER_URL = "http://refazer2.azurewebsites.net"
-
-    print("After 0")
-
-    # Upload the new submissions that need to be fixed
-    result = requests.post(REFAZER_ENDPOINT + "/Start", json={
-        'Submissions': code_to_fix,
-        'QuestionId': question_number,
-    })
-    session_id = result.json()
-    # result = requests.post(REFAZER_ENDPOINT + "/api/refazer", json=data)
-    # fixes = result.json()
-    print("After 1")
-
     # We don't try to get a response from this one, this just submits a job
+    print("Calling Refazer")
     result = requests.post(REFAZER_ENDPOINT + "/ApplyFixFromExample", json={
         'CodeBefore': code_before,
         'CodeAfter': code_after,
@@ -959,10 +871,10 @@ def synthesize():
         'QuestionId': question_number,
         'SubmissionId': submission_id,
     })
+    print("Returning")
 
-    # Request all fixes that have been created since the last call to GetFixes
     return jsonify({
-        'submissions': grading_suggestions,
+        'success': True,
     })
 
 
@@ -1184,6 +1096,9 @@ def add_submissions_to_db(database_name, question_number):
 
 if __name__ == '__main__':
 
+    # Right now, the server is hard-coded only to support question 0
+    QUESTION_NUMBER = 0
+
     init_app()
     port = int(os.environ.get('PORT', 5000))
     app.config.update(
@@ -1192,12 +1107,50 @@ if __name__ == '__main__':
     )
 
     # Insert all submissions records into the database
-    add_submissions_to_db(app.config['DATABASE'], question_number=0)
+    add_submissions_to_db(app.config['DATABASE'], question_number=QUESTION_NUMBER)
 
     # Start off a cyclical job to fetch automatic fixes
     thread_pool = ThreadPoolExecutor(max_workers=1)
+    global session_job_queue
+    global shutdown_event
     session_job_queue = Queue()
-    session_job_queue.put({'session_id': 18, 'question_id': 0, 'next_fix_id': 0})
-    thread_pool.submit(fetch_results, session_job_queue, app.config['DATABASE'])
+    shutdown_event = threading.Event()
+    thread_pool.submit(fetch_results, session_job_queue, app.config['DATABASE'], shutdown_event)
 
-    app.run(host='0.0.0.0', port=port)
+    # Create a new synthesis job on Refazer
+    grader_questions = create_grader_question(QUESTION_NUMBER)
+    clusters = grader_questions.test_based_cluster
+    fixes = []
+    for cluster in clusters:
+        fixes.extend(cluster.fixes)
+
+    code_to_fix = []
+    for submission_index, f in enumerate(fixes, start=0):
+        code_to_fix.append({
+            'Code': f['before'],
+            'QuestionId': QUESTION_NUMBER,
+            'SubmissionId': submission_index,
+        })
+
+    # Upload the new submissions that need to be fixed
+    print("Starting the job on Refazer...")
+    result = requests.post(REFAZER_ENDPOINT + "/Start", json={
+        'Submissions': code_to_fix,
+        'QuestionId': QUESTION_NUMBER,
+    })
+    print("Job has been started")
+    global global_session_id
+    session_id = result.json()
+    global_session_id = session_id
+    print("Session ID:", global_session_id)
+    session_job_queue.put({
+        'session_id': session_id,
+        'question_id': QUESTION_NUMBER,
+        'next_fix_id': 0,
+    })
+
+    app.run(
+        host='0.0.0.0',
+        port=port,
+        debug=False,
+    )

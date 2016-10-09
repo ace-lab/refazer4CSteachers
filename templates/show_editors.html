@@ -39,7 +39,7 @@
               </div>
           </div>
       </form>
-      <textarea data-index=1 class='solution_editor' id={{ submission.Id }}>{{ submission.before }}</textarea>
+      <textarea data-index=1 class='solution_editor' id={{ submission.submission_id }}>{{ submission.code }}</textarea>
       <div class="ui segment solution_diff_element">
           <div class="solution_diff"></div>
           <div id="diff_loader" class="ui loader"></div>
@@ -270,23 +270,48 @@ $(function() {
             $('input[name=submit_grade]').removeClass('loading');
 
             $.post('/synthesize', {
+                session_id: {{ session_id }},
                 submission_id: {{ cluster_id }},
                 question_number: {{ question_number }},
                 code_before: originalCode,
                 code_after: debuggedCode,
-            }, function(results) {
-                results.submissions.forEach(function(submission_id) {
-                    var submission_link = $('<a></a>');
-                    submission_link.prop('href', '/{{ question_number }}/4/' + submission_id);
-                    var list_item = $('<li></li>');
-                    list_item.text("Submission " + submission_id);
-                    list_item.addClass('list-group-item submission');
-                    submission_link.append(list_item);
-                    $('ul#synthesis_list').append(submission_link);
-                });
             });
         });
     });
+
+    // Periodically query the server to find if it has recommended grades for other submissions.
+    // REUSE: http://stackoverflow.com/questions/5052543/how-to-fire-ajax-request-periodically
+    var UPDATE_INTERVAL = 2000;
+    // This list will be used to store the IDs of submissions we already suggest
+    var suggested_submissions = [];
+    $('#synthesis_list li').each(function() {
+        suggested_submissions.push($(this).data('submissionId'));
+    });
+    (function update_grading_suggestions() {
+        $.ajax({
+            url: '/get_grade_suggestions',
+            data: {
+                question_number: {{ question_number }}
+            },
+            success: function(data) {
+                data.grade_suggestions.forEach(function(submission_id) {
+                    if (suggested_submissions.indexOf(submission_id) === -1) {
+                        var submission_link = $('<a></a>');
+                        submission_link.prop('href', '/{{ question_number }}/4/' + submission_id);
+                        var list_item = $('<li></li>');
+                        list_item.text("Submission " + submission_id);
+                        list_item.addClass('list-group-item submission');
+                        submission_link.append(list_item);
+                        $('ul#synthesis_list').append(submission_link);
+                        suggested_submissions.push(submission_id);
+                    }
+                });
+            },
+            complete: function() {
+                setTimeout(update_grading_suggestions, UPDATE_INTERVAL);
+            }
+        });
+    }) ();
 
     var editor_panes = $(".solution_editor");
     var editors = [];
