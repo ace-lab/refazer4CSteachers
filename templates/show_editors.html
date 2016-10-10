@@ -270,7 +270,6 @@ $(function() {
             $('input[name=submit_grade]').removeClass('loading');
 
             $.post('/synthesize', {
-                session_id: {{ session_id }},
                 submission_id: {{ cluster_id }},
                 question_number: {{ question_number }},
                 code_before: originalCode,
