@@ -14,7 +14,7 @@ import threading
 
 from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash, jsonify
-from flask_login import LoginManager, login_required, UserMixin, login_user
+from flask_login import LoginManager, login_required, UserMixin, login_user, current_user
 import requests
 from jinja2 import Environment, FileSystemLoader
 
@@ -24,10 +24,24 @@ import highlight
 app = Flask(__name__)
 app.config.from_object(__name__)
 ordered_clusters = []
+app.config.update(dict(
+    DATABASE=os.path.join(app.root_path, 'flaskr.db'),
+    # DATABASE='/Users/andrew/Adventures/design/code/feedback/flaskr.db',
+    SECRET_KEY='development key',
+    USERNAME='admin',
+    PASSWORD='default'
+))
+app.config.from_envvar('FLASKR_SETTINGS', silent=True)
+
+# Every few seconds, we'll query Refazer to learn if it has discovered any
+# new fixes for student submissions.  The list below lets us keep
+# track of which jobs we're currently checking.
+refresh_jobs = []
+REFRESH_TIMEOUT = 3
+
 PROCESS_TIMEOUT = .5
 REFAZER_ENDPOINT = "http://172.16.83.130:8000/api/refazer"
 # REFAZER_ENDPOINT = "http://refazer2.azurewebsites.net/api/refazer"
-
 
 ''' The following section enables having users and logins. '''
 login_manager = LoginManager()
@@ -46,8 +60,40 @@ class User(UserMixin):
         return self.username
 
 
+def _start_user_session(question_number):
+
+    # Load up the questions
+    grader_questions = create_grader_question(question_number)
+    clusters = grader_questions.test_based_cluster
+    fixes = []
+    for cluster in clusters:
+        fixes.extend(cluster.fixes)
+
+    code_to_fix = []
+    for submission_index, f in enumerate(fixes, start=0):
+        code_to_fix.append({
+            'Code': f['before'],
+            'QuestionId': question_number,
+            'SubmissionId': submission_index,
+        })
+
+    # Upload the new submissions that need to be fixed
+    print("Launching new Refazer job")
+    result = requests.post(REFAZER_ENDPOINT + "/Start", json={
+        'Submissions': code_to_fix,
+        'QuestionId': question_number,
+    })
+    session_id = result.json()
+    print("Job has been started and has ID", session_id)
+
+    return session_id
+
+
 @login_manager.user_loader
 def load_user(username):
+
+    # XXX It's awful that we're still hard-coding this.  We'll move on soon.
+    QUESTION_NUMBER = 0
 
     db = get_db()
     cursor = db.cursor()
@@ -61,11 +107,32 @@ def load_user(username):
     if row is None:
         return None
     else:
+        (user_id, session_id) = row
         user = User(
-            user_id=row[0],
+            user_id=user_id,
             username=username,
-            session_id=row[1],
+            session_id=session_id,
         )
+        # If no session has been created for this user yet, create one!
+        # And then make sure to save this session for future reference.
+        if user.session_id == None:
+            session_id = _start_user_session(question_number=QUESTION_NUMBER)
+            cursor.execute('\n'.join([
+                "UPDATE users",
+                "SET session_id = ?",
+                "WHERE id = ?",
+            ]), (session_id, user_id))
+            db.commit()
+
+        # If this user's session isn't currently being watched for new fixes, then
+        # enqueue this session ID and start watching for updates!
+        if not user.session_id in refresh_jobs:
+            refresh_jobs.append(user.session_id)
+            session_job_queue.put({
+                'session_id': user.session_id,
+                'question_id': QUESTION_NUMBER,
+                'next_fix_id': 0,
+            })
 
     return user
 
@@ -164,19 +231,6 @@ Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
     3:'TODO: RETRIEVE DIRECTIONS FOR repeated-mistakes.json'
 }
 
-app.config.update(dict(
-    # DATABASE=os.path.join(app.root_path, 'flaskr.db'),
-    DATABASE='/Users/andrew/Adventures/design/code/feedback/flaskr.db',
-    SECRET_KEY='development key',
-    USERNAME='admin',
-    PASSWORD='default'
-))
-
-app.config.from_envvar('FLASKR_SETTINGS', silent=True)
-
-# We make a thread pool of one thread for regularly fetching synthesized results
-REFRESH_TIMEOUT = 3
-
 def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
     ''' Returns the ID of the last fix returned. '''
 
@@ -208,15 +262,15 @@ def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
         cursor.execute('\n'.join([
             "INSERT OR REPLACE INTO fixes (id, session_id, question_number, submission_id,",
             "   fixed_submission_id, before, after)",
-            "VALUES (?,",
+            "VALUES (",
             "    (SELECT id FROM fixes WHERE"
             "        session_id = ? AND",
             "        question_number = ? AND",
             "        submission_id = ? AND",
             "        fixed_submission_id = ?),",
-            "    ?, ?, ?, ?, ?)",
-        ]), (session_id, session_id, question_id, fix['SubmissionId'], one_original_submission_id,
-             question_id, fix['SubmissionId'], one_original_submission_id,
+            "    ?, ?, ?, ?, ?, ?)",
+        ]), (session_id, question_id, fix['SubmissionId'], one_original_submission_id,
+             session_id, question_id, fix['SubmissionId'], one_original_submission_id,
              submission_code, fix['FixedCode']))
 
     if len(fixes) > 0:
@@ -393,112 +447,11 @@ def create_grader_question(question_number):
 
     return question
 
-    #return create_question(question_number)
-
-def create_question(question_number):
-
-    global question_instructions
-    ordered_clusters = []
-
-    with open('data/'+question_files[question_number]) as data_file:
-        submission_pairs = json.load(data_file)
-
-    clustered_fixes_by_rule = {}
-    clustered_fixes_by_test = {}
-    clustered_fixes_by_rule_and_test = {}
-    group_id_to_test_for_a_question = {}
-    fixes = []
-
-    group_id = -1
-    checked_tests = []
-
-    rule_and_test_based_cluster = []
-
-    no_sequence_diff = []
-    def_seq_diff = []
-    num_fixed = []
-
-    for submission_pair in submission_pairs:
-        if (submission_pair['IsFixed'] == True):
-            num_fixed.append(submission_pair)
-            rule = submission_pair['UsedFix']
-            rule = rule.replace('\\', '')
-
-            fix = submission_pair
-            code_before = submission_pair['before']
-            code_after = submission_pair['SynthesizedAfter']
-            code_student_after = submission_pair['after']
-            filename = 'filename-' + str(submission_pair['Id'])
-
-            fix['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
-            fix['diff_student_lines'] = highlight.diff_file(filename, code_before, code_student_after, 'full')
-            fix['diff_but_not_a_diff'] = highlight.diff_file(filename, code_before, code_before, 'full')
-
-            test = get_test(submission_pair['failed'])
-            
-            fix['tests'] = test
-            fix['before'] = code_before
-            fix['input_output_before'] = submission_pair['augmented_tidy_before_testcase_to_output']
-            fix['synthesized_after'] = code_after
-            fix['is_fixed'] = True;
-            try:
-                fix['dynamic_diff'] = submission_pair['sequence_comparison_diff']
-            except:
-                no_sequence_diff.append(submission_pair)
-
-            id = submission_pair['Id']
-
-            if (rule in clustered_fixes_by_rule.keys()):
-                clustered_fixes_by_rule[rule].append(fix)
-            else:
-                clustered_fixes_by_rule[rule] = [fix]
-
-            if (test in checked_tests):
-                group_id = checked_tests.index(test)
-                clustered_fixes_by_test[checked_tests.index(test)].append(fix)
-            else:
-                checked_tests.append(test)
-                group_id = len(checked_tests)
-                clustered_fixes_by_test[checked_tests.index(test)] = [fix]
-
-            key = Rule_and_test(test=test,rule=rule)
-            if key in clustered_fixes_by_rule_and_test.keys():
-                clustered_fixes_by_rule_and_test[key].append(fix)
-            else:
-                clustered_fixes_by_rule_and_test[key] = [fix]
-
-            fix['group_id'] = group_id
-            group_id_to_test_for_a_question[group_id] = test
-            fixes.append(fix)
-
-    for key,value in clustered_fixes_by_rule.items():
-        cluster = Rule_based_cluster(rule=key, fixes = value, size=len(value))
-        ordered_clusters.append(cluster)
-
-    test_based_clusters = []
-    for key,value in clustered_fixes_by_test.items():
-        cluster = Test_based_cluster(test=checked_tests[key], fixes = value, size=len(value))
-        test_based_clusters.append(cluster)
-
-    for key,value in clustered_fixes_by_rule_and_test.items():
-        cluster = Rule_and_test_based_cluster(test=key.test, rule=key.rule, fixes = value, size = len(value))
-        rule_and_test_based_cluster.append(cluster)
-
-    ordered_clusters.sort(key = lambda x : len(x.fixes), reverse= True)
-    test_based_clusters.sort(key = lambda x : len(x.fixes), reverse= True)
-    rule_and_test_based_cluster.sort(key = lambda  x : len(x.fixes), reverse=True)
-    question = Question(question_id=question_number, rule_based_cluster = ordered_clusters,
-                        test_based_cluster = test_based_clusters, rule_and_test_based_cluster=rule_and_test_based_cluster,
-                        question_instructions = question_instructions[question_number], submissions= fixes)
-
-    return question
-
 def init_app():
     global questions, grader_questions
     questions = {}
     grader_questions = {}
     for question_number in question_files.keys():
-        questions[question_number] = create_question(question_number)
         grader_questions[question_number] = create_grader_question(question_number)
 
 def connect_db():
@@ -513,12 +466,6 @@ def init_db():
         with app.open_resource('schema.sql', mode='r') as f:
             db.cursor().executescript(f.read())
         db.commit()
-
-@app.cli.command('initdb')
-def initdb_command():
-    """Initializes the database."""
-    init_db()
-    print('Initialized the database.')
 
 def get_db():
     """Opens a new database connection if there is none yet for the
@@ -571,7 +518,7 @@ def show_question(question_number):
 def show_fixes():
     return redirect(url_for('show_detail', question_number=1, tab_id=0, cluster_id=0, group_id=0))
 
-def get_grade(question_number, submission_id):
+def get_grade(session_id, question_number, submission_id):
 
     db = get_db()
     cursor = db.cursor()
@@ -579,9 +526,10 @@ def get_grade(question_number, submission_id):
     # Fetch grade if one has already been given
     cursor.execute('\n'.join([
         "SELECT id, grade FROM grades WHERE",
+        "session_id = ? AND",
         "question_number = ? AND",
         "submission_id = ?"
-    ]), (question_number, submission_id))
+    ]), (session_id, question_number, submission_id))
     row = cursor.fetchone()
     if row is not None:
         (grade_id, grade) = row
@@ -597,35 +545,34 @@ def get_grade(question_number, submission_id):
     else:
         grade = None
         notes = None
-    print("Grade:", grade)
-    print("Notes:", notes)
 
     return grade, notes
 
-def get_graded_submissions(question_number):
+def get_graded_submissions(session_id, question_number):
 
     db = get_db()
     cursor = db.cursor()
 
     cursor.execute('\n'.join([
-        "SELECT DISTINCT(submission_id) FROM grades",
-        "WHERE question_number = ?",
-    ]), (question_number,))
+        "SELECT DISTINCT(submission_id) FROM grades WHERE",
+        "session_id = ? AND",
+        "question_number = ?",
+    ]), (session_id, question_number,))
     graded_submissions = [r[0] for r in cursor.fetchall()]
     return graded_submissions
 
-def get_grade_suggestions(question_number):
+def get_grade_suggestions(session_id, question_number):
 
     db = get_db()
     cursor = db.cursor()
 
-    graded_submissions = get_graded_submissions(question_number)
+    graded_submissions = get_graded_submissions(session_id, question_number)
 
     cursor.execute('\n'.join([
         "SELECT DISTINCT(submission_id) FROM fixes WHERE",
         "session_id = ? AND",
         "question_number = ?",
-    ]), (question_number, global_session_id))
+    ]), (session_id, question_number))
     fixed_submissions = [r[0] for r in cursor.fetchall()]
 
     ungraded_fixed_submissions = []
@@ -700,7 +647,11 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
     test_results = run_code_evaluations(submission['code'])
 
     # Get any grades and notes that have been saved for this submission
-    (grade, notes) = get_grade(question_number, cluster_id)
+    (grade, notes) = get_grade(
+        current_user.session_id,
+        question_number,
+        cluster_id
+    )
 
     # Look for existing, applicable fixes, and grades
     cursor.execute('\n'.join([
@@ -708,14 +659,18 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
         "session_id = ? AND",
         "question_number = ? AND",
         "submission_id = ?",
-    ]), (question_number, session_id, cluster_id))
+    ]), (current_user.session_id, question_number, cluster_id))
     row = cursor.fetchone()
     fix_exists = (row is not None)
     if fix_exists:
         (fixed_submission_id, before, after) = row
         fix_diff = get_diff_html(before, after)
         fixed_code = after
-        (fix_grade, fix_notes) = get_grade(question_number, fixed_submission_id)
+        (fix_grade, fix_notes) = get_grade(
+            current_user.session_id,
+            question_number,
+            fixed_submission_id
+        )
     else:
         fix_diff = None
         fixed_code = None
@@ -725,26 +680,23 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
     fix_grade_exists = (fix_grade is not None)
 
     # Get a list of all notes that can be applied when grading
-    cursor.execute("SELECT \"text\" FROM notes")
+    cursor.execute("SELECT \"text\" FROM notes WHERE session_id = ?", (current_user.session_id,))
     note_options = [r[0] for r in cursor.fetchall()]
 
     # Fetch a list of which submission shave already been graded
-    graded_submissions = get_graded_submissions(question_number)
+    graded_submissions = get_graded_submissions(current_user.session_id, question_number)
     grade_status = {}
     for graded_submission_id in graded_submissions:
         grade_status[graded_submission_id] = 'graded'
 
     # Get the list of submissions for which some synthesized fix exists
-    grade_suggestions = get_grade_suggestions(question_number)
+    grade_suggestions = get_grade_suggestions(current_user.session_id, question_number)
     for ungraded_fixed_submission_id in grade_suggestions:
         grade_status[ungraded_fixed_submission_id] = "fixed"
-
-    print("Global session id:", global_session_id)
 
     return render_template('grade.html',
         question_name = question_files[question_number],
         # XXX Eventually the session ID should be generated per user
-        session_id = global_session_id,
         question_number = question_number,
         submissions = submissions,
         submission = submission,
@@ -845,8 +797,10 @@ def diff():
     })
 
 @app.route('/grade', methods=['POST'])
+@login_required
 def grade():
 
+    session_id = current_user.session_id
     grade = request.form['grade']
     notes = request.form.getlist('notes[]')
     question_number = request.form['question_number']
@@ -857,26 +811,36 @@ def grade():
 
     # Insert the new grade and save its ID
     cursor.execute('\n'.join([
-        "INSERT OR REPLACE INTO grades (id, question_number, submission_id, grade)",
+        "INSERT OR REPLACE INTO grades (id, session_id, question_number, submission_id, grade)",
         "VALUES (",
         # The select statement below lets us keep the old grade ID
         "    (SELECT id FROM grades WHERE"
+        "        session_id = ? AND",
         "        question_number = ? AND",
         "        submission_id = ?),"
-        "     ?, ?, ?)"
-    ]), (question_number, submission_id, question_number, submission_id, grade))
+        "     ?, ?, ?, ?)"
+    ]), (session_id, question_number, submission_id,
+         session_id, question_number, submission_id, grade))
     cursor.execute('\n'.join([
         "SELECT id FROM grades WHERE",
+        "session_id = ? AND",
         "question_number = ? AND",
         "submission_id = ?"
-    ]), (question_number, submission_id))
+    ]), (session_id, question_number, submission_id))
     grade_id = cursor.fetchone()[0]
 
     # Create new note records for all that haven't been created yet
     note_ids = []
     for note in notes:
-        cursor.execute("INSERT OR IGNORE INTO notes (\"text\") VALUES (?)", (note,))
-        cursor.execute("SELECT id FROM notes WHERE \"text\" = ?", (note,))
+        cursor.execute('\n'.join([
+            "INSERT OR IGNORE INTO notes (session_id, \"text\")",
+            "VALUES (?, ?)",
+        ]), (current_user.session_id, note))
+        cursor.execute('\n'.join([
+            "SELECT id FROM notes WHERE",
+            "session_id = ? AND",
+            "\"text\" = ?",
+        ]), (current_user.session_id, note))
         note_id = cursor.fetchone()[0]
         note_ids.append(note_id)
 
@@ -899,10 +863,11 @@ def grade():
 
 
 @app.route('/get_grade_suggestions', methods=['GET'])
+@login_required
 def get_grade_suggestions_api_method():
     question_number = int(request.args.get('question_number'))
     return jsonify({
-        'grade_suggestions': get_grade_suggestions(question_number)
+        'grade_suggestions': get_grade_suggestions(current_user.session_id, question_number)
     })
 
 
@@ -910,16 +875,17 @@ def get_grade_suggestions_api_method():
 # for Refazer to fulfill the request).  Don't expect to get a response in less
 # than 30 seconds, and it may take minutes.
 @app.route('/synthesize', methods=['POST'])
+@login_required
 def synthesize():
 
+    session_id = current_user.session_id
     question_number = int(request.form['question_number'])
     submission_id = request.form['submission_id']
-    session_id = request.form['session_id']
     code_before = request.form['code_before']
     code_after = request.form['code_after']
 
     # We don't try to get a response from this one, this just submits a job
-    print("Calling Refazer")
+    print("Submitting fix suggestion to Refazer")
     result = requests.post(REFAZER_ENDPOINT + "/ApplyFixFromExample", json={
         'CodeBefore': code_before,
         'CodeAfter': code_after,
@@ -927,7 +893,7 @@ def synthesize():
         'QuestionId': question_number,
         'SubmissionId': submission_id,
     })
-    print("Returning")
+    print("Refazer has accepted the job")
 
     return jsonify({
         'success': True,
@@ -1172,39 +1138,6 @@ if __name__ == '__main__':
     session_job_queue = Queue()
     shutdown_event = threading.Event()
     thread_pool.submit(fetch_results, session_job_queue, app.config['DATABASE'], shutdown_event)
-
-    # Create a new synthesis job on Refazer
-    grader_questions = create_grader_question(QUESTION_NUMBER)
-    clusters = grader_questions.test_based_cluster
-    fixes = []
-    for cluster in clusters:
-        fixes.extend(cluster.fixes)
-
-    code_to_fix = []
-    for submission_index, f in enumerate(fixes, start=0):
-        code_to_fix.append({
-            'Code': f['before'],
-            'QuestionId': QUESTION_NUMBER,
-            'SubmissionId': submission_index,
-        })
-
-    # Upload the new submissions that need to be fixed
-    print("Starting the job on Refazer...")
-    # result = requests.post(REFAZER_ENDPOINT + "/Start", json={
-    #     'Submissions': code_to_fix,
-    #     'QuestionId': QUESTION_NUMBER,
-    # })
-    print("Job has been started")
-    global global_session_id
-    # session_id = result.json()
-    session_id = 11
-    global_session_id = session_id
-    print("Session ID:", global_session_id)
-    session_job_queue.put({
-        'session_id': session_id,
-        'question_id': QUESTION_NUMBER,
-        'next_fix_id': 0,
-    })
 
     app.run(
         host='0.0.0.0',
