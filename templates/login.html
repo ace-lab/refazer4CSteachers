@@ -1,0 +1,48 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/static/lib/semantic-ui/semantic.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="/static/lib/semantic-ui/semantic.js"></script>
+        <style>
+            form {
+              margin-top: 5em;
+              margin-left: auto;
+              margin-right: auto;
+              width: 20%;
+            }
+            input#username_input {
+              width: 70%;
+              font-size: large;
+            }
+            input[name=sign_in] {
+              margin-top: 1em;
+              width: 100%;
+            }
+            #username_form input {
+              margin-top: .25em;
+              margin-bottom: .25em;
+              display: inline;
+              margin-left: .5em;
+              vertical-align: middle;
+            }
+            #username_form label {
+              display: inline;
+              vertical-align: middle;
+              font-size: large;
+            }
+            input#submit_button {
+              margin-top: 1em;
+              font-size: large;
+            }
+        </style>
+    </head>
+    <body>
+        <form class="ui form" method="post">
+            <div id="username_form">
+                <label for="username">Username</label>
+                <input id="username_input" type="text" name="username"></input>
+            </div>
+            <input id="submit_button" type="submit" class="ui primary button" name="sign_in" value="Sign in"></input>
+        </form>
+    </body>
+</html>

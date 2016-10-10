@@ -1,25 +1,98 @@
-# all the imports
-import os
-import sqlite3
-from flask import Flask, request, session, g, redirect, url_for, abort, \
-     render_template, flash, jsonify
 import json
-import highlight
-import requests
-import math
+import sqlite3
+import os
 import sys
 import inspect
 import time
+import re
+from io import StringIO
+import math
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from multiprocessing import Manager, Process
 import threading
-import re
+
+from flask import Flask, request, session, g, redirect, url_for, abort, \
+     render_template, flash, jsonify
+from flask_login import LoginManager, login_required, UserMixin, login_user
+import requests
 from jinja2 import Environment, FileSystemLoader
-from io import StringIO
+
+import highlight
+
+
+app = Flask(__name__)
+app.config.from_object(__name__)
+ordered_clusters = []
+PROCESS_TIMEOUT = .5
+REFAZER_ENDPOINT = "http://172.16.83.130:8000/api/refazer"
+# REFAZER_ENDPOINT = "http://refazer2.azurewebsites.net/api/refazer"
+
+
+''' The following section enables having users and logins. '''
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+
+class User(UserMixin):
+
+    def __init__(self, user_id, username, session_id):
+        self.user_id = user_id
+        self.username = username
+        self.session_id = session_id
+
+    def get_id(self):
+        return self.username
+
+
+@login_manager.user_loader
+def load_user(username):
+
+    db = get_db()
+    cursor = db.cursor()
+
+    cursor.execute('\n'.join([
+        "SELECT id, session_id FROM users",
+        "WHERE username = ?",
+    ]), (username,))
+    row = cursor.fetchone()
+
+    if row is None:
+        return None
+    else:
+        user = User(
+            user_id=row[0],
+            username=username,
+            session_id=row[1],
+        )
+
+    return user
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+
+    if request.method == 'GET':
+        return render_template('login.html')
+    elif request.method == 'POST':
+
+        user = load_user(request.form['username'])
+        if user is not None:
+
+            login_user(user)
+            next_page = request.args.get('next')
+
+            if next_page is not None:
+                return redirect(next_page)
+            else:
+                return redirect('/0/4/175')
+        
+        return render_template('login.html')
 
 
 class Rule_and_test:
+
     def __init__(self, test, rule):
         self.test = test
         self.rule = rule
@@ -59,13 +132,6 @@ class Question:
         self.question_instructions = question_instructions
         self.submissions = submissions
 
-
-app = Flask(__name__)
-app.config.from_object(__name__)
-ordered_clusters = []
-PROCESS_TIMEOUT = .5
-REFAZER_ENDPOINT = "http://172.16.83.130:8000/api/refazer"
-# REFAZER_ENDPOINT = "http://refazer2.azurewebsites.net/api/refazer"
 
 question_files = {
     0:'accumulate-mistakes.json',
@@ -140,15 +206,16 @@ def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
                 int(re.search("'submission_id': (\d+),", original_submissions_string).group(1))
 
         cursor.execute('\n'.join([
-            "INSERT OR REPLACE INTO fixes (id, question_number, submission_id,",
+            "INSERT OR REPLACE INTO fixes (id, session_id, question_number, submission_id,",
             "   fixed_submission_id, before, after)",
-            "VALUES (",
+            "VALUES (?,",
             "    (SELECT id FROM fixes WHERE"
+            "        session_id = ? AND",
             "        question_number = ? AND",
             "        submission_id = ? AND",
             "        fixed_submission_id = ?),",
             "    ?, ?, ?, ?, ?)",
-        ]), (question_id, fix['SubmissionId'], one_original_submission_id,
+        ]), (session_id, session_id, question_id, fix['SubmissionId'], one_original_submission_id,
              question_id, fix['SubmissionId'], one_original_submission_id,
              submission_code, fix['FixedCode']))
 
@@ -175,8 +242,6 @@ def fetch_results(session_job_queue, database_name, interrupt_event):
             # Refresh fixes for all sessions in the queue
             for _ in range(session_job_queue.qsize()):
 
-                print("Doing job")
-
                 # Unpack the job
                 session_job = session_job_queue.get()
                 session_id = session_job['session_id']
@@ -198,21 +263,9 @@ def fetch_results(session_job_queue, database_name, interrupt_event):
         time.sleep(REFRESH_TIMEOUT)
 
 
-'''
-# Fetch a list of all submissions that have been graded so far
-graded_submissions = get_graded_submissions(question_number)
-'''
-
-# def get_coverage(question_number,entries):
-
-#     covered_bugs = 0
-#     for entry in entries:
-#         covered_bugs+=questions[question_number].rule_based_cluster['cluster_id'].number
-#     total_bugs = 1
-#     return math.ceil(covered_bugs*100/total_bugs)
-
 def get_fix(question_number, cluster_id):
     return ordered_clusters[question_number][cluster_id].fix
+
 
 def get_test(failed):
     expected_value = ''
@@ -569,9 +622,10 @@ def get_grade_suggestions(question_number):
     graded_submissions = get_graded_submissions(question_number)
 
     cursor.execute('\n'.join([
-        "SELECT DISTINCT(submission_id) FROM fixes",
-        "WHERE question_number = ?",
-    ]), (question_number,))
+        "SELECT DISTINCT(submission_id) FROM fixes WHERE",
+        "session_id = ? AND",
+        "question_number = ?",
+    ]), (question_number, global_session_id))
     fixed_submissions = [r[0] for r in cursor.fetchall()]
 
     ungraded_fixed_submissions = []
@@ -582,6 +636,7 @@ def get_grade_suggestions(question_number):
     return ungraded_fixed_submissions
 
 @app.route('/<int:question_number>/<int:tab_id>/<int:cluster_id>')
+@login_required
 def show_detail(question_number, tab_id, cluster_id, filter=None):
 
     '''
@@ -650,9 +705,10 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
     # Look for existing, applicable fixes, and grades
     cursor.execute('\n'.join([
         "SELECT fixed_submission_id, before, after FROM fixes WHERE",
+        "session_id = ? AND",
         "question_number = ? AND",
         "submission_id = ?",
-    ]), (question_number, cluster_id))
+    ]), (question_number, session_id, cluster_id))
     row = cursor.fetchone()
     fix_exists = (row is not None)
     if fix_exists:
@@ -1134,13 +1190,14 @@ if __name__ == '__main__':
 
     # Upload the new submissions that need to be fixed
     print("Starting the job on Refazer...")
-    result = requests.post(REFAZER_ENDPOINT + "/Start", json={
-        'Submissions': code_to_fix,
-        'QuestionId': QUESTION_NUMBER,
-    })
+    # result = requests.post(REFAZER_ENDPOINT + "/Start", json={
+    #     'Submissions': code_to_fix,
+    #     'QuestionId': QUESTION_NUMBER,
+    # })
     print("Job has been started")
     global global_session_id
-    session_id = result.json()
+    # session_id = result.json()
+    session_id = 11
     global_session_id = session_id
     print("Session ID:", global_session_id)
     session_job_queue.put({

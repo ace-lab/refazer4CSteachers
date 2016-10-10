@@ -8,6 +8,29 @@ create table entries (
   'text' text not null
 );
 
+drop table if exists users;
+create table users (
+  id integer primary key autoincrement,
+  username text not null,
+  session_id integer,  /* A null session ID means one has to be generated */
+  unique(username)
+);
+insert into users (username) values
+('admin1'), 
+('admin2'), 
+('admin3'), 
+('admin4'), 
+('user1'), 
+('user2'), 
+('user3'), 
+('user4'), 
+('user5'), 
+('user6'), 
+('user7'), 
+('user8'), 
+('user9'), 
+('user10'); 
+
 drop table if exists submissions;
 create table submissions (
   id integer primary key autoincrement,
@@ -55,10 +78,11 @@ create table codeedits (
 drop table if exists fixes;
 create table fixes (
   id integer primary key autoincrement,
+  session_id integer not null,
   question_number integer not null,
   submission_id integer not null,
   fixed_submission_id integer not null,  /* which submission was fixed to produce this fix */
   before text not null,
   after text not null,
-  unique(question_number, submission_id, fixed_submission_id)
+  unique(session_id, question_number, submission_id, fixed_submission_id)
 );
