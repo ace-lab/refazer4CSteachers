@@ -14,7 +14,7 @@ import threading
 
 from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash, jsonify
-from flask_login import LoginManager, login_required, UserMixin, login_user, current_user
+from flask_login import LoginManager, login_required, UserMixin, login_user, current_user, logout_user
 import requests
 from jinja2 import Environment, FileSystemLoader
 
@@ -47,6 +47,7 @@ REFAZER_ENDPOINT = "http://172.16.83.130:8000/api/refazer"
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
+login_manager.logout_view = "logout"
 
 
 class User(UserMixin):
@@ -123,6 +124,7 @@ def load_user(username):
                 "WHERE id = ?",
             ]), (session_id, user_id))
             db.commit()
+            user.session_id = session_id
 
         # If this user's session isn't currently being watched for new fixes, then
         # enqueue this session ID and start watching for updates!
@@ -156,6 +158,12 @@ def login():
                 return redirect('/0/4/175')
         
         return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect('login')
 
 
 class Rule_and_test:
