@@ -1,0 +1,33 @@
+upstream {{ appname }}_server {
+    server localhost:{{ localport }} fail_timeout=0;
+}
+ 
+server {
+
+    # Only listen for HTTPS requests.
+    # The incoming data is sensitive and needs to be encrypted.
+    listen 443 ssl;
+
+    server_name {{ domain }} www.{{ domain }};
+    ssl_certificate /etc/nginx/ssl/{{ appname }}/nginx.crt;
+    ssl_certificate_key /etc/nginx/ssl/{{ appname }}/nginx.key;
+
+    keepalive_timeout 5;
+ 
+    location /static/ {
+        alias {{ flask_dir }}/static/;
+    }
+ 
+    # Redirect the rest to your django app server
+    location / {
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        proxy_redirect off;
+ 
+        if (!-f $request_filename) {
+            proxy_pass http://{{ appname }}_server;
+            break;
+        }
+    }
+
+}
