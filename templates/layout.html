@@ -24,7 +24,8 @@
     <link rel="stylesheet" href="/static/react/css/main.css">
     <link rel="stylesheet" href="/static/react/css/rc-slider.css">
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <!-- Load jQuery before any of the other libarreis that depend on it. -->
+    <script src="/static/lib/jquery/jquery.min.js"></script>
 
     <link rel="stylesheet" href="/static/lib/codemirror/codemirror.css">
     <script src="/static/lib/codemirror/codemirror.js"></script>
@@ -381,10 +382,6 @@
     {% block script %}{% endblock %}
     </script>
 
-    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-    <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="/static/lib/jquery/jquery.min.js"></script>
     <script src="/static/lib/swal/sweetalert.min.js"></script>
     <script src="/static/lib/markdown/markdown.js"></script>
     <script src="/static/js/main.js"></script>
