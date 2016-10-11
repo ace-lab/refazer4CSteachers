@@ -441,11 +441,9 @@ $(function() {
         if (editor.getValue() !== originalCode) {
             $('input[name=editor_choice][data-mode=debug]').prop('checked', true);
             lastMode = 'debug';
-        }
 
-        // Whenever the text changes in debug mode, save the value into a
-        // variable that we can test and upload.
-        if (lastMode === 'debug') {
+            // Whenever the text changes in debug mode, save the value into a
+            // variable that we can test and upload.
             debuggedCode = editor.getValue();
         }
 
