@@ -1,0 +1,125 @@
+---
+- name: Install server software
+  apt: name={{ item }} update_cache=yes
+  with_items:
+  - git
+  - python-pip
+  - python-boto
+  - python3-dev
+  - supervisor
+  - nginx
+  tags: serverpkgs
+  become: true
+
+- name: Install application dependencies
+  apt: name={{ item }} update_cache=yes
+  with_items: apppkgs
+  when: apppkgs is defined
+  tags: apppkgs
+  become: true
+
+- name: Create group for administering application
+  group: name={{ groupname }}
+  tags: users
+  become: true
+
+- name: Add users to admin group
+  user: name={{ item }} groups={{ groupname }} append=yes
+  with_items: "{{ group_users }}"
+  tags: users
+  become: true
+
+- name: Create project directory
+  file: state=directory path={{ projectdir }} owner={{ ansible_ssh_user }} group={{ groupname }}
+  become: true
+
+- name: Create data directory
+  file: state=directory path={{ code_data }} owner={{ ansible_ssh_user }} group={{ groupname }}
+  become: true
+
+- name: Create log directory
+  file: state=directory path={{ logdir }} owner={{ ansible_ssh_user }} group={{ groupname }}
+  become: true
+
+- name: Install virtualenv
+  pip: name=virtualenv
+  become: true
+
+- name: Transfer Python dependencies list
+  copy: src={{ appname }}-reqs.txt dest={{ projectdir }}
+  tags: pythonpkgs
+
+- name: Install server Python dependencies
+  pip: requirements={{ projectdir }}/{{ appname }}-reqs.txt virtualenv={{ venv }} virtualenv_python=python3.5
+  tags: pythonpkgs
+
+- name: Checkout source code
+  git: repo={{ repo }} dest={{ src }} version={{ branch }} force=yes recursive=yes
+  tags: updatecode
+
+- name: Assign source code permissions to full group
+  file: state=directory path={{ src }} group={{ groupname }} recurse=yes
+  tags: updatecode
+
+- name: Initialize the SQLite database
+  shell: sqlite3 {{ sqlite_database }} < {{ flask_dir }}/schema.sql
+  tags:
+  - database
+
+- name: Install uwsgi
+  pip: name=uwsgi virtualenv="{{ venv }}"
+
+- name: Remove default nginx user
+  lineinfile: dest=/etc/nginx/nginx.conf line="user www-data;" state=absent
+  become: true
+  tags: nginx
+
+- name: Add nginx user
+  lineinfile: dest=/etc/nginx/nginx.conf line="user ubuntu ubuntu;"
+  become: true
+  tags: nginx
+
+- name: Configure nginx main site
+  template: src=nginx-site.j2 dest=/etc/nginx/sites-enabled/{{ appname }}
+  become: true
+  tags: nginx
+
+- name: Create directory for SSL certificates
+  file: state=directory path=/etc/nginx/ssl/{{ appname }}
+  become: true
+  tags: nginxa
+
+- name: Fetch SSL certificate
+  s3: bucket={{ privatebucket }} object={{ item }} dest=/etc/nginx/ssl/{{ appname }}/{{ item }} mode=get
+      aws_access_key={{ aws_access_key_id }} aws_secret_key={{ aws_secret_access_key }} region=us-west-2
+  with_items:
+  - nginx.crt
+  - nginx.key
+  become: true
+  tags: nginx
+
+- name: Copy app to supervisor
+  template: src=supervisor.j2 dest=/etc/supervisor/conf.d/{{ appname }}.conf
+  become: true
+  tags: supervisor
+
+- name: Stop application
+  supervisorctl: name={{ appname }} state={{ item }}
+  with_items:
+  - present
+  - stopped
+  tags:
+  - updatecode
+  - supervisor
+  become: true
+
+- name: Start application
+  supervisorctl: name={{ appname }} state=started
+  tags:
+  - updatecode
+  - supervisor
+  become: true
+
+- name: Restart nginx
+  service: name=nginx state=restarted
+  tags: nginx

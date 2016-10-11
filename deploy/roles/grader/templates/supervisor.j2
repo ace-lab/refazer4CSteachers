@@ -1,0 +1,4 @@
+[program:{{ appname }}]
+command={{ venv }}/bin/uwsgi --socket 127.0.0.1:{{ localport }} --file wsgi.py -H {{ venv }} --protocol http
+directory={{ flask_dir }}
+environment=FLASK_DATABASE_PATH={{ sqlite_database }}
