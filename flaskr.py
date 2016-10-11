@@ -35,8 +35,8 @@ app.config.update(dict(
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
 
 PROCESS_TIMEOUT = .5
-REFAZER_ENDPOINT = "http://172.16.83.130:8000/api/refazer"
-# REFAZER_ENDPOINT = "http://refazer2.azurewebsites.net/api/refazer"
+# REFAZER_ENDPOINT = "http://172.16.83.130:8000/api/refazer"
+REFAZER_ENDPOINT = "http://refazer2.azurewebsites.net/api/refazer"
 
 ''' The following section enables having users and logins. '''
 login_manager = LoginManager()
