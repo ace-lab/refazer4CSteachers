@@ -24,20 +24,15 @@ import highlight
 app = Flask(__name__)
 app.config.from_object(__name__)
 ordered_clusters = []
+database_path = os.environ.get('FLASK_DATABASE_PATH', os.path.join(app.root_path, 'flaskr.db'))
+print("Database:", database_path)
 app.config.update(dict(
-    DATABASE=os.path.join(app.root_path, 'flaskr.db'),
-    # DATABASE='/Users/andrew/Adventures/design/code/feedback/flaskr.db',
+    DATABASE=database_path,
     SECRET_KEY='development key',
     USERNAME='admin',
     PASSWORD='default'
 ))
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
-
-# Every few seconds, we'll query Refazer to learn if it has discovered any
-# new fixes for student submissions.  The list below lets us keep
-# track of which jobs we're currently checking.
-refresh_jobs = []
-REFRESH_TIMEOUT = 3
 
 PROCESS_TIMEOUT = .5
 REFAZER_ENDPOINT = "http://172.16.83.130:8000/api/refazer"
@@ -651,6 +646,7 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
         for row in cursor.fetchall()
     ]
 
+    print("Question number:", question_number)
     submission = submissions[cluster_id]
     test_results = run_code_evaluations(submission['code'])
 
@@ -1079,28 +1075,11 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
     
     return result
 
+
 @app.route('/submit', methods=['POST'])
 def submit_code():
     print(request.form)
     return jsonify(success=True)
-
-@app.route('/add', methods=['POST'])
-def add_hint():
-    print('adding hint',request.form['question_number'], request.form['cluster_id'], request.form['tab_id'], request.form['text'])
-    db = get_db()
-    db.execute('INSERT INTO entries (title, question_number, cluster_id, tab_id, text) VALUES (?, ?, ?, ?, ?)',
-                 ['title', request.form['question_number'], request.form['cluster_id'], request.form['tab_id'], request.form['text']])
-    db.commit()
-
-    #does this need to be updated? TODO
-    return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=request.form['tab_id'], cluster_id=request.form['cluster_id'], filter=request.form['filter']))
-
-@app.route('/update', methods=['POST'])
-def update_hint():
-    db = get_db()
-    db.execute('UPDATE entries SET text=? WHERE cluster_id=? AND question_number=? AND tab_id=?', [request.form['text'], request.form['cluster_id'], request.form['question_number'], request.form['tab_id']])
-    db.commit()
-    return redirect(url_for('show_detail', question_number=request.form['question_number'], tab_id=request.form['tab_id'], cluster_id=request.form['cluster_id'], filter=request.form['filter']))
 
 
 def add_submissions_to_db(database_name, question_number):
@@ -1124,28 +1103,31 @@ def add_submissions_to_db(database_name, question_number):
     db.commit()
 
 
-if __name__ == '__main__':
+''' More initializations that can't be done until all the functions are defined. '''
 
-    # Right now, the server is hard-coded only to support question 0
-    QUESTION_NUMBER = 0
+# Every few seconds, we'll query Refazer to learn if it has discovered any
+# new fixes for student submissions.  The list below lets us keep
+# track of which jobs we're currently checking.
+refresh_jobs = []
+REFRESH_TIMEOUT = 3
+thread_pool = ThreadPoolExecutor(max_workers=1)
+session_job_queue = Queue()
+shutdown_event = threading.Event()
+thread_pool.submit(fetch_results, session_job_queue, app.config['DATABASE'], shutdown_event)
+
+# Insert all submissions records into the database
+# XXX This needs to be changed to all question numbers
+QUESTION_NUMBER = 0
+add_submissions_to_db(app.config['DATABASE'], question_number=QUESTION_NUMBER)
+
+
+if __name__ == '__main__':
 
     init_app()
     port = int(os.environ.get('PORT', 5000))
     app.config.update(
-        DEBUG=True,
         TEMPLATES_AUTO_RELOAD=True
     )
-
-    # Insert all submissions records into the database
-    add_submissions_to_db(app.config['DATABASE'], question_number=QUESTION_NUMBER)
-
-    # Start off a cyclical job to fetch automatic fixes
-    thread_pool = ThreadPoolExecutor(max_workers=1)
-    global session_job_queue
-    global shutdown_event
-    session_job_queue = Queue()
-    shutdown_event = threading.Event()
-    thread_pool.submit(fetch_results, session_job_queue, app.config['DATABASE'], shutdown_event)
 
     app.run(
         host='0.0.0.0',
