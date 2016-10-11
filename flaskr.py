@@ -77,7 +77,7 @@ def _start_user_session(question_number):
     print("Launching new Refazer job")
     result = requests.post(REFAZER_ENDPOINT + "/Start", json={
         'Submissions': code_to_fix,
-        'QuestionId': question_number,
+        'Question': question_number,
     })
     session_id = result.json()
     print("Job has been started and has ID", session_id)
