@@ -1,6 +1,6 @@
 drop table if exists entries;
 create table entries (
-  id integer primary key autoincrement,
+  id integer primary key,
   title text not null,
   cluster_id integer not null,
   question_number integer not null,
@@ -10,7 +10,7 @@ create table entries (
 
 drop table if exists users;
 create table users (
-  id integer primary key autoincrement,
+  id integer primary key,
   username text not null,
   session_id integer,  /* A null session ID means one has to be generated */
   unique(username)
@@ -33,7 +33,7 @@ insert into users (username) values
 
 drop table if exists submissions;
 create table submissions (
-  id integer primary key autoincrement,
+  id integer primary key,
   question_number integer not null,
   submission_id integer not null,
   code text note null,
@@ -42,7 +42,7 @@ create table submissions (
 
 drop table if exists grades;
 create table grades (
-  id integer primary key autoincrement,
+  id integer primary key,
   session_id integer note null,
   question_number integer not null,
   submission_id integer not null,
@@ -52,7 +52,7 @@ create table grades (
 
 drop table if exists notes;
 create table notes (
-  id integer primary key autoincrement,
+  id integer primary key,
   session_id integer not null,
   'text' text not null,
   unique(id, 'text')
@@ -60,7 +60,7 @@ create table notes (
 
 drop table if exists gradenotes;
 create table gradenotes (
-  id integer primary key autoincrement,
+  id integer primary key,
   note_id integer not null,
   grade_id integer not null,
   foreign key (note_id) references notes(id),
@@ -70,7 +70,7 @@ create table gradenotes (
 
 drop table if exists codeedits;
 create table codeedits (
-  id integer primary key autoincrement,
+  id integer primary key,
   question_number integer not null,
   submission_id integer not null,
   code text not null,
@@ -79,7 +79,7 @@ create table codeedits (
 
 drop table if exists fixes;
 create table fixes (
-  id integer primary key autoincrement,
+  id integer primary key,
   session_id integer not null,
   question_number integer not null,
   submission_id integer not null,
