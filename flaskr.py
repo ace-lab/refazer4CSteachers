@@ -59,18 +59,16 @@ class User(UserMixin):
 def _start_user_session(question_number):
 
     # Load up the questions
-    grader_questions = create_grader_question(question_number)
-    clusters = grader_questions.test_based_cluster
-    fixes = []
-    for cluster in clusters:
-        fixes.extend(cluster.fixes)
+    db = get_db()
+    cursor = db.cursor()
+    submissions = get_submissions(cursor, question_number)
 
     code_to_fix = []
-    for submission_index, f in enumerate(fixes, start=0):
+    for submission_index, submission in enumerate(submissions, start=0):
         code_to_fix.append({
-            'Code': f['before'],
+            'Code': submission['code'],
             'QuestionId': question_number,
-            'SubmissionId': submission_index,
+            'SubmissionId': submission['id'],
         })
 
     # Upload the new submissions that need to be fixed
@@ -204,7 +202,8 @@ class Question:
 
 
 question_files = {
-    0:'accumulate-mistakes.json',
+    # 0:'accumulate-mistakes.json',
+    0:'ase.json',
     # 1:'G-mistakes.json',
     # 2:'Product-mistakes.json',
     # 3:'repeated-mistakes.json'
@@ -351,111 +350,13 @@ def get_test(failed):
     }]
     return results
 
-def create_grader_question(question_number):
-    global question_instructions
-
-    #TODO: read in all data, not just what was fixed, produce clusters, empty synthesized fixes and turn isFixed's to false, initialize isFixed to false
-    ordered_clusters = []
-
-    with open('data/' + question_files[question_number]) as data_file:
-        submission_pairs = json.load(data_file)
-
-    clustered_fixes_by_rule = {}
-    clustered_fixes_by_test = {}
-    clustered_fixes_by_rule_and_test = {}
-    group_id_to_test_for_a_question = {}
-    fixes = []
-
-    group_id = -1
-    checked_tests = []
-
-    rule_and_test_based_cluster = []
-
-    no_sequence_diff = []
-    def_seq_diff = []
-    num_fixed = []
-
-    for submission_pair in submission_pairs:
-        submission_pair['IsFixed'] = False #initialized to false
-        #submission_pair['SynthesizedAfter'] =  ''
-        num_fixed.append(submission_pair)
-        rule = submission_pair['UsedFix']
-        # rule = rule.replace('\\', '')
-
-        fix = submission_pair
-        code_before = submission_pair['before']
-        code_after = '' #submission_pair['SynthesizedAfter'] #old correctino is erased
-        code_student_after = submission_pair['after']
-        filename = 'filename-' + str(submission_pair['Id'])
-
-        # fix['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
-        # fix['diff_student_lines'] = highlight.diff_file(filename, code_before, code_student_after, 'full')
-        # fix['diff_but_not_a_diff'] = highlight.diff_file(filename, code_before, code_before, 'full')
-
-        test = get_test(submission_pair['failed'])
-        
-        fix['tests'] = test
-        fix['before'] = code_before
-        fix['input_output_before'] = {} #submission_pair['augmented_tidy_before_testcase_to_output']
-        fix['synthesized_after'] = submission_pair['SynthesizedAfter']
-        try:
-            fix['dynamic_diff'] = submission_pair['sequence_comparison_diff']
-        except:
-            no_sequence_diff.append(submission_pair)
-
-        id = submission_pair['Id']
-
-        if (rule in clustered_fixes_by_rule.keys()):
-            clustered_fixes_by_rule[rule].append(fix)
-        else:
-            clustered_fixes_by_rule[rule] = [fix]
-
-        if (test in checked_tests):
-            group_id = checked_tests.index(test)
-            clustered_fixes_by_test[checked_tests.index(test)].append(fix)
-        else:
-            checked_tests.append(test)
-            group_id = len(checked_tests)
-            clustered_fixes_by_test[checked_tests.index(test)] = [fix]
-
-        key = Rule_and_test(test=test,rule=rule)
-        if key in clustered_fixes_by_rule_and_test.keys():
-            clustered_fixes_by_rule_and_test[key].append(fix)
-        else:
-            clustered_fixes_by_rule_and_test[key] = [fix]
-
-        fix['group_id'] = group_id
-        group_id_to_test_for_a_question[group_id] = test
-        fixes.append(fix)
-
-    for key,value in clustered_fixes_by_rule.items():
-        cluster = Rule_based_cluster(rule=key, fixes = value, size=len(value))
-        ordered_clusters.append(cluster)
-
-    test_based_clusters = []
-    for key,value in clustered_fixes_by_test.items():
-        cluster = Test_based_cluster(test=checked_tests[key], fixes = value, size=len(value))
-        test_based_clusters.append(cluster)
-
-    for key,value in clustered_fixes_by_rule_and_test.items():
-        cluster = Rule_and_test_based_cluster(test=key.test, rule=key.rule, fixes = value, size = len(value))
-        rule_and_test_based_cluster.append(cluster)
-
-    ordered_clusters.sort(key = lambda x : len(x.fixes), reverse= True)
-    test_based_clusters.sort(key = lambda x : len(x.fixes), reverse= True)
-    rule_and_test_based_cluster.sort(key = lambda  x : len(x.fixes), reverse=True)
-    question = Question(question_id=question_number, rule_based_cluster = ordered_clusters,
-                        test_based_cluster = test_based_clusters, rule_and_test_based_cluster=rule_and_test_based_cluster,
-                        question_instructions = question_instructions[question_number], submissions= fixes)
-
-    return question
 
 def init_app():
     global questions, grader_questions
     questions = {}
     grader_questions = {}
-    for question_number in question_files.keys():
-        grader_questions[question_number] = create_grader_question(question_number)
+    # for question_number in question_files.keys():
+    #     grader_questions[question_number] = create_grader_question(question_number)
 
 def connect_db():
     """Connects to the specific database."""
@@ -589,64 +490,11 @@ def get_grade_suggestions(session_id, question_number):
 @login_required
 def show_detail(question_number, tab_id, cluster_id, filter=None):
 
-    '''
-        code_before = """def accumulate(combiner, base, n, term):
-      if n==1:
-          return combiner(base, term(n))
-      else:
-          return combiner(accumulate(combiner, base, n-1, term), term(n))"""
-        code_after = """def accumulate(combiner, base, n, term):
-      if n<=1:
-          return combiner(base, term(n))
-      else:
-          return combiner(accumulate(combiner, base, n-1, term), term(n))"""
-        filename = 'file1'
-        item1['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
-
-        item2 = {}
-        code_before = """def accumulate(combiner, base, n, term):
-          if n==1:
-              return combiner(base, term(n))
-          else:
-              return combiner(accumulate(combiner, base, n-1, term), term(n))"""
-        code_after = """def accumulate(combiner, base, n, term):
-          if n<=1:
-              return combiner(base, term(n))
-          else:
-              return combiner(accumulate(combiner, base, n-1, term), term(n))"""
-        filename = 'file2'
-        item2['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
-
-        item3 = {}
-        code_before = """def accumulate(combiner, base, n, term):
-          if n==1:
-              return combiner(base, term(n))
-          else:
-              return combiner(accumulate(combiner, base, n-1, term), term(n))"""
-        code_after = """def accumulate(combiner, base, n, term):
-          if n<=1:
-              return combiner(base, term(n))
-          else:
-              return combiner(accumulate(combiner, base, n-1, term), term(n))"""
-        filename = 'file3'
-        item3['diff_lines'] = highlight.diff_file(filename, code_before, code_after, 'full')
-        return render_template('task.html', item1 = item1, item2 = item2, item3 = item3, question_number = question_number)
-    '''
-
     db = get_db()
     cursor = db.cursor()
 
     # Fetch all submissions from the database
-    cursor.execute('\n'.join([
-        "SELECT submission_id, code FROM submissions WHERE",
-        "question_number = ?",
-    ]), (question_number,))
-    submissions = [
-        {'submission_id': row[0], 'code': row[1]}
-        for row in cursor.fetchall()
-    ]
-
-    print("Question number:", question_number)
+    submissions = get_submissions(cursor, question_number)
     submission = submissions[cluster_id]
     test_results = run_code_evaluations(submission['code'])
 
@@ -709,7 +557,7 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
         notes = notes,
         grade_status = grade_status,
         cluster_id = cluster_id,
-        submission_ids = range(len(submissions)),
+        submission_ids = [submission['id'] for submission in submissions],
         fixed_submissions = grade_suggestions,
         fix_exists = fix_exists,
         fix_submission_id = fixed_submission_id,
@@ -730,6 +578,32 @@ def run_code_evaluations(code_text):
 
     results = evaluate_function(
         code_text=code_text,
+        function_name='max_contig_sum',
+        input_value_tuples=[
+            ([1],),
+            ([1, -1],),
+            ([10, 9, 8, -1],),
+            ([-2, 6, 8, 10],),
+            ([5, -7, 1],),
+            ([0, -2, -5, -1, 5],),
+            ([-3, -2, 1, -1, -5],),
+            ([3, 4, -1, 5, -4],),
+        ],
+        expected_outputs=[
+            1,
+            1,
+            27,
+            24,
+            5,
+            5,
+            1,
+            11,
+        ],
+    )
+
+    '''
+    results = evaluate_function(
+        code_text=code_text,
         function_name='accumulate',
         input_value_tuples=[
             (lambda x, y: x + y, 11, 5, lambda x: x),
@@ -746,6 +620,7 @@ def run_code_evaluations(code_text):
             25,
         ],
     )
+    '''
 
     # Stringify the results.  This means:
     # 1. Adding a lambda's source as a string
@@ -768,7 +643,7 @@ def run_code_evaluations(code_text):
             result['exec_exception']['type'] = result['exec_exception']['type'].__name__
         elif not result['runtime_success']:
             result['runtime_exception']['type'] = result['runtime_exception']['type'].__name__
-        result['input_values'] = result['input_values'].strip(',()')
+        # result['input_values'] = result['input_values'].strip(',()')
 
         if result['runtime_success']:
             result['human_readable_result'] = result['returned']
@@ -914,36 +789,6 @@ def evaluate():
     code_text = request.form['code']
     results = run_code_evaluations(code_text)
 
-    '''
-    #if results['overall_success']:
-    # make call to Gustavo's server
-    print(questions.keys())
-    before_code = [sol['before'] for sol in grader_questions[question_number].submissions if int(sol['Id'])==int(before_id)][0]
-    #fake_after_code = [sol['SynthesizedAfter'] for sol in grader_questions[question_number].submissions if int(sol['Id'])==int(before_id)][0]
-    print('before_code',before_code)
-    for sub in grader_questions[question_number].submissions:
-        sub['diff_lines'] = []
-        sub['diff_student_lines'] = []
-        sub['diff_but_not_a_diff'] = []
-        #sub['is_fixed'] = False
-    print('sub',sub)
-    data = requests.post('http://refazer2.azurewebsites.net/api/refazer', 
-       json={
-        "submissions": list(grader_questions[question_number].submissions)[0:10], 
-        "Examples" : [{
-            "before" : before_code,
-            "after" : code_text
-            }]
-        })
-    if data.ok:
-       print("Number of submissions returned")
-       submssions = data.json()
-       len_fixed_submissions = len([sub for sub in submssions['submissions'] if sub['isFixed']])
-       print(len_fixed_submissions)
-    else:
-        print(data.content)
-    '''
-
     return jsonify(results)
 
 
@@ -1088,19 +933,30 @@ def add_submissions_to_db(database_name, question_number):
     db.row_factory = sqlite3.Row
     cursor = db.cursor()
 
-    grader_questions = create_grader_question(question_number)
-    clusters = grader_questions.test_based_cluster
+    with open(os.path.join('data/', question_files[question_number])) as data_file:
+        submissions = json.load(data_file)
 
-    fix_index = 0
-    for cluster in clusters:
-        for fix in cluster.fixes:
-            cursor.execute('\n'.join([
-                "INSERT OR IGNORE INTO submissions (question_number, submission_id, code)",
-                "VALUES (?, ?, ?)",
-            ]), (question_number, fix_index, fix['before']))
-            fix_index += 1
+    for submission in submissions:
+        cursor.execute('\n'.join([
+            "INSERT OR IGNORE INTO submissions (question_number, submission_id, code)",
+            "VALUES (?, ?, ?)",
+        ]), (question_number, submission['index'], submission['code']))
 
     db.commit()
+
+
+def get_submissions(cursor, question_number):
+
+    cursor.execute('\n'.join([
+        "SELECT submission_id, code FROM submissions WHERE",
+        "question_number = ?",
+    ]), (question_number,))
+    submissions = [
+        {'id': row[0], 'code': row[1]}
+        for row in cursor.fetchall()
+    ]
+
+    return submissions
 
 
 ''' More initializations that can't be done until all the functions are defined. '''
