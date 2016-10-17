@@ -10,7 +10,6 @@ create table if not exists entries (
 create table if not exists users (
   id integer primary key,
   username text not null,
-  session_id integer,  /* A null session ID means one has to be generated */
   unique(username)
 );
 insert or ignore into users (username) values
@@ -28,6 +27,15 @@ insert or ignore into users (username) values
 ('user8'), 
 ('user9'), 
 ('user10'); 
+
+create table if not exists sessions (
+  id integer primary key,
+  user_id integer not null,
+  question_number integer not null,
+  session_id integer not null,
+  foreign key (user_id) references users(id)
+  unique(user_id, question_number)
+);
 
 create table if not exists testresults (
   id integer primary key,
@@ -57,6 +65,7 @@ create table if not exists grades (
   question_number integer not null,
   submission_id integer not null,
   grade float not null,
+  timestamp datetime default current_timestamp,
   unique(session_id, question_number, submission_id)
 );
 
@@ -64,6 +73,7 @@ create table if not exists notes (
   id integer primary key,
   session_id integer not null,
   'text' text not null,
+  timestamp datetime default current_timestamp,
   unique(id, 'text')
 );
 
@@ -71,6 +81,7 @@ create table if not exists gradenotes (
   id integer primary key,
   note_id integer not null,
   grade_id integer not null,
+  timestamp datetime default current_timestamp,
   foreign key (note_id) references notes(id),
   foreign key (grade_id) references grades(id),
   unique(note_id, grade_id)
@@ -81,6 +92,7 @@ create table if not exists codeedits (
   question_number integer not null,
   submission_id integer not null,
   code text not null,
+  timestamp datetime default current_timestamp,
   unique(question_number, submission_id)
 );
 
@@ -92,5 +104,6 @@ create table if not exists fixes (
   fixed_submission_id integer not null,  /* which submission was fixed to produce this fix */
   before text not null,
   after text not null,
+  timestamp datetime default current_timestamp,
   unique(session_id, question_number, submission_id, fixed_submission_id)
 );
