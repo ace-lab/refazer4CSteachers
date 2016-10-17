@@ -19,6 +19,7 @@ import requests
 from jinja2 import Environment, FileSystemLoader
 
 import highlight
+from evaluate import evaluate_function, evaluate_function_once
 
 
 app = Flask(__name__)
@@ -790,135 +791,6 @@ def evaluate():
     results = run_code_evaluations(code_text)
 
     return jsonify(results)
-
-
-def evaluate_function(code_text, function_name, input_value_tuples, expected_outputs):
-
-    results = {
-        'overall_success': False,
-        'test_cases': []
-    }
-
-    # Compute the result of each individual test
-    for test_index in range(len(input_value_tuples)):
-        results['test_cases'].append(evaluate_function_once(
-            code_text=code_text,
-            function_name=function_name,
-            input_values=input_value_tuples[test_index],
-            expected_output=expected_outputs[test_index],
-        ))
-    
-    # Compute the overall success across all tests
-    results['overall_success'] = all(r['success'] for r in results['test_cases'])
-
-    return results
-
-def evaluate_function_once(code_text, function_name, input_values, expected_output):
-
-    cant_run_code = False
-    result = {
-        'input_values': input_values,
-        'expected': expected_output,
-        'success': False,  # we assume the test case failed until it completely succeeds
-        'exec_success': False,
-        'timeout': True,
-        'runtime_success': False,
-    }
-
-    # Save the original stdout so we can resume them after this function runs
-    original_stdout = sys.stdout
-
-    # Compile the code to runnable form
-    try:
-        code = compile(code_text, '<string>', 'exec')
-        result['compile_success'] = True
-    except SyntaxError as s:
-        result['compile_success'] = False
-        result['syntax_error'] = {
-            'lineno': s.lineno,
-            'offset': s.offset,
-            'msg': s.msg,
-            'text': s.text,
-        }
-        cant_run_code = True
-
-    # Set up fresh scopes for the code to run within
-    local_scope = {}
-    global_scope = {}
-
-    if cant_run_code is False:
-
-        # Run the code to capture the function definition
-        try:
-            exec(code, global_scope, local_scope)
-            result['exec_success'] = True
-        except Exception as e:
-            result['exec_exception'] = {
-                'type': type(e),
-                'args': e.args,
-            }
-            cant_run_code = True
-
-    if cant_run_code is False:
-
-        def run_function(function, function_name, input_values, result):
-
-            # It's critical to do a few things here:
-            # 1. Transfer the input values into the sandbox scope
-            # 2. Transfer the function name into the sandbox global scope so it can be called
-            #    recursively (otherwise, it can't be found for recursive calls)
-            # 3. Store the output in a sandbox variable and retrieve it later.
-            local_scope['input_values'] = input_values
-            global_scope[function_name] = local_scope[function_name]
-
-            # Create a new version of stdout to capture what gets printed
-            capturable_stdout = StringIO()
-            sys.stdout = capturable_stdout
-
-            try:
-                exec('output = ' + function_name + '(*input_values)', global_scope, local_scope)
-                output = local_scope['output']
-                result['returned'] = output
-                result['stdout'] = capturable_stdout.getvalue()
-                result['runtime_success'] = True
-            except Exception as e:
-                result['runtime_exception'] = {
-                    'type': type(e),
-                    'args': e.args,
-                }
-
-        # Create a new process to run the test function, so we can terminate it if it loops
-        result_shared_data = Manager().dict()
-        process = Process(
-            target=run_function,
-            args=(
-                local_scope[function_name],
-                function_name,
-                input_values,
-                result_shared_data,
-            )
-        )
-
-        # Run the function, and terminate it if it runs too long
-        process.start()
-        start = time.time()
-        while time.time() < start + PROCESS_TIMEOUT:
-            if process.is_alive():
-                time.sleep(.1)
-            else:
-                result['timeout'] = False
-                break
-
-        process.terminate()
-
-        # Merge the results from the function that was run with the  main results
-        result.update(result_shared_data)
-        result['success'] = (result['returned'] == expected_output) if 'returned' in result else False
-
-        # Return stdout to original
-        sys.stdout = original_stdout
-    
-    return result
 
 
 @app.route('/submit', methods=['POST'])
