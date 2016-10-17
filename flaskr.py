@@ -353,8 +353,6 @@ def get_grade_suggestions(session_id, question_number):
 
     graded_submissions = get_graded_submissions(session_id, question_number)
 
-    print("Session ID:", session_id)
-    print("Question number:", question_number)
     cursor.execute('\n'.join([
         "SELECT DISTINCT(submission_id) FROM fixes WHERE",
         "session_id = ? AND",
