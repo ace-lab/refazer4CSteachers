@@ -368,9 +368,73 @@ def get_grade_suggestions(session_id, question_number):
     return ungraded_fixed_submissions
 
 
+def get_test_case_groups(submissions, question_number):
+
+    db = get_db()
+    cursor = db.cursor()
+
+    # Sort submissions by which test cases they pass
+    cursor.execute('\n'.join([
+        "SELECT COUNT(DISTINCT(test_case_index)) FROM testresults JOIN submissions",
+        "WHERE question_number = ?"
+    ]), (question_number,))
+    test_case_count = cursor.fetchone()[0]
+    test_case_groups = {}
+
+    for submission in submissions:
+
+        # Fetch all test cases for a submission
+        cursor.execute('\n'.join([
+            "SELECT test_case_index, success",
+            "FROM testresults JOIN submissions ON submissions.submission_id = testresults.submission_id",
+            "WHERE",
+            "    submissions.submission_id = ? AND",
+            "    question_number = ?"
+        ]), (submission['id'], question_number,))
+        
+        # Make a key into a dictionary using test case successes.
+        # Group all submissions by which test cases they pass
+        submission_test_results = [None] * test_case_count
+        for (test_case_index, success) in cursor.fetchall():
+            submission_test_results[test_case_index] = success
+        test_results_key = str(tuple(submission_test_results))
+        if test_results_key not in test_case_groups:
+            test_case_groups[test_results_key] = []
+        test_case_groups[test_results_key].append(submission['id'])
+
+    return test_case_groups
+
+
+def get_fix_groups(submissions, session_id):
+
+    db = get_db()
+    cursor = db.cursor()
+
+    fix_groups = {}
+
+    for submission in submissions:
+        
+        # Get the ID of the first submission that, when it was fixed,
+        # suggested a fix for this submission
+        cursor.execute('\n'.join([
+            "SELECT fixed_submission_id FROM fixes WHERE",
+            "session_id = ? AND",
+            "submission_id = ?",
+        ]), (session_id, submission['id']))
+        row = cursor.fetchone()
+
+        # Group submissions by what submission can be used to fix them
+        key = None if row is None else row[0]
+        if not key in fix_groups:
+            fix_groups[key] = []
+        fix_groups[key].append(submission['id'])
+
+    return fix_groups
+
+
 @app.route('/<int:question_number>/<int:submission_id>')
 @login_required
-def show_detail(question_number, submission_id, filter=None):
+def show_grader_interface(question_number, submission_id, filter=None):
 
     db = get_db()
     cursor = db.cursor()
@@ -431,29 +495,45 @@ def show_detail(question_number, submission_id, filter=None):
     for ungraded_fixed_submission_id in grade_suggestions:
         grade_status[ungraded_fixed_submission_id] = "fixed"
 
+    # Group submissions based on what test cases they pass
+    test_case_groups = sorted(
+        get_test_case_groups(submissions, question_number).values(),
+        key=lambda l: len(l),
+        reverse=True,
+    )
+
+    # Group submissions based on shared fixes
+    fix_groups = get_fix_groups(submissions, refazer_session_id)
+    unfixable_submissions = fix_groups[None]
+    del(fix_groups[None])
+    fix_groups = sorted(fix_groups.values(), key=lambda l: len(l), reverse=True)
+    fix_groups.append(unfixable_submissions)
+
     return render_template('grade.html',
-        question_number = question_number,
-        submissions = submissions,
-        submission = submission,
-        test_results = test_results,
-        grade = grade,
-        notes = notes,
-        grade_status = grade_status,
-        submission_id = submission_id,
-        submission_ids = [submission['id'] for submission in submissions],
-        fixed_submissions = grade_suggestions,
-        fix_exists = fix_exists,
-        fix_submission_id = fixed_submission_id,
-        fix_diff = fix_diff,
+        question_number=question_number,
+        submissions=submissions,
+        submission=submission,
+        test_results=test_results,
+        grade=grade,
+        notes=notes,
+        grade_status=grade_status,
+        submission_id=submission_id,
+        submission_ids=[submission['id'] for submission in submissions],
+        fixed_submissions=grade_suggestions,
+        fix_exists=fix_exists,
+        fix_submission_id=fixed_submission_id,
+        fix_diff=fix_diff,
         # XXX We provide the fixed code as a dictionary with a single key
         # so that we can use Jinja2's built-in escaping of JSON when we
         # store it in a hidden input's value.  This is a hacky way to
         # make sure we can store the fixed code in the HTML.
-        fixed_code = {'code': fixed_code},
-        fix_grade_exists = fix_grade_exists,
-        fix_grade = fix_grade,
-        fix_notes = fix_notes,
-        note_options = note_options,
+        fixed_code={'code': fixed_code},
+        fix_grade_exists=fix_grade_exists,
+        fix_grade=fix_grade,
+        fix_notes=fix_notes,
+        note_options=note_options,
+        test_case_groups=test_case_groups,
+        fix_groups=fix_groups,
     )
 
 

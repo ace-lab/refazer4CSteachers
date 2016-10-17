@@ -50,7 +50,14 @@
       padding-bottom: 20px!ie7;
       max-height: 600px;
     }
-    body { padding-top: 10px; } /*space for header*/
+    body {
+      padding-top: 30px;
+      padding-left: 30px;
+      padding-right: 30px;
+    }
+    #submissions_column, #code_column, #grading_column {
+      padding: 2.5em;
+    }
     #hintprogressbar {
       width: 500px;
       margin-bottom: 0px;
@@ -236,6 +243,8 @@
     }
     .list-group {
       margin-bottom: 0;
+      padding-top: .5em;
+      padding-bottom: .5em;
     }
     .list-group-item.submission {
       border: none;
@@ -247,6 +256,25 @@
     .list-group-item.submission.fixed {
       background-color: #e6edf2;
     }
+    .simple_list {
+      border: none;
+      padding: 0;
+      list-style-type: none;
+    }
+    .simple_list li {
+      border-bottom: 1px solid #7d7d7d;
+    }
+    #order_form {
+      margin-top: 1em;
+    }
+    form#order_form div.field.order {
+      margin: 0;
+    }
+    .field.order div.ui.radio {
+      margin-top: .5em;
+      margin-bottom: 0;
+    }
+
     div#past_grade {
       margin-top: 2em;
     }
@@ -259,8 +287,10 @@
     div.fix_diff {
       overflow-x: scroll;
     }
-    #grade_form input[name=grade] {
+    #grade_form {
       margin-top: 1em;
+    }
+    #grade_form input[name=grade] {
       width: 4em;
     }
     #grade_form input[name=reason] {
