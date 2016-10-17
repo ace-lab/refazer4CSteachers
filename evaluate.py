@@ -9,6 +9,8 @@ import inspect
 PROCESS_TIMEOUT = .5
 
 
+# Tests can be defined either as pairs of input and output (see 0 and 1 below)
+# or as assertions that are run after the student's function is initialized (see 2 below).
 TEST_CONDITIONS = {
     0: {
         'function_name': 'accumulate',
@@ -42,7 +44,18 @@ TEST_CONDITIONS = {
             14400,
         ],
     },
+    2: {
+        'function_name': 'repeated',
+        'assertions': [
+            "add_three = repeated(lambda x: x + 1, 3); assert add_three(5) == 8;",
+            "assert repeated(lambda x: x * 3, 5)(1) == 243;",
+            "assert repeated(lambda x: x * x, 2)(5) == 625;",
+            "assert repeated(lambda x: x * x, 4)(5) == 152587890625;",
+            "assert repeated(lambda x: x * x, 0)(5) == 5;"
+        ]
+    }
 }
+
 
 class timeout(object):
     ''' REUSE: Adapted from source code for UC Berkeley CS 61A auto-grader. '''
@@ -60,22 +73,6 @@ class timeout(object):
 
     def __exit__(self, type, value, traceback):
         signal.alarm(0)
-
-
-
-"""
-def repeated(f, n):\n    \"\"\"Return the function that computes the nth application of f.\n\n    >>> add_three = repeated(increment, 3)\n    >>> add_three(5)\n    8\n    >>> repeated(triple, 5)(1) # 3 * 3 * 3 * 3 * 3 * 1\n    243\n    >>> repeated(square, 2)(5) # square(square(5))\n    625\n    >>> repeated(square, 4)(5) # square(square(square(square(5))))\n    152587890625\n    >>> repeated(square, 0)(5)\n    5\n    \"\"\"\n    d
-        'function_name': 'repeated',
-        'input_values_tuples': [
-            (lambda x: x + 1, 3),
-
-        ],
-        'expected_outputs': [
-
-        ],
-    }
-}
-"""
 
 
 def stringify_input(input_values):
@@ -103,7 +100,7 @@ def stringify_output(result):
         result['runtime_exception']['type'] = result['runtime_exception']['type'].__name__
 
     if result['runtime_success']:
-        stringified = result['returned']
+        stringified = str(result['returned'])
     elif not result['compile_success']:
         stringified = 'N/A'
     elif result['timeout']:
@@ -116,7 +113,7 @@ def stringify_output(result):
     return stringified
 
 
-def evaluate_function(code_text, function_name, input_value_tuples, expected_outputs):
+def evaluate_function(code_text, function_name, input_value_tuples, expected_outputs, assertions):
 
     results = {
         'overall_success': False,
@@ -124,13 +121,21 @@ def evaluate_function(code_text, function_name, input_value_tuples, expected_out
     }
 
     # Compute the result of each individual test
-    for test_index in range(len(input_value_tuples)):
-        results['test_cases'].append(evaluate_function_once(
-            code_text=code_text,
-            function_name=function_name,
-            input_values=input_value_tuples[test_index],
-            expected_output=expected_outputs[test_index],
-        ))
+    if input_value_tuples is not None:
+        for test_index in range(len(input_value_tuples)):
+            results['test_cases'].append(evaluate_function_once(
+                code_text=code_text,
+                function_name=function_name,
+                input_values=input_value_tuples[test_index],
+                expected_output=expected_outputs[test_index],
+            ))
+    elif assertions is not None:
+        for test_index in range(len(assertions)):
+            results['test_cases'].append(evaluate_function_once(
+                code_text=code_text,
+                function_name=function_name,
+                assertion_code=assertions[test_index],
+            ))
     
     # Compute the overall success across all tests
     results['overall_success'] = all(r['success'] for r in results['test_cases'])
@@ -138,7 +143,10 @@ def evaluate_function(code_text, function_name, input_value_tuples, expected_out
     return results
 
 
-def evaluate_function_once(code_text, function_name, input_values, expected_output):
+def evaluate_function_once(
+        code_text, function_name, input_values=None, expected_output=None, assertion_code=None):
+
+    input_values = [] if input_values is None else input_values
 
     cant_run_code = False
     result = {
@@ -148,7 +156,10 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
         'exec_success': False,
         'timeout': False,
         'runtime_success': False,
+        'test_type': 'assertion' if assertion_code is not None else 'input-output',
     }
+    if result['test_type'] == 'assertion':
+        result['assertion'] = assertion_code
 
     # Save the original stdout so we can resume them after this function runs
     original_stdout = sys.stdout
@@ -200,59 +211,49 @@ def evaluate_function_once(code_text, function_name, input_values, expected_outp
             capturable_stdout = StringIO()
             sys.stdout = capturable_stdout
 
+            # If this is an assertion, run the assertion code.
+            # Otherwise, pass in the input and check the output
+            if result['test_type'] == 'assertion':
+                code = assertion_code
+            elif result['test_type'] == 'input-output':
+                code = 'output = ' + function_name + '(*input_values)'
+
+            # Run the code!  Watch for assertion errors, timeout errors, and others
             try:
-                exec('output = ' + function_name + '(*input_values)', global_scope, local_scope)
-                output = local_scope['output']
-                result['returned'] = output
-                result['stdout'] = capturable_stdout.getvalue()
-                result['runtime_success'] = True
+                exec(code, global_scope, local_scope)
             # If we catch a TimeoutError, this is probably from the timer that we built
             # to keep programs from executing for too long.  Propagate it up to the next
             # level, where we can catch it and include the exception in the results.
             except TimeoutError as te:
                 raise te
+            except AssertionError as ae:
+                result['assertion_exception'] = {
+                    'args': ae.args,
+                }
             except Exception as e:
                 result['runtime_exception'] = {
                     'type': type(e),
                     'args': e.args,
                 }
+            else:
+                if result['test_type'] == 'input-output':
+                    output = local_scope['output']
+                    result['returned'] = output
+                result['stdout'] = capturable_stdout.getvalue()
+                result['runtime_success'] = True
 
         # Create a new process to run the test function, so we can terminate it if it loops
-        result_shared_data = {}
         try:
             with timeout(seconds=.5):
-                run_function(local_scope[function_name], function_name, input_values, result_shared_data)
+                run_function(local_scope[function_name], function_name, input_values, result)
         except TimeoutError:
             result['timeout'] = True
 
-        '''
-        result_shared_data = Manager().dict()
-        process = Process(
-            target=run_function,
-            args=(
-                local_scope[function_name],
-                function_name,
-                input_values,
-                result_shared_data,
-            )
-        )a
-
-        # Run the function, and terminate it if it runs too long
-        process.start()
-        start = time.time()
-        while time.time() < start + PROCESS_TIMEOUT:
-            if process.is_alive():
-                time.sleep(.1)
-            else:
-                result['timeout'] = False
-                break
-
-        process.terminate()
-        '''
-
-        # Merge the results from the function that was run with the  main results
-        result.update(result_shared_data)
-        result['success'] = (result['returned'] == expected_output) if 'returned' in result else False
+        # Compute the success of the test by inspecting assertions and input-output results
+        if result['test_type'] == 'assertion':
+            result['success'] = 'assertion_exception' not in result
+        elif result['test_type'] == 'input-output':
+            result['success'] = (result['returned'] == expected_output) if 'returned' in result else False
 
         # Return stdout to original
         sys.stdout = original_stdout
