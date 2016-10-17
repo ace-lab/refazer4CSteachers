@@ -496,11 +496,19 @@ def show_grader_interface(question_number, submission_id, filter=None):
         grade_status[ungraded_fixed_submission_id] = "fixed"
 
     # Group submissions based on what test cases they pass
-    test_case_groups = sorted(
-        get_test_case_groups(submissions, question_number).values(),
+    test_case_groups = get_test_case_groups(submissions, question_number)
+    test_case_groups_sorted = sorted(
+        test_case_groups,
         key=lambda l: len(l),
         reverse=True,
     )
+
+    # Get the list of submissions that have passed all tests
+    # Just look for the first group that has, as its key, a string representing a tuple of all 1s.
+    perfect_test_submissions = []
+    for group_key, group in test_case_groups.items():
+        if re.match('^\(1(,\s*1)*\)$', group_key):
+            perfect_test_submissions = group
 
     # Group submissions based on shared fixes
     fix_groups = get_fix_groups(submissions, refazer_session_id)
@@ -532,8 +540,11 @@ def show_grader_interface(question_number, submission_id, filter=None):
         fix_grade=fix_grade,
         fix_notes=fix_notes,
         note_options=note_options,
-        test_case_groups=test_case_groups,
+        test_case_groups=test_case_groups_sorted,
         fix_groups=fix_groups,
+        fixed_submission_ids=grade_suggestions,
+        perfect_test_submission_ids=perfect_test_submissions,
+        graded_submission_ids=graded_submissions,
     )
 
 
