@@ -1,11 +1,7 @@
-#! /usr/bin/env python
-# -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals
 import logging
 import unittest
 
-from flaskr import evaluate_function_once, evaluate_function
+from evaluate import evaluate_function_once, evaluate_function
 
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
