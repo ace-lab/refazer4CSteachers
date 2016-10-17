@@ -6,10 +6,10 @@
   <div class="col-md-6">
     <div>
       <div id='next_back_pane'>
-          <a href="/{{ question_number }}/4/{{ cluster_id - 1 }}">
+          <a href="/{{ question_number }}/{{ cluster_id - 1 }}">
               <input type=button name="back_button" class="ui button" value="Back" />
           </a>
-          <a href="/{{ question_number }}/4/{{ cluster_id + 1 }}">
+          <a href="/{{ question_number }}/{{ cluster_id + 1 }}">
               <input type=button name="next_button" class="ui button" value="Next" />
           </a>
       </div>
@@ -124,12 +124,12 @@
 
         <h2>Grading</h2>
         
-        {% if fix_exists %}
+        {% if fix_exists and session.fixes_enabled %}
         <h3 class='submission_header'>Student error detected.</h3>
         <div id="past_fix">
             <p>
                 This wrong answer can be "fixed" with the edits for
-                <a href="/{{ question_number }}/4/{{ fix_submission_id }}">submission {{ fix_submission_id }}</a>
+                <a href="/{{ question_number }}/{{ fix_submission_id }}">submission {{ fix_submission_id }}</a>
                 .  This is the fix:
             </p>
             <div class="fix_diff">
@@ -296,7 +296,7 @@ $(function() {
                 data.grade_suggestions.forEach(function(submission_id) {
                     if (suggested_submissions.indexOf(submission_id) === -1) {
                         var submission_link = $('<a></a>');
-                        submission_link.prop('href', '/{{ question_number }}/4/' + submission_id);
+                        submission_link.prop('href', '/{{ question_number }}/' + submission_id);
                         var list_item = $('<li></li>');
                         list_item.text("Submission " + submission_id);
                         list_item.addClass('list-group-item submission');

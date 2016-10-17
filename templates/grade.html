@@ -3,10 +3,10 @@
 <div class="col-md-2">
 
   <h3 class='submission_header'>Submissions</h3>
-  <div id="submission_list" style="overflow-y: scroll; height: 60%">
+  <div id="submission_list" class='submission_list' style="overflow-y: scroll; height: 60%">
     <ul class="list-group">
       {% for i in submission_ids %}
-        <a href="/{{question_number}}/4/{{i}}" class="{{ 'selected-cluster' if i == cluster_id }}">
+        <a href="/{{question_number}}/{{i}}" class="{{ 'selected-cluster' if i == cluster_id }}">
             <li class="list-group-item submission{% if i in grade_status %} {{ grade_status[i] }}{% endif %}">
             Submission {{i}}
           </li>
@@ -14,11 +14,13 @@
       {% endfor %}
     </ul>
   </div>
+
+  {% if session.fixes_enabled %}
   <h3 class='submission_header'>Grading suggestions</h3>
-  <div id="fix_list" style="overflow-y: scroll; height: 40%">
+  <div id="fix_list" class='submission_list' style="overflow-y: scroll; height: 40%">
     <ul id='synthesis_list' class="list-group">
       {% for i in fixed_submissions %}
-        <a href="/{{question_number}}/4/{{i}}" class="{{ 'selected-cluster' if i == cluster_id }}">
+        <a href="/{{question_number}}/{{i}}" class="{{ 'selected-cluster' if i == cluster_id }}">
             <li class="list-group-item submission" data-submission-id={{ i }}>
             Submission {{i}}
           </li>
@@ -26,6 +28,7 @@
       {% endfor %}
     </ul>
   </div>
+  {% endif %}
 
 </div>
 {% endblock %}

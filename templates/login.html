@@ -38,11 +38,29 @@
     </head>
     <body>
         <form class="ui form" method="post">
-            <div id="username_form">
+            <div id="username_form" class='field'>
                 <label for="username">Username</label>
                 <input id="username_input" type="text" name="username"></input>
+            </div>
+            <div class='field'>
+                <label>Assignment</label>
+                <select class="ui search dropdown" name='question'>
+                    <option value=0>accumulate</option>
+                    <option value=1>product</option>
+                    <option value=2>repeated</option>
+                </select>
+            </div>
+            <div class='field'>
+                <label>Interface</label>
+                <select class="ui search dropdown" name='interface'>
+                    <option value='show_fixes'>A</option>
+                    <option value='hide_fixes'>B</option>
+                </select>
             </div>
             <input id="submit_button" type="submit" class="ui primary button" name="sign_in" value="Sign in"></input>
         </form>
     </body>
+    <script>
+        $('select').dropdown();
+    </script>
 </html>
