@@ -159,80 +159,6 @@ def logout():
     return redirect('login')
 
 
-class Rule_and_test:
-
-    def __init__(self, test, rule):
-        self.test = test
-        self.rule = rule
-
-    def __hash__(self):
-        return hash((self.test[0]['input'], self.test[0]['output'], self.rule))
-
-    def __eq__(self, other):
-        return (self.test, self.rule) == (other.test, other.rule)
-
-class Rule_based_cluster:
-    def __init__(self, rule, size, fixes):
-        self.rule = rule
-        self.size = size
-        self.fixes = fixes
-
-class Test_based_cluster:
-    def __init__(self, test, size, fixes):
-        self.test = test
-        self.size = size
-        self.fixes = fixes
-
-class Rule_and_test_based_cluster:
-    def __init__(self, rule, test, size, fixes):
-        self.rule = rule
-        self.test = test
-        self.size = size
-        self.fixes = fixes
-
-class Question:
-    def __init__(self, question_id, rule_based_cluster, test_based_cluster, rule_and_test_based_cluster,
-                 question_instructions, submissions):
-        self.question_id = question_id
-        self.rule_based_cluster = rule_based_cluster
-        self.test_based_cluster = test_based_cluster
-        self.rule_and_test_based_cluster = rule_and_test_based_cluster
-        self.question_instructions = question_instructions
-        self.submissions = submissions
-
-
-question_files = {
-    # 0:'accumulate-mistakes.json',
-    0:'ase.json',
-    # 1:'G-mistakes.json',
-    # 2:'Product-mistakes.json',
-    # 3:'repeated-mistakes.json'
-    }
-
-question_instructions = {
-    0:'''<code>accumulate(combiner, base, n, term)</code> takes the following arguments:
-    <ul>
-    <li>
-        <code>term</code and <code>n</code: the same arguments as in <code>summation</code> and <code>product</code>
-    </li>
-    <li>
-        <code>combiner</code>: a two-argument function that specifies how the current term combined with the previously accumulated terms.
-    </li>
-    <li>
-        <code>base</code>: value that specifies what value to use to start the accumulation.
-    </li>
-    </ul>
-    For example, <code>accumulate(add, 11, 3, square)</code> is <code>11 + square(1) + square(2) + square(3)</code>.''',
-    1:'''A mathematical function G on positive integers is defined by two cases:
-
-<code>G(n) = n</code> if <code>n <= 3</code>
-<code>G(n) = G(n - 1) + 2 * G(n - 2) + 3 * G(n - 3)</code> if <code>n > 3</code>
-
-Write a recursive function <code>g</code> that computes <code>G(n)</code>.''',
-    2:'TODO: RETRIEVE DIRECTIONS FOR Product-mistakes.json',
-    3:'TODO: RETRIEVE DIRECTIONS FOR repeated-mistakes.json'
-}
-
 def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
     ''' Returns the ID of the last fix returned. '''
 
@@ -280,6 +206,7 @@ def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
 
     return next_fix_id
 
+
 def fetch_results(session_job_queue, database_name, interrupt_event):
 
     db = sqlite3.connect(database_name)
@@ -319,40 +246,11 @@ def fetch_results(session_job_queue, database_name, interrupt_event):
         time.sleep(REFRESH_TIMEOUT)
 
 
-def get_test(failed):
-    expected_value = ''
-    output_value = ''
-    previous_line = ''
-    testcases = []
-    for line in failed:
-        if previous_line == '# Error: expected':
-            expected_value = line[1:].strip()
-        if previous_line == '# but got':
-            output_value = line[1:].strip()
-        if line.startswith('>>>'):
-            line_no_comment = line[4:].split('#')[0] #removes comments
-            if not line_no_comment.startswith('check(') and not line_no_comment.startswith('from construct_check import check'):
-                testcases.append(line_no_comment)
-        previous_line = line
-    if len(testcases)>0:
-        failed_test = testcases[-1]
-    else:
-        failed_test = ''
-
-    results = [{
-        'input': failed_test,
-        'output': output_value,
-        'expected': expected_value
-    }]
-    return results
-
-
 def init_app():
     global questions, grader_questions
     questions = {}
     grader_questions = {}
-    # for question_number in question_files.keys():
-    #     grader_questions[question_number] = create_grader_question(question_number)
+
 
 def connect_db():
     """Connects to the specific database."""
@@ -360,12 +258,6 @@ def connect_db():
     rv.row_factory = sqlite3.Row
     return rv
 
-def init_db():
-    with app.app_context():
-        db = get_db()
-        with app.open_resource('schema.sql', mode='r') as f:
-            db.cursor().executescript(f.read())
-        db.commit()
 
 def get_db():
     """Opens a new database connection if there is none yet for the
@@ -375,38 +267,13 @@ def get_db():
         g.sqlite_db = connect_db()
     return g.sqlite_db
 
+
 @app.teardown_appcontext
 def close_db(error):
     """Closes the database again at the end of the request."""
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
 
-
-def get_hint(question_number, cluster_id, tab_id):
-    #todo: add question number to schema and db.execute call
-    db = get_db()
-    cur = db.execute('SELECT title, cluster_id, text, question_number, tab_id FROM entries WHERE question_number=? AND cluster_id=? AND tab_id=? ORDER BY id DESC', [question_number, cluster_id, tab_id])
-    hint = cur.fetchone()
-    return hint
-
-def get_previous_hints(question_number):
-    db = get_db()
-    cur = db.execute('SELECT title, cluster_id, text, question_number, tab_id FROM entries WHERE question_number=? ORDER BY id DESC', [question_number])
-    previous_hints = cur.fetchall()
-    return previous_hints
-
-
-def get_finished_cluster_ids(question_number, tab_id):
-    #todo: add question number to schema and db.execute call
-    db = get_db()
-    cur = db.execute('SELECT cluster_id FROM entries WHERE question_number=? AND tab_id=?', [question_number, tab_id])
-    results = cur.fetchall()
-    cluster_ids = list(map(lambda item: item['cluster_id'], results))
-    return cluster_ids
-
-@app.route('/<int:question_number>')
-def show_question(question_number):
-    return redirect(url_for('show_detail', question_number=question_number, tab_id=0, cluster_id=0, group_id=0))
 
 def get_grade(session_id, question_number, submission_id):
 
@@ -438,6 +305,7 @@ def get_grade(session_id, question_number, submission_id):
 
     return grade, notes
 
+
 def get_graded_submissions(session_id, question_number):
 
     db = get_db()
@@ -450,6 +318,7 @@ def get_graded_submissions(session_id, question_number):
     ]), (session_id, question_number,))
     graded_submissions = [r[0] for r in cursor.fetchall()]
     return graded_submissions
+
 
 def get_grade_suggestions(session_id, question_number):
 
@@ -471,6 +340,7 @@ def get_grade_suggestions(session_id, question_number):
             ungraded_fixed_submissions.append(id_)
 
     return ungraded_fixed_submissions
+
 
 @app.route('/<int:question_number>/<int:cluster_id>')
 @login_required
@@ -533,7 +403,6 @@ def show_detail(question_number, cluster_id, filter=None):
         grade_status[ungraded_fixed_submission_id] = "fixed"
 
     return render_template('grade.html',
-        question_name = question_files[question_number],
         # XXX Eventually the session ID should be generated per user
         question_number = question_number,
         submissions = submissions,
@@ -598,6 +467,7 @@ def diff():
     return jsonify({
         'diff_html': get_diff_html(code_version_1, code_version_2),
     })
+
 
 @app.route('/grade', methods=['POST'])
 @login_required
