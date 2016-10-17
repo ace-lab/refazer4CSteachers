@@ -28,6 +28,7 @@
       </li>
       {% endfor %}
     </ul>
+    {% if session.fixes_enabled %}
     <ul class="simple_list fix_order submission_ordering" style='display: none;'>
       {% for fix_group in fix_groups %}
       <li>
@@ -43,6 +44,7 @@
       </li>
       {% endfor %}
     </ul>
+    {% endif %}
   </div>
   <form id="order_form" class="ui form">
     <label>Order by:</label>
@@ -58,12 +60,14 @@
         <label>Test case results</label>
       </div>
     </div>
+    {% if session.fixes_enabled %}
     <div class="order field">
       <div class="ui radio checkbox">
         <input checked=true name="sort_order" data-mode="fix" type="radio">
         <label>Suggested fixes</label>
       </div>
     </div>
+    {% endif %}
   </form>
 
   {% if session.fixes_enabled %}
