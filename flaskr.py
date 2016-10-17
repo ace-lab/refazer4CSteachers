@@ -102,6 +102,19 @@ def load_user(username):
     return user
 
 
+def _enqueue_synthesis_job(session_id, question_number):
+
+    # If this user's session isn't currently being watched for new fixes, then
+    # enqueue this session ID and start watching for updates!
+    if session_id not in refresh_jobs:
+        refresh_jobs.append(session_id)
+        session_job_queue.put({
+            'session_id': session_id,
+            'question_id': question_number,
+            'next_fix_id': 0,
+        })
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
 
@@ -115,11 +128,19 @@ def login():
             login_user(user)
             question_number = int(request.form['question'])
 
-            # See if any sessions have been created for this user for this question
+            # Re-load all existing synthesis jobs for this user
             db = get_db()
             cursor = db.cursor()
             cursor.execute('\n'.join([
-                "SELECT id FROM sessions WHERE",
+                "SELECT session_id, question_number FROM sessions",
+                "WHERE user_id = ?",
+            ]), (user.user_id,))
+            for (past_session_id, past_question_number) in cursor.fetchall():
+                _enqueue_synthesis_job(past_session_id, past_question_number)
+
+            # See if any sessions have been created for this user for this question
+            cursor.execute('\n'.join([
+                "SELECT session_id FROM sessions WHERE",
                 "user_id = ? AND",
                 "question_number = ?",
             ]), (user.user_id, question_number))
@@ -135,18 +156,11 @@ def login():
                     "VALUES (?, ?, ?)",
                 ]), (user.user_id, question_number, session_id))
                 db.commit()
+
+                # Start off a job to check for synthesis results
+                _enqueue_synthesis_job(session_id, question_number)
             else:
                 session_id = row[0]
-
-            # If this user's session isn't currently being watched for new fixes, then
-            # enqueue this session ID and start watching for updates!
-            if session_id not in refresh_jobs:
-                refresh_jobs.append(session_id)
-                session_job_queue.put({
-                    'session_id': session_id,
-                    'question_id': question_number,
-                    'next_fix_id': 0,
-                })
 
             # Save in the session whether this user will be seeing fixes, the question number,
             # and the ID of the Refazer session
@@ -160,7 +174,7 @@ def login():
             if next_page is not None:
                 return redirect(next_page)
             else:
-                return redirect('/' + str(question_number) + '/175')
+                return redirect('/' + str(question_number) + '/1')
         
         return render_template('login.html')
 
@@ -339,6 +353,8 @@ def get_grade_suggestions(session_id, question_number):
 
     graded_submissions = get_graded_submissions(session_id, question_number)
 
+    print("Session ID:", session_id)
+    print("Question number:", question_number)
     cursor.execute('\n'.join([
         "SELECT DISTINCT(submission_id) FROM fixes WHERE",
         "session_id = ? AND",
