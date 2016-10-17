@@ -147,6 +147,33 @@ class EvaluateSolutionTest(unittest.TestCase):
         self.assertEqual(result['timeout'], True)
         self.assertEqual(result['success'], False)
 
+    def test_return_success_when_assertion_succeeds(self):
+        # For assignments where a student is asked to return a function as the result,
+        # we need something more than an equality comparison.  In this case,
+        # assertions run after the fact should do the trick.
+        result = evaluate_function_once(
+            code_text='\n'.join([
+                "def make_func(input_):",
+                "    return lambda x: input_ * x",
+            ]),
+            function_name='make_func',
+            assertion_code="identity = make_func(1); assert identity(5) == 5;",
+        )
+        self.assertEqual(result['test_type'], "assertion")
+        self.assertEqual(result['assertion'], "identity = make_func(1); assert identity(5) == 5;")
+        self.assertEqual(result['success'], True)
+
+    def test_assertion_failure(self):
+        result = evaluate_function_once(
+            code_text='\n'.join([
+                "def make_func(input_):",
+                "    return lambda x: input_ * x",
+            ]),
+            function_name='make_func',
+            assertion_code="identity = make_func(1); assert identity(5) == 4;",
+        )
+        self.assertEqual(result['success'], False)
+
 
 class EvaluateMultipleSolutionsTest(unittest.TestCase):
 

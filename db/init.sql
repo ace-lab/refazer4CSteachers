@@ -33,10 +33,12 @@ create table if not exists testresults (
   id integer primary key,
   submission_id integer not null,
   test_case_index integer not null,
-  input_values text not null,
+  test_type text not null,
   success boolean not null,
-  expected text not null,
+  input_values text,
+  expected text,
   observed text,
+  assertion text,
   foreign key (submission_id) references submissions(id),
   unique(submission_id, test_case_index)
 );
