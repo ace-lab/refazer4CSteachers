@@ -557,6 +557,13 @@ $(function() {
         });
 
     });
+
+    // We were seeing some problems where the mouse cursor didn't line up with where
+    // someone clicked in the editor.  This seems to solve the problem.  Probably, there
+    // is some manual sizing that we do above, and this updates pointer mapping
+    // to reflect this new sizing.
+    editor.refresh();
+
 });
 </script>
 {% endblock %}
