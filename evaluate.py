@@ -31,7 +31,7 @@ TEST_CONDITIONS = {
     },
     1: {
         'function_name': 'product',
-        'input_values_tuples': [
+        'input_value_tuples': [
             (3, lambda x: x),
             (5, lambda x: x),
             (3, lambda x: x * x),
@@ -100,7 +100,10 @@ def stringify_output(result):
         result['runtime_exception']['type'] = result['runtime_exception']['type'].__name__
 
     if result['runtime_success']:
-        stringified = str(result['returned'])
+        if result['test_type'] == 'assertion':
+            stringified = True
+        else:
+            stringified = str(result['returned'])
     elif not result['compile_success']:
         stringified = 'N/A'
     elif result['timeout']:
@@ -108,7 +111,12 @@ def stringify_output(result):
     elif not result['exec_success']:
         stringified = result['exec_exception']['type']
     elif not result['runtime_success']:
-        stringified = result['runtime_exception']['type']
+        if result['test_type'] == 'assertion' and result['runtime_exception']['type'] == "AssertionError":
+            stringified = False
+        else:
+            stringified = result['runtime_exception']['type']
+    else:
+        stringified = "Unknown error"
 
     return stringified
 
@@ -227,7 +235,8 @@ def evaluate_function_once(
             except TimeoutError as te:
                 raise te
             except AssertionError as ae:
-                result['assertion_exception'] = {
+                result['runtime_exception'] = {
+                    'type': AssertionError,
                     'args': ae.args,
                 }
             except Exception as e:
@@ -251,7 +260,7 @@ def evaluate_function_once(
 
         # Compute the success of the test by inspecting assertions and input-output results
         if result['test_type'] == 'assertion':
-            result['success'] = 'assertion_exception' not in result
+            result['success'] = 'runtime_exception' not in result
         elif result['test_type'] == 'input-output':
             result['success'] = (result['returned'] == expected_output) if 'returned' in result else False
 

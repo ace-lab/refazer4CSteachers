@@ -44,10 +44,9 @@ login_manager.logout_view = "logout"
 
 class User(UserMixin):
 
-    def __init__(self, user_id, username, session_id):
+    def __init__(self, user_id, username):
         self.user_id = user_id
         self.username = username
-        self.session_id = session_id
 
     def get_id(self):
         return self.username
@@ -83,14 +82,11 @@ def _start_user_session(question_number):
 @login_manager.user_loader
 def load_user(username):
 
-    # XXX It's awful that we're still hard-coding this.  We'll move on soon.
-    QUESTION_NUMBER = 0
-
     db = get_db()
     cursor = db.cursor()
 
     cursor.execute('\n'.join([
-        "SELECT id, session_id FROM users",
+        "SELECT id FROM users",
         "WHERE username = ?",
     ]), (username,))
     row = cursor.fetchone()
@@ -98,34 +94,11 @@ def load_user(username):
     if row is None:
         return None
     else:
-        (user_id, session_id) = row
+        user_id = row[0]
         user = User(
             user_id=user_id,
             username=username,
-            session_id=session_id,
         )
-        # If no session has been created for this user yet, create one!
-        # And then make sure to save this session for future reference.
-        if user.session_id == None:
-            session_id = _start_user_session(question_number=QUESTION_NUMBER)
-            cursor.execute('\n'.join([
-                "UPDATE users",
-                "SET session_id = ?",
-                "WHERE id = ?",
-            ]), (session_id, user_id))
-            db.commit()
-            user.session_id = session_id
-
-        # If this user's session isn't currently being watched for new fixes, then
-        # enqueue this session ID and start watching for updates!
-        if not user.session_id in refresh_jobs:
-            refresh_jobs.append(user.session_id)
-            session_job_queue.put({
-                'session_id': user.session_id,
-                'question_id': QUESTION_NUMBER,
-                'next_fix_id': 0,
-            })
-
     return user
 
 
@@ -141,14 +114,53 @@ def login():
 
             login_user(user)
             question_number = int(request.form['question'])
+
+            # See if any sessions have been created for this user for this question
+            db = get_db()
+            cursor = db.cursor()
+            cursor.execute('\n'.join([
+                "SELECT id FROM sessions WHERE",
+                "user_id = ? AND",
+                "question_number = ?",
+            ]), (user.user_id, question_number))
+            row = cursor.fetchone()
+
+            # If no session has been created for this user yet, create one!
+            # And then make sure to save this session for future reference.
+            session_id = None
+            if row is None:
+                session_id = _start_user_session(question_number=question_number)
+                cursor.execute('\n'.join([
+                    "INSERT INTO sessions(user_id, question_number, session_id)",
+                    "VALUES (?, ?, ?)",
+                ]), (user.user_id, question_number, session_id))
+                db.commit()
+            else:
+                session_id = row[0]
+
+            # If this user's session isn't currently being watched for new fixes, then
+            # enqueue this session ID and start watching for updates!
+            if session_id not in refresh_jobs:
+                refresh_jobs.append(session_id)
+                session_job_queue.put({
+                    'session_id': session_id,
+                    'question_id': question_number,
+                    'next_fix_id': 0,
+                })
+
+            # Save in the session whether this user will be seeing fixes, the question number,
+            # and the ID of the Refazer session
             interface = request.form['interface']
             session['fixes_enabled'] = True if interface == 'show_fixes' else False
+            session['question_number'] = question_number
+            session['refazer_session_id'] = session_id
+
             next_page = request.args.get('next')
 
             if next_page is not None:
                 return redirect(next_page)
             else:
-                return redirect('/0/175')
+                return redirect('/' + str(question_number) + '/175')
         
         return render_template('login.html')
 
@@ -354,9 +366,12 @@ def show_detail(question_number, cluster_id, filter=None):
     submission = submissions[cluster_id]
     test_results = run_code_evaluations(submission['code'], question_number)
 
+    # Get the ID of the Refazer session
+    refazer_session_id = session['refazer_session_id']
+
     # Get any grades and notes that have been saved for this submission
     (grade, notes) = get_grade(
-        current_user.session_id,
+        refazer_session_id,
         question_number,
         cluster_id
     )
@@ -367,7 +382,7 @@ def show_detail(question_number, cluster_id, filter=None):
         "session_id = ? AND",
         "question_number = ? AND",
         "submission_id = ?",
-    ]), (current_user.session_id, question_number, cluster_id))
+    ]), (refazer_session_id, question_number, cluster_id))
     row = cursor.fetchone()
     fix_exists = (row is not None)
     if fix_exists:
@@ -375,7 +390,7 @@ def show_detail(question_number, cluster_id, filter=None):
         fix_diff = get_diff_html(before, after)
         fixed_code = after
         (fix_grade, fix_notes) = get_grade(
-            current_user.session_id,
+            refazer_session_id,
             question_number,
             fixed_submission_id
         )
@@ -388,22 +403,21 @@ def show_detail(question_number, cluster_id, filter=None):
     fix_grade_exists = (fix_grade is not None)
 
     # Get a list of all notes that can be applied when grading
-    cursor.execute("SELECT DISTINCT(\"text\") FROM notes WHERE session_id = ?", (current_user.session_id,))
+    cursor.execute("SELECT DISTINCT(\"text\") FROM notes WHERE session_id = ?", (refazer_session_id,))
     note_options = [r[0] for r in cursor.fetchall()]
 
     # Fetch a list of which submission shave already been graded
-    graded_submissions = get_graded_submissions(current_user.session_id, question_number)
+    graded_submissions = get_graded_submissions(refazer_session_id, question_number)
     grade_status = {}
     for graded_submission_id in graded_submissions:
         grade_status[graded_submission_id] = 'graded'
 
     # Get the list of submissions for which some synthesized fix exists
-    grade_suggestions = get_grade_suggestions(current_user.session_id, question_number)
+    grade_suggestions = get_grade_suggestions(refazer_session_id, question_number)
     for ungraded_fixed_submission_id in grade_suggestions:
         grade_status[ungraded_fixed_submission_id] = "fixed"
 
     return render_template('grade.html',
-        # XXX Eventually the session ID should be generated per user
         question_number = question_number,
         submissions = submissions,
         submission = submission,
@@ -473,7 +487,7 @@ def diff():
 @login_required
 def grade():
 
-    session_id = current_user.session_id
+    session_id = session['refazer_session_id']
     grade = request.form['grade']
     notes = request.form.getlist('notes[]')
     question_number = request.form['question_number']
@@ -508,12 +522,12 @@ def grade():
         cursor.execute('\n'.join([
             "INSERT OR IGNORE INTO notes (session_id, \"text\")",
             "VALUES (?, ?)",
-        ]), (current_user.session_id, note))
+        ]), (session_id, note))
         cursor.execute('\n'.join([
             "SELECT id FROM notes WHERE",
             "session_id = ? AND",
             "\"text\" = ?",
-        ]), (current_user.session_id, note))
+        ]), (session_id, note))
         note_id = cursor.fetchone()[0]
         note_ids.append(note_id)
 
@@ -538,9 +552,10 @@ def grade():
 @app.route('/get_grade_suggestions', methods=['GET'])
 @login_required
 def get_grade_suggestions_api_method():
+    refazer_session_id = session['refazer_session_id']
     question_number = int(request.args.get('question_number'))
     return jsonify({
-        'grade_suggestions': get_grade_suggestions(current_user.session_id, question_number)
+        'grade_suggestions': get_grade_suggestions(refazer_session_id, question_number)
     })
 
 
@@ -551,7 +566,7 @@ def get_grade_suggestions_api_method():
 @login_required
 def synthesize():
 
-    session_id = current_user.session_id
+    session_id = session['refazer_session_id']
     question_number = int(request.form['question_number'])
     submission_id = request.form['submission_id']
     code_before = request.form['code_before']
@@ -576,7 +591,6 @@ def synthesize():
 @app.route('/evaluate', methods=['POST'])
 def evaluate():
 
-    print('before_id',request.form['before_id'])
     before_id = request.form['before_id']
     question_number = int(request.form['question_number'])
 

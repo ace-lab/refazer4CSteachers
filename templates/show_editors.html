@@ -63,10 +63,16 @@
           <thead>
               <tr>
                   <th>Test</th>
+                  {% if test_results.test_cases[0].test_type == 'input-output' %}
                   <th>Input</th>
+                  {% elif test_results.test_cases[0].test_type == 'assertion' %}
+                  <th>Assertion</th>
+                  {% endif %}
                   <th></th>
                   <th>Result</th>
+                  {% if test_results.test_cases[0].test_type == 'input-output' %}
                   <th>Expected</th>
+                  {% endif %}
                   <th class='output'>Output</th>
               </tr>
           </thead>
@@ -74,10 +80,16 @@
           <tbody>
               <tr data-index={{ loop.index }} class="test_case {% if test_case.success %}success{% else %}failure{% endif %}{% if loop.index == 1 %} selected{% endif %}">
                   <td>{{ loop.index }}</td>
+                  {% if test_results.test_cases[0].test_type == 'input-output' %}
                   <td class='input'>{{ test_case.input_values }}</td>
+                  {% elif test_results.test_cases[0].test_type == 'assertion' %}
+                  <td class='assertion'>{{ test_case.assertion }}</td>
+                  {% endif %}
                   <td>&rarr;</td>
                   <td class='result'>{{ test_case.human_readable_result }}</td>
+                  {% if test_results.test_cases[0].test_type == 'input-output' %}
                   <td class='expected'>{{ test_case.expected }}</td>
+                  {% endif %}
                   <td class='output'>
                       <div class='terminal_icon'>
                           <img class='terminal_icon' data-index={{ loop.index }} src="/static/img/terminal-small.png"/>
