@@ -467,6 +467,7 @@ $(function() {
         var fixedCodeData = $('input[name=fixed_code]').val();
         var fixedCode = JSON.parse(fixedCodeData).code;
         editor.setValue(fixedCode);
+        $('.submitCode').click();
     });
 
     // When the submit button is clicked, run the test cases.
