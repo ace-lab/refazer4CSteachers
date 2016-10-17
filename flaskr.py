@@ -2,14 +2,11 @@ import json
 import sqlite3
 import os
 import sys
-import inspect
 import time
 import re
-from io import StringIO
 import math
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
-from multiprocessing import Manager, Process
 import threading
 
 from flask import Flask, request, session, g, redirect, url_for, abort, \
@@ -19,24 +16,23 @@ import requests
 from jinja2 import Environment, FileSystemLoader
 
 import highlight
-from evaluate import evaluate_function, evaluate_function_once
+from evaluate import TEST_CONDITIONS, stringify_input, stringify_output,\
+    evaluate_function, evaluate_function_once
 
 
 app = Flask(__name__)
 app.config.from_object(__name__)
-ordered_clusters = []
+app.config.from_envvar('FLASKR_SETTINGS', silent=True)
+
+# Configure the database endpoint
 database_path = os.environ.get('FLASK_DATABASE_PATH', os.path.join(app.root_path, 'flaskr.db'))
-print("Database:", database_path)
 app.config.update(dict(
     DATABASE=database_path,
     SECRET_KEY='development key',
     USERNAME='admin',
     PASSWORD='default'
 ))
-app.config.from_envvar('FLASKR_SETTINGS', silent=True)
 
-PROCESS_TIMEOUT = .5
-# REFAZER_ENDPOINT = "http://172.16.83.130:8000/api/refazer"
 REFAZER_ENDPOINT = "http://refazer2.azurewebsites.net/api/refazer"
 
 ''' The following section enables having users and logins. '''
@@ -144,12 +140,15 @@ def login():
         if user is not None:
 
             login_user(user)
+            question_number = int(request.form['question'])
+            interface = request.form['interface']
+            session['fixes_enabled'] = True if interface == 'show_fixes' else False
             next_page = request.args.get('next')
 
             if next_page is not None:
                 return redirect(next_page)
             else:
-                return redirect('/0/4/175')
+                return redirect('/0/175')
         
         return render_template('login.html')
 
@@ -320,10 +319,6 @@ def fetch_results(session_job_queue, database_name, interrupt_event):
         time.sleep(REFRESH_TIMEOUT)
 
 
-def get_fix(question_number, cluster_id):
-    return ordered_clusters[question_number][cluster_id].fix
-
-
 def get_test(failed):
     expected_value = ''
     output_value = ''
@@ -386,12 +381,6 @@ def close_db(error):
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
 
-# def get_fixes(question_number):
-#     #todo: add question number to schema and db.execute call
-#     db = get_db()
-#     cur = db.execute('SELECT title, cluster_id, text, question_number, tab_id FROM entries ORDER BY id DESC')
-#     fixes = cur.fetchall()
-#     return fixes
 
 def get_hint(question_number, cluster_id, tab_id):
     #todo: add question number to schema and db.execute call
@@ -418,10 +407,6 @@ def get_finished_cluster_ids(question_number, tab_id):
 @app.route('/<int:question_number>')
 def show_question(question_number):
     return redirect(url_for('show_detail', question_number=question_number, tab_id=0, cluster_id=0, group_id=0))
-
-@app.route('/')
-def show_fixes():
-    return redirect(url_for('show_detail', question_number=1, tab_id=0, cluster_id=0, group_id=0))
 
 def get_grade(session_id, question_number, submission_id):
 
@@ -487,9 +472,9 @@ def get_grade_suggestions(session_id, question_number):
 
     return ungraded_fixed_submissions
 
-@app.route('/<int:question_number>/<int:tab_id>/<int:cluster_id>')
+@app.route('/<int:question_number>/<int:cluster_id>')
 @login_required
-def show_detail(question_number, tab_id, cluster_id, filter=None):
+def show_detail(question_number, cluster_id, filter=None):
 
     db = get_db()
     cursor = db.cursor()
@@ -497,7 +482,7 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
     # Fetch all submissions from the database
     submissions = get_submissions(cursor, question_number)
     submission = submissions[cluster_id]
-    test_results = run_code_evaluations(submission['code'])
+    test_results = run_code_evaluations(submission['code'], question_number)
 
     # Get any grades and notes that have been saved for this submission
     (grade, notes) = get_grade(
@@ -533,7 +518,7 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
     fix_grade_exists = (fix_grade is not None)
 
     # Get a list of all notes that can be applied when grading
-    cursor.execute("SELECT \"text\" FROM notes WHERE session_id = ?", (current_user.session_id,))
+    cursor.execute("SELECT DISTINCT(\"text\") FROM notes WHERE session_id = ?", (current_user.session_id,))
     note_options = [r[0] for r in cursor.fetchall()]
 
     # Fetch a list of which submission shave already been graded
@@ -575,89 +560,26 @@ def show_detail(question_number, tab_id, cluster_id, filter=None):
     )
 
 
-def run_code_evaluations(code_text):
+def run_code_evaluations(code_text, question_number):
 
+    test_condition = TEST_CONDITIONS[question_number]
     results = evaluate_function(
         code_text=code_text,
-        function_name='max_contig_sum',
-        input_value_tuples=[
-            ([1],),
-            ([1, -1],),
-            ([10, 9, 8, -1],),
-            ([-2, 6, 8, 10],),
-            ([5, -7, 1],),
-            ([0, -2, -5, -1, 5],),
-            ([-3, -2, 1, -1, -5],),
-            ([3, 4, -1, 5, -4],),
-        ],
-        expected_outputs=[
-            1,
-            1,
-            27,
-            24,
-            5,
-            5,
-            1,
-            11,
-        ],
+        function_name=test_condition['function_name'],
+        input_value_tuples=test_condition.get('input_value_tuples'),
+        expected_outputs=test_condition.get('expected_outputs'),
+        assertions=test_condition.get('assertions')
     )
 
-    '''
-    results = evaluate_function(
-        code_text=code_text,
-        function_name='accumulate',
-        input_value_tuples=[
-            (lambda x, y: x + y, 11, 5, lambda x: x),
-            (lambda x, y: x + y, 0, 5, lambda x: x),
-            (lambda x, y: x * y, 2, 3, lambda x: x * x),
-            (lambda x, y: x + y, 11, 0, lambda x: x),
-            (lambda x, y: x + y, 11, 3, lambda x: x * x),
-        ],
-        expected_outputs=[
-            26,
-            15,
-            72,
-            11,
-            25,
-        ],
-    )
-    '''
-
-    # Stringify the results.  This means:
-    # 1. Adding a lambda's source as a string
-    # 2. Adding the names of exceptions instead of their classes
-    # 3. Setting the value of the displayable result
-    for result in results['test_cases']:
-        input_values = list(result['input_values'])
-        for index, input_value in enumerate(input_values, start=0):
-            # We use a heuristic if there are lambdas:
-            # Just find the source code of the line where this set of examples
-            # was defined, and add that source code line here.
-            if callable(input_value):
-                result['input_values'] = inspect.getsource(input_value).strip()
-                break
-        if not result['compile_success']:
-            pass
-        elif result['timeout']:
-            pass
-        elif not result['exec_success']:
-            result['exec_exception']['type'] = result['exec_exception']['type'].__name__
-        elif not result['runtime_success']:
-            result['runtime_exception']['type'] = result['runtime_exception']['type'].__name__
-        # result['input_values'] = result['input_values'].strip(',()')
-
-        if result['runtime_success']:
-            result['human_readable_result'] = result['returned']
-        elif not result['compile_success']:
-            result['human_readable_result'] = 'N/A'
-        elif result['timeout']:
-            result['human_readable_result'] = 'Timeout'
-        elif not result['exec_success']:
-            result['human_readable_result'] = result['exec_exception']['type']
-        elif not result['runtime_success']:
-            result['human_readable_result'] = result['runtime_exception']['type']
+    # Make test case results human readable and printable within HTML
+    for test_case in results['test_cases']:
+        test_case['input_values'] = stringify_input(test_case['input_values'])
+        test_case['human_readable_result'] = stringify_output(test_case)
+        if 'returned' in test_case:
+            del(test_case['returned'])
 
     return results
+
 
 def get_diff_html(code_before, code_after):
     env = Environment(loader=FileSystemLoader('templates'))
@@ -665,6 +587,7 @@ def get_diff_html(code_before, code_after):
     html = template.render(diff_lines=highlight.diff_file(
         '_', code_before, code_after, 'full'))
     return html
+
 
 @app.route('/diff', methods=['POST'])
 def diff():
@@ -788,7 +711,7 @@ def evaluate():
     question_number = int(request.form['question_number'])
 
     code_text = request.form['code']
-    results = run_code_evaluations(code_text)
+    results = run_code_evaluations(code_text, question_number)
 
     return jsonify(results)
 
@@ -797,24 +720,6 @@ def evaluate():
 def submit_code():
     print(request.form)
     return jsonify(success=True)
-
-
-def add_submissions_to_db(database_name, question_number):
-
-    db = sqlite3.connect(database_name)
-    db.row_factory = sqlite3.Row
-    cursor = db.cursor()
-
-    with open(os.path.join('data/', question_files[question_number])) as data_file:
-        submissions = json.load(data_file)
-
-    for submission in submissions:
-        cursor.execute('\n'.join([
-            "INSERT OR IGNORE INTO submissions (question_number, submission_id, code)",
-            "VALUES (?, ?, ?)",
-        ]), (question_number, submission['index'], submission['code']))
-
-    db.commit()
 
 
 def get_submissions(cursor, question_number):
@@ -842,11 +747,6 @@ thread_pool = ThreadPoolExecutor(max_workers=1)
 session_job_queue = Queue()
 shutdown_event = threading.Event()
 thread_pool.submit(fetch_results, session_job_queue, app.config['DATABASE'], shutdown_event)
-
-# Insert all submissions records into the database
-# XXX This needs to be changed to all question numbers
-QUESTION_NUMBER = 0
-add_submissions_to_db(app.config['DATABASE'], question_number=QUESTION_NUMBER)
 
 
 if __name__ == '__main__':
