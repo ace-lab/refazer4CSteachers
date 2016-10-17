@@ -368,16 +368,16 @@ def get_grade_suggestions(session_id, question_number):
     return ungraded_fixed_submissions
 
 
-@app.route('/<int:question_number>/<int:cluster_id>')
+@app.route('/<int:question_number>/<int:submission_id>')
 @login_required
-def show_detail(question_number, cluster_id, filter=None):
+def show_detail(question_number, submission_id, filter=None):
 
     db = get_db()
     cursor = db.cursor()
 
     # Fetch all submissions from the database
     submissions = get_submissions(cursor, question_number)
-    submission = submissions[cluster_id]
+    submission = submissions[submission_id]
     test_results = run_code_evaluations(submission['code'], question_number)
 
     # Get the ID of the Refazer session
@@ -387,7 +387,7 @@ def show_detail(question_number, cluster_id, filter=None):
     (grade, notes) = get_grade(
         refazer_session_id,
         question_number,
-        cluster_id
+        submission_id
     )
 
     # Look for existing, applicable fixes, and grades
@@ -396,7 +396,7 @@ def show_detail(question_number, cluster_id, filter=None):
         "session_id = ? AND",
         "question_number = ? AND",
         "submission_id = ?",
-    ]), (refazer_session_id, question_number, cluster_id))
+    ]), (refazer_session_id, question_number, submission_id))
     row = cursor.fetchone()
     fix_exists = (row is not None)
     if fix_exists:
@@ -439,7 +439,7 @@ def show_detail(question_number, cluster_id, filter=None):
         grade = grade,
         notes = notes,
         grade_status = grade_status,
-        cluster_id = cluster_id,
+        submission_id = submission_id,
         submission_ids = [submission['id'] for submission in submissions],
         fixed_submissions = grade_suggestions,
         fix_exists = fix_exists,

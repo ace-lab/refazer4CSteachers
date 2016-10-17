@@ -5,14 +5,6 @@
   {% block clusters %}{% endblock %}
   <div class="col-md-6">
     <div>
-      <div id='next_back_pane'>
-          <a href="/{{ question_number }}/{{ cluster_id - 1 }}">
-              <input type=button name="back_button" class="ui button" value="Back" />
-          </a>
-          <a href="/{{ question_number }}/{{ cluster_id + 1 }}">
-              <input type=button name="next_button" class="ui button" value="Next" />
-          </a>
-      </div>
       <h2>Student Submission</h2>
       <form>
           <div class="ui form editor_choice">
@@ -50,7 +42,7 @@
       <p class="test_header"><b>Test results:
           <span class="test_results">
           {% if not test_results.test_cases[0].compile_success %}
-              <i>Syntax error.</i>{{ test_results.test_cases[0].syntax_error.text }}
+              <span class='failure_text'>Syntax error.</span>{{ test_results.test_cases[0].syntax_error.text }}
           {% elif test_results.overall_success %}
               All tests <span class='success_text'>succeeded</span>
           {% else %}
@@ -104,7 +96,7 @@
         Create a display for the stdout for all test cases.
         However, we will hide all but one of the stdouts
       -->
-      <p class="output_header"><b>Output</b> (test case <span class='test_case_number'>1</span>)</p>
+      <p class="output_header"><b>Print output</b> (test case <span class='test_case_number'>1</span>)</p>
       {% for test_case in test_results.test_cases %}
       <div class="error_display">
           {%- if not test_case.compile_success -%}
@@ -128,6 +120,16 @@
           {%- endif -%}
       </textarea>
       {% endfor %}
+    </div>
+
+    <!--
+      These buttons don't do anything until the JavaScript is run.
+      The next and previous submissions are determined at runtime based on how the
+      list of submissions is ordered.
+    -->
+    <div id='next_back_pane'>
+        <input type=button name="back_button" class="ui button" value="Back" />
+        <input type=button name="next_button" class="ui button" value="Next" />
     </div>
     
   </div>
@@ -341,7 +343,6 @@ $(function() {
         //console.log('editors',editors)
     });
 
-
     // Create read-only editors for showing stdout
     var stdoutDisplays = [];
     $('textarea.stdout_display').each(function() {
@@ -495,7 +496,7 @@ $(function() {
             var firstTestCaseResult = results.test_cases[0];
             var overallResultHtml;
             if (firstTestCaseResult.compile_success === false) {
-                overallResultHtml = "Syntax error. " +
+                overallResultHtml = "<span class='failure_text'>Syntax error</span>. " +
                     firstTestCaseResult.syntax_error.msg +
                     " (line " + firstTestCaseResult.syntax_error.lineno +
                     ", character " + firstTestCaseResult.syntax_error.offset + ")";
@@ -554,8 +555,23 @@ $(function() {
                 }
 
             });
+
+            // Refresh the printed output for the selected test case
+            $('tr.test_case.selected').click();
+
         });
 
+    });
+
+    // Dynamically direct the next and back buttons to the next and previous
+    // item in the list of submissions.
+    // For some reason, calling 'click' on a link only works in JavaScript on an
+    // HTML node, and not with jQuery.
+    $('input[name=next_button]').click(function() {
+        $('#submission_list .selected-cluster').next()[0].click();
+    });
+    $('input[name=back_button]').click(function() {
+        $('#submission_list .selected-cluster').prev()[0].click();
     });
 
     // We were seeing some problems where the mouse cursor didn't line up with where
