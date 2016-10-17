@@ -3,7 +3,7 @@
 {% block fixes %}
 <div class="row">
   {% block clusters %}{% endblock %}
-  <div class="col-md-6">
+  <div id='code_column' class="col-md-6">
     <div>
       <h2>Student Submission</h2>
       <form>
@@ -198,27 +198,18 @@
 <script>
 $(function() {
 
-    // Scroll the list to the selected element
-    // REUSE: Based on tip at
-    // http://stackoverflow.com/questions/2905867/how-to-scroll-to-specific-item-using-jquery
-    function scrollList(list) {
-        var selected = list.find('a.selected-cluster');
-        if (selected.length > 0) {
-            list.scrollTop(
-                selected.offset().top - list.offset().top + list.scrollTop()
-            );
-        }
-    }
-    scrollList($('div#submission_list'));
-    scrollList($('div#synthesis_list'));
-
     // Grade button starts out disabled.
     // It will be enabled after a user adds a grade or a note.
     $('input[name=submit_grade]').prop('disabled', true);
 
     // Populate the autocomplete with notes about past submissions
     $('input[name=reason]').autocomplete({
-        source: JSON.parse($('input[name=note_options]').val())
+        source: JSON.parse($('input[name=note_options]').val()),
+        delay: 0,
+        minLength: 0,
+    });
+    $('input[name=reason]').on('focus', function() {
+        $(this).autocomplete('search');
     });
 
     // Functions for adding notes about grades while grading
@@ -277,14 +268,14 @@ $(function() {
             grade: $('input[name=grade]').val(),
             notes: note_text,
             question_number: {{ question_number }},
-            submission_id: {{ cluster_id }},
+            submission_id: {{ submission_id }},
         }, function(result) {
 
             $('input[name=submit_grade]').prop('disabled', true);
             $('input[name=submit_grade]').removeClass('loading');
 
             $.post('/synthesize', {
-                submission_id: {{ cluster_id }},
+                submission_id: {{ submission_id }},
                 question_number: {{ question_number }},
                 code_before: originalCode,
                 code_after: debuggedCode,
@@ -390,7 +381,7 @@ $(function() {
     // Control the editor with the checkboxes that let the user
     // control whether they are looking at the student's
     // current submission or a version they can debug.
-    $('.checkbox').checkbox({
+    $('.editor_choice .checkbox').checkbox({
         onChecked: function() {
 
             var newMode = $(this).data('mode');

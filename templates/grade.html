@@ -1,26 +1,77 @@
 {% extends "show_editors.html" %}
 {% block clusters %}
-<div class="col-md-2">
+<div id='submissions_column' class="col-md-2">
 
   <h2 class='submission_header'>Submissions</h2>
   <div id="submission_list" class='submission_list'>
-    <ul class="list-group">
+    <ul class="list-group submission_order submission_ordering">
       {% for i in submission_ids %}
-        <a href="/{{question_number}}/{{i}}" class="{{ 'selected-cluster' if i == cluster_id }}">
+        <a href="/{{question_number}}/{{i}}" class="{{ 'selected-cluster' if i == submission_id }}">
             <li class="list-group-item submission{% if i in grade_status %} {{ grade_status[i] }}{% endif %}">
             Submission {{i}}
           </li>
         </a>
       {% endfor %}
     </ul>
+    <ul class="simple_list test_case_order submission_ordering" style='display: none;'>
+      {% for test_case_group in test_case_groups %}
+      <li>
+        <ul class="list-group">
+          {% for i in test_case_group %}
+          <a href="/{{ question_number }}/{{ i }}" class="{{ 'selected-cluster' if i == submission_id }}">
+            <li class="list-group-item submission{% if i in grade_status %} {{ grade_status[i] }}{% endif %}">
+              Submission {{ i }}
+            </li>
+          </a>
+          {% endfor %}
+        </ul>
+      </li>
+      {% endfor %}
+    </ul>
+    <ul class="simple_list fix_order submission_ordering" style='display: none;'>
+      {% for fix_group in fix_groups %}
+      <li>
+        <ul class="list-group">
+          {% for i in fix_group %}
+          <a href="/{{ question_number }}/{{ i }}" class="{{ 'selected-cluster' if i == submission_id }}">
+            <li class="list-group-item submission{% if i in grade_status %} {{ grade_status[i] }}{% endif %}">
+              Submission {{ i }}
+            </li>
+          </a>
+          {% endfor %}
+        </ul>
+      </li>
+      {% endfor %}
+    </ul>
   </div>
+  <form id="order_form" class="ui form">
+    <label>Order by:</label>
+    <div class="order field">
+      <div class="ui radio checkbox">
+        <input checked=true name="sort_order" data-mode="submission_id" type="radio">
+        <label>Submission IDs</label>
+      </div>
+    </div>
+    <div class="order field">
+      <div class="ui radio checkbox">
+        <input checked=true name="sort_order" data-mode="test_case" type="radio">
+        <label>Test case results</label>
+      </div>
+    </div>
+    <div class="order field">
+      <div class="ui radio checkbox">
+        <input checked=true name="sort_order" data-mode="fix" type="radio">
+        <label>Suggested fixes</label>
+      </div>
+    </div>
+  </form>
 
   {% if session.fixes_enabled %}
   <h2 class='submission_header'>Grading suggestions</h2>
   <div id="fix_list" class='submission_list'>
     <ul id='synthesis_list' class="list-group">
       {% for i in fixed_submissions %}
-        <a href="/{{question_number}}/{{i}}" class="{{ 'selected-cluster' if i == cluster_id }}">
+        <a href="/{{question_number}}/{{i}}" class="{{ 'selected-cluster' if i == submission_id }}">
             <li class="list-group-item submission" data-submission-id={{ i }}>
             Submission {{i}}
           </li>
@@ -31,4 +82,47 @@
   {% endif %}
 
 </div>
+<script>
+$(function() {
+
+    // Scroll the list to the selected element
+    // REUSE: Based on tip at
+    // http://stackoverflow.com/questions/2905867/how-to-scroll-to-specific-item-using-jquery
+    function scrollList(list, sublist_selector) {
+        var selector = 'a.selected-cluster';
+        if (sublist_selector !== undefined) {
+            selector = sublist_selector + ' ' + selector;
+        }
+        var selected = list.find(selector);
+        if (selected.length > 0) {
+            list.scrollTop(
+                selected.offset().top - list.offset().top + list.scrollTop()
+            );
+        }
+    }
+
+    console.log("I'm here");
+    $('#order_form .checkbox').checkbox({
+        onChecked: function() {
+            var order = $(this).data('mode');
+            $('.submission_ordering').css('display', 'none');
+            if (order === "submission_id") {
+                $('ul.submission_order').css('display', 'block');
+                scrollList($('div#submission_list'), 'ul.submission_order');
+            } else if (order === "test_case") {
+                $('ul.test_case_order').css('display', 'block');
+                scrollList($('div#submission_list'), 'ul.test_case_order');
+            } else if (order === "fix") {
+                $('ul.fix_order').css('display', 'block');
+                scrollList($('div#submission_list'), 'ul.fix_order');
+            }
+        }
+    });
+
+    $('input[type=radio][data-mode=submission_id]').prop('checked', true);
+    scrollList($('div#submission_list'));
+    scrollList($('div#synthesis_list'));
+
+});
+</script>
 {% endblock %}
