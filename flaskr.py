@@ -448,14 +448,14 @@ def get_fix_groups(submissions, session_id):
 
 @app.route('/<int:question_number>/<int:submission_id>')
 @login_required
-def show_grader_interface(question_number, submission_id, filter=None):
+def show_grader_interface(question_number, submission_id):
 
     db = get_db()
     cursor = db.cursor()
 
     # Fetch all submissions from the database
     submissions = get_submissions(cursor, question_number)
-    submission = submissions[submission_id]
+    submission = next(filter(lambda s: s['id'] == submission_id, submissions))
     test_results = run_code_evaluations(submission['code'], question_number)
 
     # Get the ID of the Refazer session
@@ -531,16 +531,24 @@ def show_grader_interface(question_number, submission_id, filter=None):
     fix_groups = sorted(fix_groups.values(), key=lambda l: len(l), reverse=True)
     fix_groups.append(unfixable_submissions)
 
+    # Filter all submissions to just those that don't pass all test cases
+    fails_tests = lambda submission_id: submission_id not in perfect_test_submissions
+    submissions = list(filter(fails_tests, [s['id'] for s in submissions]))
+    for group_index in range(len(test_case_groups_sorted)):
+        test_case_groups_sorted[group_index] = list(filter(fails_tests, test_case_groups_sorted[group_index]))
+    for group_index in range(len(fix_groups)):
+        fix_groups[group_index] = list(filter(fails_tests, fix_groups[group_index]))
+    grade_suggestions = list(filter(fails_tests, grade_suggestions))
+
     return render_template('grade.html',
         question_number=question_number,
-        submissions=submissions,
         submission=submission,
         test_results=test_results,
         grade=grade,
         notes=notes,
         grade_status=grade_status,
         submission_id=submission_id,
-        submission_ids=[submission['id'] for submission in submissions],
+        submission_ids=submissions,
         fixed_submissions=grade_suggestions,
         fix_exists=fix_exists,
         fix_submission_id=fixed_submission_id,
@@ -558,6 +566,7 @@ def show_grader_interface(question_number, submission_id, filter=None):
         fix_groups=fix_groups,
         fixed_submission_ids=grade_suggestions,
         perfect_test_submission_ids=perfect_test_submissions,
+        show_perfect_test_submissions=False,
         graded_submission_ids=graded_submissions,
         sort_mode=session['sort_mode'],
     )
@@ -729,7 +738,6 @@ def evaluate():
 
 @app.route('/submit', methods=['POST'])
 def submit_code():
-    print(request.form)
     return jsonify(success=True)
 
 

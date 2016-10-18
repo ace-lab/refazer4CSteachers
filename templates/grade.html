@@ -24,8 +24,10 @@
     <p>
       <img class='inline' src='/static/img/check.svg' />
       = graded<br/>
+      {% if show_perfect_test_submissions %}
       <img class='inline' src='/static/img/star.svg' />
       = passed all test cases<br/>
+      {% endif %}
       {% if session.fixes_enabled %}
       <img class='inline' src='/static/img/lightbulb.svg' />
       = fix recommended
