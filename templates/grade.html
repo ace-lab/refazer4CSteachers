@@ -10,7 +10,7 @@
         <img class='inline' src='/static/img/check.svg' />
         {% elif i in perfect_test_submission_ids %}
         <img class='inline' src='/static/img/star.svg' />
-        {% elif i in fixed_submission_ids %}
+        {% elif i in fixed_submission_ids and session.fixes_enabled %}
         <img class='inline' src='/static/img/lightbulb.svg' />
         {% endif %}
       </li>
@@ -22,12 +22,14 @@
 
   <div id='symbol_legend'>
     <p>
-      <img class='inline' src='/static/img/lightbulb.svg' />
-      = fix recommended<br/>
+      <img class='inline' src='/static/img/check.svg' />
+      = graded<br/>
       <img class='inline' src='/static/img/star.svg' />
       = passed all test cases<br/>
-      <img class='inline' src='/static/img/check.svg' />
-      = graded
+      {% if session.fixes_enabled %}
+      <img class='inline' src='/static/img/lightbulb.svg' />
+      = fix recommended
+      {% endif %}
     </p>
   </div>
 
