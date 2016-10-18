@@ -100,6 +100,9 @@ create table if not exists fixes (
   id integer primary key,
   session_id integer not null,
   question_number integer not null,
+  /* Note that this refers to the submission_id column on the submissions table.
+     This is in contrast to the submission_id column on the testresults tabe, that 
+     is a foreign key to the `id` column on the submissions table.  Sorry. */
   submission_id integer not null,
   fixed_submission_id integer not null,  /* which submission was fixed to produce this fix */
   before text not null,

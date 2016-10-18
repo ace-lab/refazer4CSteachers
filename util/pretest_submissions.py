@@ -54,6 +54,8 @@ def run_tests(database_cursor):
                 test_case.get('assertion'),
             ))
 
+        print("Finished with submission for question", submission['question_number'])
+
 
 if __name__ == '__main__':
     argument_parser = argparse.ArgumentParser(

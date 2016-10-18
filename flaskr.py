@@ -375,7 +375,8 @@ def get_test_case_groups(submissions, question_number):
 
     # Sort submissions by which test cases they pass
     cursor.execute('\n'.join([
-        "SELECT COUNT(DISTINCT(test_case_index)) FROM testresults JOIN submissions",
+        "SELECT COUNT(DISTINCT(test_case_index))",
+        "FROM testresults JOIN submissions ON submissions.id = testresults.submission_id",
         "WHERE question_number = ?"
     ]), (question_number,))
     test_case_count = cursor.fetchone()[0]
@@ -386,7 +387,7 @@ def get_test_case_groups(submissions, question_number):
         # Fetch all test cases for a submission
         cursor.execute('\n'.join([
             "SELECT test_case_index, success",
-            "FROM testresults JOIN submissions ON submissions.submission_id = testresults.submission_id",
+            "FROM testresults JOIN submissions ON submissions.id = testresults.submission_id",
             "WHERE",
             "    submissions.submission_id = ? AND",
             "    question_number = ?"
@@ -498,7 +499,7 @@ def show_grader_interface(question_number, submission_id, filter=None):
     # Group submissions based on what test cases they pass
     test_case_groups = get_test_case_groups(submissions, question_number)
     test_case_groups_sorted = sorted(
-        test_case_groups,
+        test_case_groups.values(),
         key=lambda l: len(l),
         reverse=True,
     )
@@ -667,6 +668,12 @@ def get_grade_suggestions_api_method():
 # This function will take a long time to run (at least as long as it takes
 # for Refazer to fulfill the request).  Don't expect to get a response in less
 # than 30 seconds, and it may take minutes.
+def upload_example(url, json_data):
+    print("Submitting fix suggestion to Refazer")
+    result = requests.post(REFAZER_ENDPOINT + "/ApplyFixFromExample", json=json_data)
+    print("Refazer has accepted the job")
+
+
 @app.route('/synthesize', methods=['POST'])
 @login_required
 def synthesize():
@@ -677,16 +684,17 @@ def synthesize():
     code_before = request.form['code_before']
     code_after = request.form['code_after']
 
-    # We don't try to get a response from this one, this just submits a job
-    print("Submitting fix suggestion to Refazer")
-    result = requests.post(REFAZER_ENDPOINT + "/ApplyFixFromExample", json={
-        'CodeBefore': code_before,
-        'CodeAfter': code_after,
-        'SessionId': session_id,
-        'QuestionId': question_number,
-        'SubmissionId': submission_id,
-    })
-    print("Refazer has accepted the job")
+    thread_pool.submit(
+        upload_example, 
+        REFAZER_ENDPOINT + "/ApplyFixFromExample", {
+            'CodeBefore': code_before,
+            'CodeAfter': code_after,
+            'SessionId': session_id,
+            'QuestionId': question_number,
+            'SubmissionId': submission_id,
+            'SynthesizedTransformations': 5,
+            'Ranking': 'specific',
+        })
 
     return jsonify({
         'success': True,
