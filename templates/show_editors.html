@@ -559,10 +559,10 @@ $(function() {
     // For some reason, calling 'click' on a link only works in JavaScript on an
     // HTML node, and not with jQuery.
     $('input[name=next_button]').click(function() {
-        $('#submission_list .selected-cluster').next()[0].click();
+        $('#submission_list .selected-cluster:not(:hidden)').next()[0].click();
     });
     $('input[name=back_button]').click(function() {
-        $('#submission_list .selected-cluster').prev()[0].click();
+        $('#submission_list .selected-cluster:not(:hidden)').prev()[0].click();
     });
 
     // We were seeing some problems where the mouse cursor didn't line up with where

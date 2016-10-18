@@ -169,6 +169,10 @@ def login():
             session['question_number'] = question_number
             session['refazer_session_id'] = session_id
 
+            # Also, when this user sees submissions sorted for the first time, they will
+            # be sorted by submission ID.
+            session['sort_mode'] = 'submission_id'
+
             next_page = request.args.get('next')
 
             if next_page is not None:
@@ -183,6 +187,15 @@ def login():
 def logout():
     logout_user()
     return redirect('login')
+
+
+@app.route('/set_sort_mode', methods=['POST'])
+@login_required
+def set_sort_mode():
+    session['sort_mode'] = request.form['sort_mode']
+    return jsonify({
+        'success': True
+    })
 
 
 def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
@@ -546,6 +559,7 @@ def show_grader_interface(question_number, submission_id, filter=None):
         fixed_submission_ids=grade_suggestions,
         perfect_test_submission_ids=perfect_test_submissions,
         graded_submission_ids=graded_submissions,
+        sort_mode=session['sort_mode'],
     )
 
 

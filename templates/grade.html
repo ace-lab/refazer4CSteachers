@@ -8,10 +8,10 @@
         Submission {{ i }}
         {% if i in graded_submission_ids %}
         <img class='inline' src='/static/img/check.svg' />
-        {% elif i in fixed_submission_ids %}
-        <img class='inline' src='/static/img/lightbulb.svg' />
         {% elif i in perfect_test_submission_ids %}
         <img class='inline' src='/static/img/star.svg' />
+        {% elif i in fixed_submission_ids %}
+        <img class='inline' src='/static/img/lightbulb.svg' />
         {% endif %}
       </li>
     </a>
@@ -66,20 +66,20 @@
     <label>Order by:</label>
     <div class="order field">
       <div class="ui radio checkbox">
-        <input checked=true name="sort_order" data-mode="submission_id" type="radio">
+        <input name="sort_order" data-mode="submission_id" type="radio" {% if sort_mode == 'submission_id' %}checked{% endif %}>
         <label>Submission IDs</label>
       </div>
     </div>
     <div class="order field">
       <div class="ui radio checkbox">
-        <input checked=true name="sort_order" data-mode="test_case" type="radio">
+        <input name="sort_order" data-mode="test_case" type="radio" {% if sort_mode == 'test_case' %}checked{% endif %}>
         <label>Test case results</label>
       </div>
     </div>
     {% if session.fixes_enabled %}
     <div class="order field">
       <div class="ui radio checkbox">
-        <input checked=true name="sort_order" data-mode="fix" type="radio">
+        <input name="sort_order" data-mode="fix" type="radio" {% if sort_mode == 'fix' %}checked{% endif %}>
         <label>Suggested fixes</label>
       </div>
     </div>
@@ -117,25 +117,34 @@ $(function() {
         }
     }
 
-    console.log("I'm here");
+    function showList(listName) {
+        $('.submission_ordering').css('display', 'none');
+        if (listName === "submission_id") {
+            $('ul.submission_order').css('display', 'block');
+            scrollList($('div#submission_list'), 'ul.submission_order');
+        } else if (listName === "test_case") {
+            $('ul.test_case_order').css('display', 'block');
+            scrollList($('div#submission_list'), 'ul.test_case_order');
+        } else if (listName === "fix") {
+            $('ul.fix_order').css('display', 'block');
+            scrollList($('div#submission_list'), 'ul.fix_order');
+        }
+    }
+
     $('#order_form .checkbox').checkbox({
         onChecked: function() {
             var order = $(this).data('mode');
-            $('.submission_ordering').css('display', 'none');
-            if (order === "submission_id") {
-                $('ul.submission_order').css('display', 'block');
-                scrollList($('div#submission_list'), 'ul.submission_order');
-            } else if (order === "test_case") {
-                $('ul.test_case_order').css('display', 'block');
-                scrollList($('div#submission_list'), 'ul.test_case_order');
-            } else if (order === "fix") {
-                $('ul.fix_order').css('display', 'block');
-                scrollList($('div#submission_list'), 'ul.fix_order');
-            }
+            showList(order);
+            $.post('/set_sort_mode', {
+                sort_mode: order,
+            });
         }
     });
 
-    $('input[type=radio][data-mode=submission_id]').prop('checked', true);
+    // Make sure to preserve the option that the user chose last time.
+    // This should re-load the list to what it was on the last page.
+    showList($('#order_form input[name=sort_order]:checked').data('mode'));
+
     scrollList($('div#submission_list'));
     scrollList($('div#synthesis_list'));
 
