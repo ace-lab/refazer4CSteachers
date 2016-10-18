@@ -692,9 +692,15 @@ def get_grade_suggestions_api_method():
 # for Refazer to fulfill the request).  Don't expect to get a response in less
 # than 30 seconds, and it may take minutes.
 def upload_example(url, json_data):
-    print("Submitting fix suggestion to Refazer")
-    result = requests.post(REFAZER_ENDPOINT + "/ApplyFixFromExample", json=json_data)
-    print("Refazer has accepted the job")
+    payload = json_data
+    for ranking in ['specific', 'general']:
+        payload.update({
+            'SynthesizedTransformations': 5,
+            'Ranking': ranking,
+        })
+        print("Submitting fix suggestion to Refazer")
+        result = requests.post(REFAZER_ENDPOINT + "/ApplyFixFromExample", json=payload)
+        print("Refazer has accepted the job")
 
 
 @app.route('/synthesize', methods=['POST'])
@@ -715,8 +721,6 @@ def synthesize():
             'SessionId': session_id,
             'QuestionId': question_number,
             'SubmissionId': submission_id,
-            'SynthesizedTransformations': 5,
-            'Ranking': 'specific',
         })
 
     return jsonify({
@@ -762,7 +766,7 @@ def get_submissions(cursor, question_number):
 # track of which jobs we're currently checking.
 refresh_jobs = []
 REFRESH_TIMEOUT = 3
-thread_pool = ThreadPoolExecutor(max_workers=1)
+thread_pool = ThreadPoolExecutor(max_workers=3)
 session_job_queue = Queue()
 shutdown_event = threading.Event()
 thread_pool.submit(fetch_results, session_job_queue, app.config['DATABASE'], shutdown_event)
