@@ -28,6 +28,7 @@ def run_tests(database_cursor):
             input_value_tuples=test_condition.get('input_value_tuples'),
             expected_outputs=test_condition.get('expected_outputs'),
             assertions=test_condition.get('assertions'),
+            pre_code=test_condition.get('pre_code'),
         )
 
         for index, test_case in enumerate(results['test_cases']):
