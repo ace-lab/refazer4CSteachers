@@ -121,7 +121,7 @@ def stringify_output(result):
     return stringified
 
 
-def evaluate_function(code_text, function_name, input_value_tuples, expected_outputs, assertions):
+def evaluate_function(code_text, function_name, input_value_tuples, expected_outputs, assertions=None):
 
     results = {
         'overall_success': False,

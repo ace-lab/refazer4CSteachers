@@ -18,6 +18,7 @@ from jinja2 import Environment, FileSystemLoader
 import highlight
 from evaluate import TEST_CONDITIONS, stringify_input, stringify_output,\
     evaluate_function, evaluate_function_once
+from util.load_data import prettify_code
 
 
 app = Flask(__name__)
@@ -59,8 +60,11 @@ def _start_user_session(question_number):
     cursor = db.cursor()
     submissions = get_submissions(cursor, question_number)
 
+    perfect_test_submissions = get_perfect_test_submissions(submissions, question_number)
+    imperfect_submissions = filter(lambda s: s['id'] not in perfect_test_submissions, submissions)
+
     code_to_fix = []
-    for submission_index, submission in enumerate(submissions, start=0):
+    for submission in imperfect_submissions:
         code_to_fix.append({
             'Code': submission['code'],
             'QuestionId': question_number,
@@ -226,6 +230,11 @@ def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
             one_original_submission_id =\
                 int(re.search("'submission_id': (\d+),", original_submissions_string).group(1))
 
+        # Refazer returns code with a different format than the one we upload.
+        # To minimize diff size that's due purely to whitespace changes, prettify the
+        # code that Refazer returns to conform to the same formatting.
+        prettified_fixed_code = prettify_code(fix['FixedCode'])
+
         cursor.execute('\n'.join([
             "INSERT OR REPLACE INTO fixes (id, session_id, question_number, submission_id,",
             "   fixed_submission_id, before, after)",
@@ -238,7 +247,7 @@ def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
             "    ?, ?, ?, ?, ?, ?)",
         ]), (session_id, question_id, fix['SubmissionId'], one_original_submission_id,
              session_id, question_id, fix['SubmissionId'], one_original_submission_id,
-             submission_code, fix['FixedCode']))
+             submission_code, prettified_fixed_code))
 
     if len(fixes) > 0:
         next_fix_id = max([f['ID'] for f in fixes]) + 1
@@ -381,6 +390,19 @@ def get_grade_suggestions(session_id, question_number):
     return ungraded_fixed_submissions
 
 
+def get_perfect_test_submissions(submissions, question_number):
+
+    test_case_groups = get_test_case_groups(submissions, question_number)
+
+    # Just look for the first group that has, as its key, a string representing a tuple of all 1s.
+    perfect_test_submissions = []
+    for group_key, group in test_case_groups.items():
+        if re.match('^\(1(,\s*1)*\)$', group_key):
+            perfect_test_submissions = group
+
+    return perfect_test_submissions
+
+
 def get_test_case_groups(submissions, question_number):
 
     db = get_db()
@@ -518,11 +540,7 @@ def show_grader_interface(question_number, submission_id):
     )
 
     # Get the list of submissions that have passed all tests
-    # Just look for the first group that has, as its key, a string representing a tuple of all 1s.
-    perfect_test_submissions = []
-    for group_key, group in test_case_groups.items():
-        if re.match('^\(1(,\s*1)*\)$', group_key):
-            perfect_test_submissions = group
+    perfect_test_submissions = get_perfect_test_submissions(submissions, question_number)
 
     # Group submissions based on shared fixes
     fix_groups = get_fix_groups(submissions, refazer_session_id)
@@ -695,7 +713,7 @@ def upload_example(url, json_data):
     payload = json_data
     for ranking in ['specific', 'general']:
         payload.update({
-            'SynthesizedTransformations': 5,
+            'SynthesizedTransformations': 1,
             'Ranking': ranking,
         })
         print("Submitting fix suggestion to Refazer")
