@@ -1,7 +1,7 @@
 import unittest
 import datetime
 
-from util.load_data import extract_first_change
+from util.load_data import extract_first_change, prettify_code
 
 
 def _make_log_message(function_name, timestamp, contents):
@@ -16,6 +16,40 @@ def _make_log_message(function_name, timestamp, contents):
         },
         'server_time': timestamp,
     }
+
+
+class TestPrettify(unittest.TestCase):
+
+    def test_spacing_added_around_operators(self):
+        prettified = prettify_code("a=2+1\n")
+        self.assertEqual(prettified, "a = 2 + 1\n")
+
+    def test_multiline_comments_removed(self):
+        prettified = prettify_code('\n'.join([
+            "def func():",
+            "    ''' This docstring will be removed '''",
+            "    pass",
+            "",
+        ]))
+        self.assertEqual(prettified, '\n'.join([
+            "def func():",
+            "    pass",
+            "",
+        ]))
+
+    def test_remove_YOUR_CODE_HERE_literal(self):
+        prettified = prettify_code('\n'.join([
+            "def func():",
+            "    \"*** YOUR CODE HERE ***\"",
+            "    '*** YOUR CODE HERE ***'",
+            "    pass",
+            ""
+        ]))
+        self.assertEqual(prettified, '\n'.join([
+            "def func():",
+            "    pass",
+            ""
+        ]))
 
 
 class ExtractFirstChangeTest(unittest.TestCase):

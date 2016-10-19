@@ -4,6 +4,10 @@ import argparse
 import os
 import json
 import sqlite3
+import re
+import autopep8
+import pyminifier.minification
+import pyminifier.token_utils
 
 
 class FunctionFinder(ast.NodeVisitor):
@@ -40,7 +44,36 @@ class FunctionFinder(ast.NodeVisitor):
             self.function = node
 
 
-def extract_first_change(logs, function_name):
+def prettify_code(code):
+    '''
+    Note: after removing docstrings, this may leave some methods empty, which will then fail to
+    compile.  However, when this is called only on function source code with non-empty bodies, there
+    won't be any problems.
+    '''
+
+    # Remove docstrings from the code
+    # Based on the pyminifier source code (for example, see
+    # https://github.com/liftoff/pyminifier/blob/master/pyminifier/__init__.py ).
+    tokens = pyminifier.token_utils.listified_tokenizer(code)
+    pyminifier.minification.remove_docstrings(tokens)
+    code_without_docstrings = pyminifier.token_utils.untokenize(tokens)
+
+    # Sometimes, code includes a "*** YOUR CODE HERE ***" string literal from
+    # the original template for the code.  We remove that literal here.
+    code_without_docstrings = re.sub(
+        "^\s*(\"|')\*\*\* YOUR CODE HERE \*\*\*(\"|')[\t ]*$\n",
+        "",
+        code_without_docstrings,
+        flags=re.MULTILINE,
+    )
+
+    # Adjust spacing to Pep8 standards
+    code_with_spaces_fixed = autopep8.fix_code(code_without_docstrings)
+
+    return code_with_spaces_fixed
+
+
+def extract_first_change(logs, function_name, prettify=False):
     '''
     Input: JSON logs for one student.
     '''
@@ -74,6 +107,12 @@ def extract_first_change(logs, function_name):
             # it here if getblock stops being accessible through the inspect module.
             function_code_lines = getblock(code_lines[start_line_index:])
             function_code = ''.join(function_code_lines).rstrip('\n')
+
+            # If the caller requests, the code can be "prettified" before it's loaded
+            # into the database, removing docstrings and whitespace anomalies.
+            if prettify:
+                function_code = prettify_code(function_code)
+
             return function_code
 
     return None
@@ -86,7 +125,7 @@ def save_submission(question_number, student_id, code, cursor):
     ]), (question_number, student_id, code))
 
 
-def load_submissions(submissions_dir, function_names, database_cursor):
+def load_submissions(submissions_dir, function_names, prettify_code, database_cursor):
 
     # Open the log file for each student
     for student_index, student_id in enumerate(os.listdir(submissions_dir)):
@@ -99,7 +138,7 @@ def load_submissions(submissions_dir, function_names, database_cursor):
             # Find the first change that the student made for this question.
             # If there was at least one, save it to the atabase.
             for question_index, function_name in enumerate(function_names):
-                first_change_code = extract_first_change(student_data, function_name)
+                first_change_code = extract_first_change(student_data, function_name, prettify_code)
                 if first_change_code is not None:
                     save_submission(question_index, student_index, first_change_code, cursor)
 
@@ -121,6 +160,12 @@ if __name__ == '__main__':
         nargs='+',
         help="Names of functions for which a student's first changes will be extracted."
     )
+    argument_parser.add_argument(
+        '--prettify-code',
+        action='store_true',
+        default=True,
+        help="Whether to prettify students' code before saving it (on by default)."
+    )
     args = argument_parser.parse_args()
 
     # Initialize the database
@@ -129,5 +174,5 @@ if __name__ == '__main__':
     cursor = db.cursor()
 
     # Run the code to load in student submission
-    load_submissions(args.submissions_dir, args.function_names, cursor)
+    load_submissions(args.submissions_dir, args.function_names, prettify_code, cursor)
     db.commit()
