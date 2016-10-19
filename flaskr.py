@@ -451,6 +451,48 @@ def get_test_case_groups(submissions, question_number):
     return test_case_groups
 
 
+def get_test_case_groups_by_first_failure(submissions, question_number):
+    '''
+    In contrast to the previous grouping scheme, this scheme groups submissions by
+    their return value on the first test case they fail.
+    '''
+
+    db = get_db()
+    cursor = db.cursor()
+
+    test_case_groups = {}
+    for submission in submissions:
+
+        cursor.execute('\n'.join([
+            "SELECT test_case_index, success, observed, test_type",
+            "FROM testresults JOIN submissions ON submissions.id = testresults.submission_id",
+            "WHERE",
+            "    submissions.submission_id = ? AND",
+            "    question_number = ?"
+        ]), (submission['id'], question_number,))
+
+        submission_failed = False
+        failure_key = (None, None)
+
+        # Search for the first test case that fails.
+        # Make a key for its group based on which test case failed and what it returned.
+        for (test_case_index, success, observed, test_type) in cursor.fetchall():
+            if not success:
+                if test_type == 'assertion':
+                    outcome_key = success
+                elif test_type == 'input-output':
+                    outcome_key = observed
+                failure_key = (test_case_index, outcome_key)
+                break
+
+        if failure_key not in test_case_groups:
+            test_case_groups[failure_key] = []
+        test_case_groups[failure_key].append(submission['id'])
+
+    return test_case_groups
+    
+
+
 def get_fix_groups(submissions, session_id):
 
     db = get_db()
@@ -542,7 +584,7 @@ def show_grader_interface(question_number, submission_id):
         grade_status[ungraded_fixed_submission_id] = "fixed"
 
     # Group submissions based on what test cases they pass
-    test_case_groups = get_test_case_groups(submissions, question_number)
+    test_case_groups = get_test_case_groups_by_first_failure(submissions, question_number)
     test_case_groups_sorted = sorted(
         test_case_groups.values(),
         key=lambda l: len(l),
@@ -560,6 +602,8 @@ def show_grader_interface(question_number, submission_id):
     fix_groups.append(unfixable_submissions)
 
     # Filter all submissions to just those that don't pass all test cases
+    print("Keys:", test_case_groups.keys())
+    print("Number of keys:", len(test_case_groups))
     fails_tests = lambda submission_id: submission_id not in perfect_test_submissions
     submission_ids = list(filter(fails_tests, [s['id'] for s in submissions]))
     submissions = list(filter(lambda s: s['id'] in submission_ids, submissions))
