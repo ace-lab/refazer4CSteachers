@@ -182,7 +182,9 @@ def login():
             if next_page is not None:
                 return redirect(next_page)
             else:
-                return redirect('/' + str(question_number) + '/1')
+                submissions = get_submissions(cursor, question_number)
+                imperfect_test_submissions = get_imperfect_test_submissions(submissions, question_number)
+                return redirect('/' + str(question_number) + '/' + str(imperfect_test_submissions[0]))
         
         return render_template('login.html')
 
@@ -403,6 +405,14 @@ def get_perfect_test_submissions(submissions, question_number):
     return perfect_test_submissions
 
 
+def get_imperfect_test_submissions(submissions, question_number):
+
+    submission_ids = [s['id'] for s in submissions]
+    perfect_test_submissions = get_perfect_test_submissions(submissions, question_number)
+    imperfect_test_submissions = list(filter(lambda sid: sid not in perfect_test_submissions, submission_ids))
+    return imperfect_test_submissions
+
+
 def get_test_case_groups(submissions, question_number):
 
     db = get_db()
@@ -599,7 +609,8 @@ def run_code_evaluations(code_text, question_number):
         function_name=test_condition['function_name'],
         input_value_tuples=test_condition.get('input_value_tuples'),
         expected_outputs=test_condition.get('expected_outputs'),
-        assertions=test_condition.get('assertions')
+        assertions=test_condition.get('assertions'),
+        pre_code=test_condition.get('pre_code'),
     )
 
     # Make test case results human readable and printable within HTML

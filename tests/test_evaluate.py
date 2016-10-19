@@ -174,6 +174,21 @@ class EvaluateSolutionTest(unittest.TestCase):
         )
         self.assertEqual(result['success'], False)
 
+    def test_run_prerequisite_code(self):
+        result = evaluate_function_once(
+            code_text='\n'.join([
+                "def func(input_):",
+                "    return add(0, 1)",
+            ]),
+            pre_code='\n'.join([
+                "def add(x, y):",
+                "    return x + y",
+            ]),
+            function_name='func',
+            input_values=("test_input",),
+            expected_output=1,
+        )
+
 
 class EvaluateMultipleSolutionsTest(unittest.TestCase):
 

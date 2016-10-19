@@ -9,6 +9,29 @@ import inspect
 PROCESS_TIMEOUT = .5
 
 
+PREREQUISITE_CODE = """
+from operator import add, mul
+
+def identity(x):
+    return x
+
+def increment(x):
+    return x + 1
+
+def triple(x):
+    return x * 3
+
+def square(x):
+    return x * x
+
+def factorial(n):
+    if n == 0:
+        return 1
+    return n * factorial(n - 1)
+
+"""
+
+
 # Tests can be defined either as pairs of input and output (see 0 and 1 below)
 # or as assertions that are run after the student's function is initialized (see 2 below).
 TEST_CONDITIONS = {
@@ -28,6 +51,17 @@ TEST_CONDITIONS = {
             11,
             25,
         ],
+        # Some student submissions call "product" for this, so we include a correct implementation
+        'pre_code': '\n'.join([
+            PREREQUISITE_CODE,
+            "",
+            "def product(n, term):",
+            "    total = 1",
+            "    for i in range(1, n + 1):",
+            "        total *= term(i)",
+            "    return total",
+            "",
+        ]),
     },
     1: {
         'function_name': 'product',
@@ -52,7 +86,25 @@ TEST_CONDITIONS = {
             "assert repeated(lambda x: x * x, 2)(5) == 625;",
             "assert repeated(lambda x: x * x, 4)(5) == 152587890625;",
             "assert repeated(lambda x: x * x, 0)(5) == 5;"
-        ]
+        ],
+        # Some student submissions call "product" and "accumulate", so we include correct implementations
+        'pre_code': '\n'.join([
+            PREREQUISITE_CODE,
+            "",
+            "def product(n, term):",
+            "    total = 1",
+            "    for i in range(1, n + 1):",
+            "        total *= term(i)",
+            "    return total",
+            "",
+            "",
+            "def accumulate(combiner, base, n, term):",
+            "    total = base",
+            "    for i in range(1, n + 1):",
+            "        total = combiner(total, term(i))",
+            "    return total",
+            "",
+        ]),
     }
 }
 
@@ -121,7 +173,7 @@ def stringify_output(result):
     return stringified
 
 
-def evaluate_function(code_text, function_name, input_value_tuples, expected_outputs, assertions=None):
+def evaluate_function(code_text, function_name, input_value_tuples, expected_outputs, assertions=None, pre_code=None):
 
     results = {
         'overall_success': False,
@@ -136,6 +188,7 @@ def evaluate_function(code_text, function_name, input_value_tuples, expected_out
                 function_name=function_name,
                 input_values=input_value_tuples[test_index],
                 expected_output=expected_outputs[test_index],
+                pre_code=pre_code,
             ))
     elif assertions is not None:
         for test_index in range(len(assertions)):
@@ -143,6 +196,7 @@ def evaluate_function(code_text, function_name, input_value_tuples, expected_out
                 code_text=code_text,
                 function_name=function_name,
                 assertion_code=assertions[test_index],
+                pre_code=pre_code,
             ))
     
     # Compute the overall success across all tests
@@ -152,7 +206,8 @@ def evaluate_function(code_text, function_name, input_value_tuples, expected_out
 
 
 def evaluate_function_once(
-        code_text, function_name, input_values=None, expected_output=None, assertion_code=None):
+        code_text, function_name, input_values=None, expected_output=None,
+        assertion_code=None, pre_code=None):
 
     input_values = [] if input_values is None else input_values
 
@@ -205,7 +260,7 @@ def evaluate_function_once(
 
     if cant_run_code is False:
 
-        def run_function(function, function_name, input_values, result):
+        def run_function(function, function_name, input_values, result, pre_code):
 
             # It's critical to do a few things here:
             # 1. Transfer the input values into the sandbox scope
@@ -214,6 +269,18 @@ def evaluate_function_once(
             # 3. Store the output in a sandbox variable and retrieve it later.
             local_scope['input_values'] = input_values
             global_scope[function_name] = local_scope[function_name]
+
+            # The test condition may specify code that needs to be run before the
+            # test case is run, for instance to populate the environment with other functions
+            # that can be run.  Here we run that prerequisite code.
+            if pre_code is not None:
+                pre_local_scope = {}
+                exec(pre_code, global_scope, pre_local_scope)
+
+                # We have found that functions defined in the local scope can't be called
+                # in exec later.  So we transfer everything defined into the local scope
+                # of the prerequisite code into the global scope
+                global_scope.update(pre_local_scope)
 
             # Create a new version of stdout to capture what gets printed
             capturable_stdout = StringIO()
@@ -254,7 +321,7 @@ def evaluate_function_once(
         # Create a new process to run the test function, so we can terminate it if it loops
         try:
             with timeout(seconds=.5):
-                run_function(local_scope[function_name], function_name, input_values, result)
+                run_function(local_scope[function_name], function_name, input_values, result, pre_code)
         except TimeoutError:
             result['timeout'] = True
 
