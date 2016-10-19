@@ -551,7 +551,8 @@ def show_grader_interface(question_number, submission_id):
 
     # Filter all submissions to just those that don't pass all test cases
     fails_tests = lambda submission_id: submission_id not in perfect_test_submissions
-    submissions = list(filter(fails_tests, [s['id'] for s in submissions]))
+    submission_ids = list(filter(fails_tests, [s['id'] for s in submissions]))
+    submissions = list(filter(lambda s: s['id'] in submission_ids, submissions))
     for group_index in range(len(test_case_groups_sorted)):
         test_case_groups_sorted[group_index] = list(filter(fails_tests, test_case_groups_sorted[group_index]))
     for group_index in range(len(fix_groups)):
@@ -566,7 +567,7 @@ def show_grader_interface(question_number, submission_id):
         notes=notes,
         grade_status=grade_status,
         submission_id=submission_id,
-        submission_ids=submissions,
+        submission_ids=submission_ids,
         fixed_submissions=grade_suggestions,
         fix_exists=fix_exists,
         fix_submission_id=fixed_submission_id,

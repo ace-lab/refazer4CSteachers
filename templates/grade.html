@@ -2,15 +2,15 @@
 {% block clusters %}
 <div id='submissions_column' class="col-md-2">
 
-  {% macro make_submission(question_number, i) %}
+  {% macro make_submission(question_number, i, annotate=True) %}
     <a href="/{{ question_number }}/{{ i }}" class="{{ 'selected-cluster' if i == submission_id }}">
-      <li class="list-group-item submission{% if i in grade_status %} {{ grade_status[i] }}{% endif %}">
+      <li class="list-group-item submission{% if annotate and i in grade_status %} {{ grade_status[i] }}{% endif %}" data-submission-id={{ i }}>
         Submission {{ i }}
-        {% if i in graded_submission_ids %}
+        {% if annotate and i in graded_submission_ids %}
         <img class='inline' src='/static/img/check.svg' />
-        {% elif i in perfect_test_submission_ids %}
+        {% elif annotate and i in perfect_test_submission_ids %}
         <img class='inline' src='/static/img/star.svg' />
-        {% elif i in fixed_submission_ids and session.fixes_enabled %}
+        {% elif annotate and i in fixed_submission_ids and session.fixes_enabled %}
         <img class='inline' src='/static/img/lightbulb.svg' />
         {% endif %}
       </li>
@@ -95,7 +95,7 @@
   <div id="fix_list" class='submission_list'>
     <ul id='synthesis_list' class="list-group">
       {% for i in fixed_submissions %}
-        {{ make_submission(question_number, i) }}
+        {{ make_submission(question_number, i, False) }}
       {% endfor %}
     </ul>
   </div>
