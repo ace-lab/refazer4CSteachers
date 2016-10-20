@@ -59,6 +59,14 @@ create table if not exists submissions (
   unique(question_number, submission_id)
 );
 
+create table if not exists submission_samples (
+  id integer primary key,
+  user_id integer not null,
+  question_number integer not null,
+  submission_id integer not null,  /* refers to submission_id field in submissions table */
+  foreign key (user_id) references users(id)
+);
+
 create table if not exists grades (
   id integer primary key,
   session_id integer note null,
