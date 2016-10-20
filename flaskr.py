@@ -19,7 +19,8 @@ import highlight
 from evaluate import TEST_CONDITIONS, stringify_input, stringify_output,\
     evaluate_function, evaluate_function_once
 from util.load_data import prettify_code
-from util.conditions import get_test_case_groups_by_first_failure
+from util.conditions import get_test_case_groups_by_first_failure, get_perfect_test_submissions,\
+    get_imperfect_test_submissions
 
 
 app = Flask(__name__)
@@ -61,7 +62,7 @@ def _start_user_session(question_number):
     cursor = db.cursor()
     submissions = get_submissions(cursor, question_number)
 
-    perfect_test_submissions = get_perfect_test_submissions(submissions, question_number)
+    perfect_test_submissions = get_perfect_test_submissions(cursor, submissions, question_number)
     imperfect_submissions = filter(lambda s: s['id'] not in perfect_test_submissions, submissions)
 
     code_to_fix = []
@@ -184,7 +185,7 @@ def login():
                 return redirect(next_page)
             else:
                 submissions = get_submissions(cursor, question_number)
-                imperfect_test_submissions = get_imperfect_test_submissions(submissions, question_number)
+                imperfect_test_submissions = get_imperfect_test_submissions(cursor, submissions, question_number)
                 return redirect('/' + str(question_number) + '/' + str(imperfect_test_submissions[0]))
         
         return render_template('login.html')
@@ -393,65 +394,6 @@ def get_grade_suggestions(session_id, question_number):
     return ungraded_fixed_submissions
 
 
-def get_perfect_test_submissions(submissions, question_number):
-
-    test_case_groups = get_test_case_groups(submissions, question_number)
-
-    # Just look for the first group that has, as its key, a string representing a tuple of all 1s.
-    perfect_test_submissions = []
-    for group_key, group in test_case_groups.items():
-        if re.match('^\(1(,\s*1)*\)$', group_key):
-            perfect_test_submissions = group
-
-    return perfect_test_submissions
-
-
-def get_imperfect_test_submissions(submissions, question_number):
-
-    submission_ids = [s['id'] for s in submissions]
-    perfect_test_submissions = get_perfect_test_submissions(submissions, question_number)
-    imperfect_test_submissions = list(filter(lambda sid: sid not in perfect_test_submissions, submission_ids))
-    return imperfect_test_submissions
-
-
-def get_test_case_groups(submissions, question_number):
-
-    db = get_db()
-    cursor = db.cursor()
-
-    # Sort submissions by which test cases they pass
-    cursor.execute('\n'.join([
-        "SELECT COUNT(DISTINCT(test_case_index))",
-        "FROM testresults JOIN submissions ON submissions.id = testresults.submission_id",
-        "WHERE question_number = ?"
-    ]), (question_number,))
-    test_case_count = cursor.fetchone()[0]
-    test_case_groups = {}
-
-    for submission in submissions:
-
-        # Fetch all test cases for a submission
-        cursor.execute('\n'.join([
-            "SELECT test_case_index, success",
-            "FROM testresults JOIN submissions ON submissions.id = testresults.submission_id",
-            "WHERE",
-            "    submissions.submission_id = ? AND",
-            "    question_number = ?"
-        ]), (submission['id'], question_number,))
-        
-        # Make a key into a dictionary using test case successes.
-        # Group all submissions by which test cases they pass
-        submission_test_results = [None] * test_case_count
-        for (test_case_index, success) in cursor.fetchall():
-            submission_test_results[test_case_index] = success
-        test_results_key = str(tuple(submission_test_results))
-        if test_results_key not in test_case_groups:
-            test_case_groups[test_results_key] = []
-        test_case_groups[test_results_key].append(submission['id'])
-
-    return test_case_groups
-
-
 def get_fix_groups(submissions, session_id):
 
     db = get_db()
@@ -551,7 +493,7 @@ def show_grader_interface(question_number, submission_id):
     )
 
     # Get the list of submissions that have passed all tests
-    perfect_test_submissions = get_perfect_test_submissions(submissions, question_number)
+    perfect_test_submissions = get_perfect_test_submissions(cursor, submissions, question_number)
 
     # Group submissions based on shared fixes
     fix_groups = get_fix_groups(submissions, refazer_session_id)
