@@ -2,6 +2,7 @@ import argparse
 import random
 import copy
 import sqlite3
+import re
 
 
 def get_test_case_groups_by_first_failure(cursor, submissions, question_number):
@@ -39,6 +40,98 @@ def get_test_case_groups_by_first_failure(cursor, submissions, question_number):
         test_case_groups[failure_key].append(submission['id'])
 
     return test_case_groups
+
+
+def get_perfect_test_submissions(cursor, submissions, question_number):
+
+    test_case_groups = get_test_case_groups(cursor, submissions, question_number)
+
+    # Just look for the first group that has, as its key, a string representing a tuple of all 1s.
+    perfect_test_submissions = []
+    for group_key, group in test_case_groups.items():
+        if re.match('^\(1(,\s*1)*\)$', group_key):
+            perfect_test_submissions = group
+
+    return perfect_test_submissions
+
+
+def get_imperfect_test_submissions(cursor, submissions, question_number):
+
+    submission_ids = [s['id'] for s in submissions]
+    perfect_test_submissions = get_perfect_test_submissions(cursor, submissions, question_number)
+    imperfect_test_submissions = list(filter(lambda sid: sid not in perfect_test_submissions, submission_ids))
+    return imperfect_test_submissions
+
+
+def get_test_case_groups(cursor, submissions, question_number):
+
+    # Sort submissions by which test cases they pass
+    cursor.execute('\n'.join([
+        "SELECT COUNT(DISTINCT(test_case_index))",
+        "FROM testresults JOIN submissions ON submissions.id = testresults.submission_id",
+        "WHERE question_number = ?"
+    ]), (question_number,))
+    test_case_count = cursor.fetchone()[0]
+    test_case_groups = {}
+
+    for submission in submissions:
+
+        # Fetch all test cases for a submission
+        cursor.execute('\n'.join([
+            "SELECT test_case_index, success",
+            "FROM testresults JOIN submissions ON submissions.id = testresults.submission_id",
+            "WHERE",
+            "    submissions.submission_id = ? AND",
+            "    question_number = ?"
+        ]), (submission['id'], question_number,))
+        
+        # Make a key into a dictionary using test case successes.
+        # Group all submissions by which test cases they pass
+        submission_test_results = [None] * test_case_count
+        for (test_case_index, success) in cursor.fetchall():
+            submission_test_results[test_case_index] = success
+        test_results_key = str(tuple(submission_test_results))
+        if test_results_key not in test_case_groups:
+            test_case_groups[test_results_key] = []
+        test_case_groups[test_results_key].append(submission['id'])
+
+    return test_case_groups
+
+
+def get_submissions_working_set(cursor, username, question_number, interface):
+
+    # If this is a user, then return the sample for just that interface
+    if username.startswith('user'):
+
+        # Get the ID of this user
+        cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+        user_id = cursor.fetchone()[0]
+
+        # Map the interface condition to a type of sample
+        sample_type = 'stratified' if interface == 'A' else\
+                      'fixes_split1' if interface == 'B' else\
+                      'fixes_split2' if interface == 'C' else ''
+
+        # Fetch all submissions for this user, for this sample
+        cursor.execute('\n'.join([
+            "SELECT submission_id FROM submission_samples WHERE",
+            "user_id = ? AND",
+            "sample_type = ? AND",
+            "question_number = ?",
+        ]), (user_id, sample_type, question_number))
+        submission_ids = [row[0] for row in cursor.fetchall()]
+        return submission_ids
+
+    # If this is an administrator, show everything that doesn't pass a test case
+    elif username.startswith('admin'):
+
+        # Fetch a list of submission IDs for this question
+        cursor.execute("SELECT submission_id FROM submissions WHERE question_number = ?", (question_number,))
+        submissions = [{'id': row[0]} for row in cursor.fetchall()]
+        imperfect_submissions = get_imperfect_test_submissions(cursor, submissions, question_number)
+        return imperfect_submissions
+
+    return []
 
 
 def sample_submissions(groups, sample_size, users, n_top_groups=None):
@@ -129,8 +222,8 @@ def main(database_filename, question_indexes, sample_size, n_top_groups):
         for user_index, sample in enumerate(samples):
             for submission_id in sample:
                 cursor.execute('\n'.join([
-                    "INSERT INTO submission_samples(user_id, question_number, submission_id)",
-                    "VALUES(?, ?, ?)"
+                    "INSERT INTO submission_samples(user_id, question_number, submission_id, sample_type)",
+                    "VALUES(?, ?, ?, \"stratified\")"
                 ]), (user_ids[user_index], question_index, submission_id))
 
     db.commit()

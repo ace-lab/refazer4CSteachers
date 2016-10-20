@@ -64,6 +64,7 @@ create table if not exists submission_samples (
   user_id integer not null,
   question_number integer not null,
   submission_id integer not null,  /* refers to submission_id field in submissions table */
+  sample_type text not null,
   foreign key (user_id) references users(id)
 );
 
