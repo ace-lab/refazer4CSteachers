@@ -57,9 +57,15 @@
       {% for fix_group in fix_groups %}
       <li>
         <ul class="list-group">
-          {% for i in fix_group %}
-            {{ make_submission(question_number, i) }}
-          {% endfor %}
+        {% for transformation_group in fix_group.values() %}
+          <li class="inner">
+            <ul class="list-group">
+            {% for i in transformation_group %}
+              {{ make_submission(question_number, i) }}
+            {% endfor %}
+            </ul>
+          </li>
+        {% endfor %}
         </ul>
       </li>
       {% endfor %}

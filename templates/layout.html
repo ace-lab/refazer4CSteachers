@@ -272,8 +272,11 @@
       padding: 0;
       list-style-type: none;
     }
-    .simple_list li {
+    .simple_list li:not(:last-child) {
       border-bottom: 3px solid #7d7d7d;
+    }
+    .simple_list li.inner:not(:last-child) {
+      border-bottom: 1px solid #7d7d7d;
     }
     #order_form {
       margin-top: 1em;
