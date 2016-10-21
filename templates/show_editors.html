@@ -161,13 +161,13 @@
         {% if fix_grade_exists %}
         <div id="past_grade">
             <p>
-                Another student with this same problem has already been graded.
-                Do you want to use their grade here?
+                Another student with this same problem has already been given feedback.
+                Do you want to use the feedback for them here?
             </p>
             <input type='hidden' name='fix_grade' value={{ fix_grade }} />
             <input type='hidden' name='fix_notes' value='{{ fix_notes|tojson }}' />
             <input type="button" class="ui button" name="apply_grade"
-                value="⬐ Use existing grade ⬎"></input>
+                value="⬐ Use existing feedback ⬎"></input>
         </div>
         {% endif %}
         {% endif %}

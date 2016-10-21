@@ -231,6 +231,7 @@ def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
 
         if fix['Transformation'] is not None and 'Examples' in fix['Transformation']:
             original_submissions_string = fix['Transformation']['Examples']
+            transformation_id = fix['Transformation']['ID']
             one_original_submission_id =\
                 int(re.search("'submission_id': (\d+),", original_submissions_string).group(1))
 
@@ -241,17 +242,17 @@ def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
 
         cursor.execute('\n'.join([
             "INSERT OR REPLACE INTO fixes (id, session_id, question_number, submission_id,",
-            "   fixed_submission_id, before, after)",
+            "   transformation_id, fixed_submission_id, before, after)",
             "VALUES (",
             "    (SELECT id FROM fixes WHERE"
             "        session_id = ? AND",
             "        question_number = ? AND",
             "        submission_id = ? AND",
-            "        fixed_submission_id = ?),",
-            "    ?, ?, ?, ?, ?, ?)",
-        ]), (session_id, question_id, fix['SubmissionId'], one_original_submission_id,
-             session_id, question_id, fix['SubmissionId'], one_original_submission_id,
-             submission_code, prettified_fixed_code))
+            "        transformation_id = ?),",
+            "    ?, ?, ?, ?, ?, ?, ?)",
+        ]), (session_id, question_id, fix['SubmissionId'], transformation_id,
+             session_id, question_id, fix['SubmissionId'], transformation_id,
+             one_original_submission_id, submission_code, prettified_fixed_code))
 
     if len(fixes) > 0:
         next_fix_id = max([f['ID'] for f in fixes]) + 1
@@ -406,17 +407,19 @@ def get_fix_groups(submissions, session_id):
         # Get the ID of the first submission that, when it was fixed,
         # suggested a fix for this submission
         cursor.execute('\n'.join([
-            "SELECT fixed_submission_id FROM fixes WHERE",
+            "SELECT transformation_id, fixed_submission_id FROM fixes WHERE",
             "session_id = ? AND",
             "submission_id = ?",
         ]), (session_id, submission['id']))
         row = cursor.fetchone()
 
         # Group submissions by what submission can be used to fix them
-        key = None if row is None else row[0]
-        if not key in fix_groups:
-            fix_groups[key] = []
-        fix_groups[key].append(submission['id'])
+        (transformation_id, fixed_submission_id) = row if row is not None else (None, None)
+        if fixed_submission_id not in fix_groups:
+            fix_groups[fixed_submission_id] = {}
+        if transformation_id not in fix_groups[fixed_submission_id]:
+            fix_groups[fixed_submission_id][transformation_id] = []
+        fix_groups[fixed_submission_id][transformation_id].append(submission['id'])
 
     return fix_groups
 
@@ -467,7 +470,7 @@ def show_grader_interface(question_number, submission_id):
         fixed_submission_id = None
         fix_grade = None
         fix_notes = None
-    fix_grade_exists = (fix_grade is not None)
+    fix_grade_exists = (fix_notes is not None)
 
     # Get a list of all notes that can be applied when grading
     cursor.execute("SELECT DISTINCT(\"text\") FROM notes WHERE session_id = ?", (refazer_session_id,))
@@ -499,10 +502,20 @@ def show_grader_interface(question_number, submission_id):
     fix_groups = get_fix_groups(submissions, refazer_session_id)
     unfixable_submissions = fix_groups[None]
     del(fix_groups[None])
-    fix_groups = sorted(fix_groups.values(), key=lambda l: len(l), reverse=True)
+    # Sort fix groups by the number of fixes in the first level of the fix
+    # hierarchy (clustered by the original submission ID that produced the fix)
+    fix_groups = sorted(
+        fix_groups.values(),
+        key=lambda transformations: sum([len(l) for l in transformations.values()]),
+        reverse=True,
+    )
     fix_groups.append(unfixable_submissions)
+    print(fix_groups)
 
     # Filter all submissions to just those that don't pass all test cases
+    # XXX commented out because this isn't necessary with the current data source
+    submission_ids = [s['id'] for s in submissions]
+    '''
     fails_tests = lambda submission_id: submission_id not in perfect_test_submissions
     submission_ids = list(filter(fails_tests, [s['id'] for s in submissions]))
     submissions = list(filter(lambda s: s['id'] in submission_ids, submissions))
@@ -511,6 +524,7 @@ def show_grader_interface(question_number, submission_id):
     for group_index in range(len(fix_groups)):
         fix_groups[group_index] = list(filter(fails_tests, fix_groups[group_index]))
     grade_suggestions = list(filter(fails_tests, grade_suggestions))
+    '''
 
     return render_template('grade.html',
         question_number=question_number,
@@ -669,7 +683,7 @@ def upload_example(url, json_data):
     payload = json_data
     for ranking in ['specific', 'general']:
         payload.update({
-            'SynthesizedTransformations': 1,
+            'SynthesizedTransformations': 3,
             'Ranking': ranking,
         })
         print("Submitting fix suggestion to Refazer")

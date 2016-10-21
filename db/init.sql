@@ -113,9 +113,10 @@ create table if not exists fixes (
      This is in contrast to the submission_id column on the testresults tabe, that 
      is a foreign key to the `id` column on the submissions table.  Sorry. */
   submission_id integer not null,
+  transformation_id integer not null,
   fixed_submission_id integer not null,  /* which submission was fixed to produce this fix */
   before text not null,
   after text not null,
   timestamp datetime default current_timestamp,
-  unique(session_id, question_number, submission_id, fixed_submission_id)
+  unique(session_id, question_number, submission_id, transformation_id)
 );
