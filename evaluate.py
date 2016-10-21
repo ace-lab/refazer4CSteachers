@@ -303,7 +303,7 @@ def evaluate_function_once(
             #    recursively (otherwise, it can't be found for recursive calls)
             # 3. Store the output in a sandbox variable and retrieve it later.
             local_scope['input_values'] = input_values
-            global_scope[function_name] = local_scope[function_name]
+            global_scope.update(local_scope)  # transfers functions and other locals to global scope
 
             # The test condition may specify code that needs to be run before the
             # test case is run, for instance to populate the environment with other functions
