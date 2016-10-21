@@ -9,6 +9,8 @@ import autopep8
 import pyminifier.minification
 import pyminifier.token_utils
 
+from util.old_code import create_grader_question
+
 
 class FunctionFinder(ast.NodeVisitor):
     '''
@@ -143,29 +145,76 @@ def load_submissions(submissions_dir, function_names, prettify_code, database_cu
                     save_submission(question_index, student_index, first_change_code, cursor)
 
 
+def load_submissions_from_json_file(json_filename, question_number, prettify, database_cursor):
+
+    grader_questions = create_grader_question(json_filename, question_number)
+    clusters = grader_questions.test_based_cluster
+
+    submission_index = 0
+    for cluster in clusters:
+        for submission in cluster.fixes:
+
+            # If the caller requests, the code can be "prettified" before it's loaded
+            # into the database, removing docstrings and whitespace anomalies.
+            code = submission['before']
+            if prettify:
+                code = prettify_code(code)
+
+            cursor.execute('\n'.join([
+                "INSERT OR IGNORE INTO submissions (question_number, submission_id, code)",
+                "VALUES (?, ?, ?)",
+            ]), (question_number, submission_index, code))
+            submission_index += 1
+
+    db.commit()
+
+
 if __name__ == '__main__':
+
     argument_parser = argparse.ArgumentParser(
-        description="Load student's first changes to a function into the database"
+        description="Load student's submissions into the database"
     )
-    argument_parser.add_argument(
+    subparsers = argument_parser.add_subparsers(
+        help="Submodules for loading data from different sources",
+        dest='command'
+    )
+
+    # Subcommand: read in the data from a directory of data from CS61A
+    dir_parser = subparsers.add_parser("61a_dir", description="read from CS61A data directory")
+    dir_parser.add_argument(
         'submissions_dir',
         help="Directory of student submissions"
     )
-    argument_parser.add_argument(
-        'database_file',
-        help="Name of SQLite database file to dump data to."
-    )
-    argument_parser.add_argument(
+    dir_parser.add_argument(
         'function_names',
         nargs='+',
         help="Names of functions for which a student's first changes will be extracted."
     )
-    argument_parser.add_argument(
-        '--prettify-code',
-        action='store_true',
-        default=True,
-        help="Whether to prettify students' code before saving it (on by default)."
+
+    # Subcommand: read in the data from a preprocessed JSON file
+    file_parser = subparsers.add_parser("file", description="JSON file of student submissions")
+    file_parser.add_argument(
+        'submissions_json',
+        help="JSON file containing all student submissions for a problem"
     )
+    file_parser.add_argument(
+        'question_index',
+        help="The index of the question for all submissions, which will be stored with each submission."
+    )
+
+    # Add common arguments to all parsers
+    for subparser in [dir_parser, file_parser]:
+        subparser.add_argument(
+            'database_file',
+            help="Name of SQLite database file to dump data to."
+        )
+        subparser.add_argument(
+            '--prettify-code',
+            action='store_true',
+            default=True,
+            help="Whether to prettify students' code before saving it (on by default)."
+        )
+    
     args = argument_parser.parse_args()
 
     # Initialize the database
@@ -173,6 +222,10 @@ if __name__ == '__main__':
     db.row_factory = sqlite3.Row
     cursor = db.cursor()
 
-    # Run the code to load in student submission
-    load_submissions(args.submissions_dir, args.function_names, prettify_code, cursor)
+    # Run the code to load in student submissions
+    if args.command == '61a_dir':
+        load_submissions(args.submissions_dir, args.function_names, args.prettify_code, cursor)
+    elif args.command == 'file':
+        load_submissions_from_json_file(args.submissions_json, args.question_index, args.prettify_code, cursor)
+
     db.commit()
