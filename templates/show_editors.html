@@ -57,6 +57,8 @@
                   <th>Test</th>
                   {% if test_results.test_cases[0].test_type == 'input-output' %}
                   <th>Input</th>
+                  {% elif test_results.test_cases[0].test_type == 'test_code' %}
+                  <th>Test code</th>
                   {% elif test_results.test_cases[0].test_type == 'assertion' %}
                   <th>Assertion</th>
                   {% endif %}
@@ -74,6 +76,8 @@
                   <td>{{ loop.index }}</td>
                   {% if test_results.test_cases[0].test_type == 'input-output' %}
                   <td class='input'>{{ test_case.input_values }}</td>
+                  {% elif test_results.test_cases[0].test_type == 'test_code' %}
+                  <td class='input'>{{ test_case.test_code }}</td>
                   {% elif test_results.test_cases[0].test_type == 'assertion' %}
                   <td class='assertion'>{{ test_case.assertion }}</td>
                   {% endif %}

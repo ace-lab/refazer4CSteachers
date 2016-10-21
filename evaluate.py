@@ -32,8 +32,9 @@ def factorial(n):
 """
 
 
-# Tests can be defined either as pairs of input and output (see 0 and 1 below)
-# or as assertions that are run after the student's function is initialized (see 2 below).
+# Tests can be defined either as pairs of input and output (see 0 and 1 below),
+# as test code run after the code has been run (see 2 below),
+# or as assertions that are run after the student's function is initialized (see comment in 2 below).
 TEST_CONDITIONS = {
     0: {
         'function_name': 'accumulate',
@@ -80,13 +81,31 @@ TEST_CONDITIONS = {
     },
     2: {
         'function_name': 'repeated',
-        'assertions': [
-            "add_three = repeated(lambda x: x + 1, 3); assert add_three(5) == 8;",
-            "assert repeated(lambda x: x * 3, 5)(1) == 243;",
-            "assert repeated(lambda x: x * x, 2)(5) == 625;",
-            "assert repeated(lambda x: x * x, 4)(5) == 152587890625;",
-            "assert repeated(lambda x: x * x, 0)(5) == 5;"
+        # Tests specified as test code need to provide test code to run after the student's
+        # code is run, along with an expected output from each one.
+        # Each string of test code needs to define the variable "output", which will be
+        # returned from the test code, and checked against the expected output value.
+        'test_code': [
+            "add_three = repeated(lambda x: x + 1, 3); output = add_three(5)",
+            "output = repeated(lambda x: x * 3, 5)(1)",
+            "output = repeated(lambda x: x * x, 2)(5)",
+            "output = repeated(lambda x: x * x, 4)(5)",
+            "output = repeated(lambda x: x * x, 0)(5)"
         ],
+        'expected_outputs': [
+            8,
+            243,
+            625,
+            152587890625,
+            5,
+        ],
+        # This test used to be run as assertions.
+        # We leave the code here as future reference.
+        # If you provide assertions, you don't need to specify input values and expected output.
+        # Each assertion is an 'assert' that is run after the code has finished running.
+        # 'assertions': [
+        #      "assert repeated(lambda x: x * x, 0)(5) == 5;",
+        # ],
         # Some student submissions call "product" and "accumulate", so we include correct implementations
         'pre_code': '\n'.join([
             PREREQUISITE_CODE,
@@ -173,7 +192,9 @@ def stringify_output(result):
     return stringified
 
 
-def evaluate_function(code_text, function_name, input_value_tuples, expected_outputs, assertions=None, pre_code=None):
+def evaluate_function(
+    code_text, function_name, input_value_tuples, expected_outputs,
+    assertions=None, test_code=None, pre_code=None):
 
     results = {
         'overall_success': False,
@@ -187,6 +208,15 @@ def evaluate_function(code_text, function_name, input_value_tuples, expected_out
                 code_text=code_text,
                 function_name=function_name,
                 input_values=input_value_tuples[test_index],
+                expected_output=expected_outputs[test_index],
+                pre_code=pre_code,
+            ))
+    elif test_code is not None:
+        for test_index in range(len(test_code)):
+            results['test_cases'].append(evaluate_function_once(
+                code_text=code_text,
+                function_name=function_name,
+                test_code=test_code[test_index],
                 expected_output=expected_outputs[test_index],
                 pre_code=pre_code,
             ))
@@ -207,9 +237,12 @@ def evaluate_function(code_text, function_name, input_value_tuples, expected_out
 
 def evaluate_function_once(
         code_text, function_name, input_values=None, expected_output=None,
-        assertion_code=None, pre_code=None):
+        assertion_code=None, test_code=None, pre_code=None):
 
     input_values = [] if input_values is None else input_values
+    test_type = 'assertion' if assertion_code is not None else\
+                'test_code' if test_code is not None else\
+                'input-output'
 
     cant_run_code = False
     result = {
@@ -219,10 +252,12 @@ def evaluate_function_once(
         'exec_success': False,
         'timeout': False,
         'runtime_success': False,
-        'test_type': 'assertion' if assertion_code is not None else 'input-output',
+        'test_type': test_type,
     }
     if result['test_type'] == 'assertion':
         result['assertion'] = assertion_code
+    elif result['test_type'] == 'test_code':
+        result['test_code'] = test_code
 
     # Save the original stdout so we can resume them after this function runs
     original_stdout = sys.stdout
@@ -260,7 +295,7 @@ def evaluate_function_once(
 
     if cant_run_code is False:
 
-        def run_function(function, function_name, input_values, result, pre_code):
+        def run_function(function, function_name, input_values, result, test_code, pre_code):
 
             # It's critical to do a few things here:
             # 1. Transfer the input values into the sandbox scope
@@ -287,11 +322,15 @@ def evaluate_function_once(
             sys.stdout = capturable_stdout
 
             # If this is an assertion, run the assertion code.
+            # If the test spec included a line of test code that returns output,
+            # then run the test code.
             # Otherwise, pass in the input and check the output
             if result['test_type'] == 'assertion':
                 code = assertion_code
             elif result['test_type'] == 'input-output':
                 code = 'output = ' + function_name + '(*input_values)'
+            elif result['test_type'] == 'test_code':
+                code = test_code
 
             # Run the code!  Watch for assertion errors, timeout errors, and others
             try:
@@ -312,7 +351,7 @@ def evaluate_function_once(
                     'args': e.args,
                 }
             else:
-                if result['test_type'] == 'input-output':
+                if result['test_type'] in ['input-output', 'test_code']:
                     output = local_scope['output']
                     result['returned'] = output
                 result['stdout'] = capturable_stdout.getvalue()
@@ -321,14 +360,17 @@ def evaluate_function_once(
         # Create a new process to run the test function, so we can terminate it if it loops
         try:
             with timeout(seconds=.5):
-                run_function(local_scope[function_name], function_name, input_values, result, pre_code)
+                run_function(
+                    local_scope[function_name], function_name,
+                    input_values, result, test_code, pre_code
+                )
         except TimeoutError:
             result['timeout'] = True
 
         # Compute the success of the test by inspecting assertions and input-output results
         if result['test_type'] == 'assertion':
             result['success'] = 'runtime_exception' not in result
-        elif result['test_type'] == 'input-output':
+        elif result['test_type'] in ['input-output', 'test_code']:
             result['success'] = (result['returned'] == expected_output) if 'returned' in result else False
 
         # Return stdout to original

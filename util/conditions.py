@@ -30,7 +30,7 @@ def get_test_case_groups_by_first_failure(cursor, submissions, question_number):
             if not success:
                 if test_type == 'assertion':
                     outcome_key = success
-                elif test_type == 'input-output':
+                elif test_type in ['input-output', 'test_code']:
                     outcome_key = observed
                 failure_key = (test_case_index, outcome_key)
                 break

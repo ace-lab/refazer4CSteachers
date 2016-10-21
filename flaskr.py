@@ -553,6 +553,7 @@ def run_code_evaluations(code_text, question_number):
         input_value_tuples=test_condition.get('input_value_tuples'),
         expected_outputs=test_condition.get('expected_outputs'),
         assertions=test_condition.get('assertions'),
+        test_code=test_condition.get('test_code'),
         pre_code=test_condition.get('pre_code'),
     )
 
