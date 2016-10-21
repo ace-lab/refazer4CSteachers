@@ -37,6 +37,12 @@ create table if not exists sessions (
   unique(user_id, question_number)
 );
 
+create table if not exists queries (
+  submission_id integer not null,
+  fix_suggested boolean not null,
+  timestamp datetime default current_timestamp
+);
+
 create table if not exists testresults (
   id integer primary key,
   submission_id integer not null,
@@ -74,6 +80,8 @@ create table if not exists grades (
   question_number integer not null,
   submission_id integer not null,
   grade float,
+  propagated boolean,
+  dirty boolean,
   timestamp datetime default current_timestamp,
   unique(session_id, question_number, submission_id)
 );
@@ -98,11 +106,11 @@ create table if not exists gradenotes (
 
 create table if not exists codeedits (
   id integer primary key,
+  session_id integer not null,
   question_number integer not null,
   submission_id integer not null,
   code text not null,
-  timestamp datetime default current_timestamp,
-  unique(question_number, submission_id)
+  timestamp datetime default current_timestamp
 );
 
 create table if not exists fixes (
