@@ -136,7 +136,7 @@
 
   <div class="col-md-4" id="grading_column">
 
-        <h2>Grading</h2>
+        <h2>Feedback</h2>
         
         {% if fix_exists and session.fixes_enabled %}
         <h3 class='submission_header'>Student error detected.</h3>
@@ -170,10 +170,12 @@
 
         <form id="grade_form" class="ui form">
 
+            <!--
             <div>
                 <label for="grade">Grade</label>
                 <input type="text" name="grade"{% if grade %} value={{ grade }}{% endif %}></input> / 10
             </div>
+            -->
 
             <div id="notes_form">
                 <label for="reason">Notes</label>
@@ -188,7 +190,7 @@
                 {% endif %}
             </div>
 
-            <input type="button" class="ui primary button" name="submit_grade" value="Submit grade"></input>
+            <input type="button" class="ui primary button" name="submit_grade" value="Submit feedback"></input>
 
         </form>
 

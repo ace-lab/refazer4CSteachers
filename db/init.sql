@@ -73,7 +73,7 @@ create table if not exists grades (
   session_id integer note null,
   question_number integer not null,
   submission_id integer not null,
-  grade float not null,
+  grade float,
   timestamp datetime default current_timestamp,
   unique(session_id, question_number, submission_id)
 );

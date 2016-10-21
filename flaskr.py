@@ -590,7 +590,7 @@ def diff():
 def grade():
 
     session_id = session['refazer_session_id']
-    grade = request.form['grade']
+    grade = request.form.get('grade')
     notes = request.form.getlist('notes[]')
     question_number = request.form['question_number']
     submission_id = request.form['submission_id']
