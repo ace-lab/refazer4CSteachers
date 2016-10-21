@@ -4,7 +4,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>Grading Interface</title>
+    <title>Feedback Interface</title>
 
     <!--<link href="/static/css/helper.css" rel="stylesheet">-->
     <link href="/static/css/main.css" rel="stylesheet">
@@ -273,7 +273,7 @@
       list-style-type: none;
     }
     .simple_list li {
-      border-bottom: 1px solid #7d7d7d;
+      border-bottom: 3px solid #7d7d7d;
     }
     #order_form {
       margin-top: 1em;
@@ -371,7 +371,7 @@
     <div class="container-fluid">
       <!-- <div class="container"> -->
         {% if current_user.is_authenticated %}
-            <p id='welcome'>Welcome to the grading interface, {{ current_user.username }}. <a href="/logout">Logout</a></p>
+            <p id='welcome'>Welcome to the feedback interface, {{ current_user.username }}. <a href="/logout">Logout</a></p>
         {% endif %}
       <!-- </div> -->
       {% block fixes %}{% endblock %}

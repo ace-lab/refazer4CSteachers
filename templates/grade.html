@@ -23,14 +23,14 @@
   <div id='symbol_legend'>
     <p>
       <img class='inline' src='/static/img/check.svg' />
-      = graded<br/>
+      = feedback given<br/>
       {% if show_perfect_test_submissions %}
       <img class='inline' src='/static/img/star.svg' />
       = passed all test cases<br/>
       {% endif %}
       {% if session.fixes_enabled %}
       <img class='inline' src='/static/img/lightbulb.svg' />
-      = fix recommended
+      = fix suggested
       {% endif %}
     </p>
   </div>
@@ -91,7 +91,7 @@
   </form>
 
   {% if session.fixes_enabled %}
-  <h2 class='submission_header'>Grading suggestions</h2>
+  <h2 class='submission_header'>Suggested fixes</h2>
   <div id="fix_list" class='submission_list'>
     <ul id='synthesis_list' class="list-group">
       {% for i in fixed_submissions %}
