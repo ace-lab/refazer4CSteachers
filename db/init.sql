@@ -38,8 +38,10 @@ create table if not exists sessions (
 );
 
 create table if not exists queries (
+  session_id integer not null,
   submission_id integer not null,
   fix_suggested boolean not null,
+  feedback_suggested boolean not null,
   timestamp datetime default current_timestamp
 );
 

@@ -526,6 +526,13 @@ def show_grader_interface(question_number, submission_id):
     grade_suggestions = list(filter(fails_tests, grade_suggestions))
     '''
 
+    # Save a record of this query and whether a fix was suggested, to the database
+    cursor.execute('\n'.join([
+        "INSERT INTO queries (session_id, submission_id, fix_suggested, feedback_suggested)",
+        "VALUES (?, ?, ?, ?)",
+    ]), (refazer_session_id, submission_id, fix_exists, fix_grade_exists))
+    db.commit()
+
     return render_template('grade.html',
         question_number=question_number,
         submission=submission,
