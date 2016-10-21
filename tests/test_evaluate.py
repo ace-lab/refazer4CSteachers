@@ -129,6 +129,21 @@ class EvaluateSolutionTest(unittest.TestCase):
         self.assertEqual(result['timeout'], False)
         self.assertEqual(result['runtime_success'], True)
 
+    def test_functions_can_call_other_defined_functions(self):
+        result = evaluate_function_once(
+            code_text='\n'.join([
+                "def otherfunc():",
+                "    return 1",
+                "",
+                "def func(input_):",
+                "    return otherfunc()",
+            ]),
+            function_name='func',
+            input_values=(3,),
+            expected_output=1,
+        )
+        self.assertEqual(result['success'], True)
+
     def test_terminate_infinite_loops(self):
         # Earlier, we had problems running code with recursion as the name of
         # the compiled function couldn't be found in the scope of that running

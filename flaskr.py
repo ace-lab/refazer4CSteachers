@@ -552,7 +552,7 @@ def show_grader_interface(question_number, submission_id):
         fix_groups=fix_groups,
         fixed_submission_ids=grade_suggestions,
         perfect_test_submission_ids=perfect_test_submissions,
-        show_perfect_test_submissions=False,
+        show_perfect_test_submissions=True,
         graded_submission_ids=graded_submissions,
         sort_mode=session['sort_mode'],
     )
