@@ -82,8 +82,12 @@ create table if not exists grades (
   question_number integer not null,
   submission_id integer not null,
   grade float,
-  propagated boolean,
-  dirty boolean,
+  fix_suggested boolean,
+  fix_used boolean,
+  grade_suggested boolean,
+  grade_used boolean,
+  fix_changed boolean,
+  grade_changed boolean,
   timestamp datetime default current_timestamp,
   unique(session_id, question_number, submission_id)
 );

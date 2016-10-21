@@ -616,22 +616,31 @@ def grade():
     notes = request.form.getlist('notes[]')
     question_number = request.form['question_number']
     submission_id = request.form['submission_id']
+    fix_suggested = request.form['fix_suggested']
+    fix_used = request.form['fix_used']
+    fix_changed = request.form['fix_changed']
+    grade_suggested = request.form['grade_suggested']
+    grade_used = request.form['grade_used']
+    grade_changed = request.form['grade_changed']
 
     db = get_db()
     cursor = db.cursor()
 
     # Insert the new grade and save its ID
     cursor.execute('\n'.join([
-        "INSERT OR REPLACE INTO grades (id, session_id, question_number, submission_id, grade)",
+        "INSERT OR REPLACE INTO grades ("
+        "   id, session_id, question_number, submission_id, grade,"
+        "   fix_suggested, fix_used, fix_changed, grade_suggested, grade_used, grade_changed)",
         "VALUES (",
         # The select statement below lets us keep the old grade ID
         "    (SELECT id FROM grades WHERE"
         "        session_id = ? AND",
         "        question_number = ? AND",
         "        submission_id = ?),"
-        "     ?, ?, ?, ?)"
+        "     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     ]), (session_id, question_number, submission_id,
-         session_id, question_number, submission_id, grade))
+         session_id, question_number, submission_id, grade,
+         fix_suggested, fix_used, fix_changed, grade_suggested, grade_used, grade_changed))
     cursor.execute('\n'.join([
         "SELECT id FROM grades WHERE",
         "session_id = ? AND",

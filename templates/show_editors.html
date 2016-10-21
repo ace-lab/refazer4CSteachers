@@ -204,6 +204,13 @@
 <script>
 $(function() {
 
+    var fixSuggested = "{{ fix_exists }}" === "True";
+    var gradeSuggested = "{{ fix_grade_exists }}" === "True";
+    var fixUsed = false;
+    var fixChanged = false;
+    var gradeUsed = false;
+    var gradeChanged = false;
+
     // Grade button starts out disabled.
     // It will be enabled after a user adds a grade or a note.
     $('input[name=submit_grade]').prop('disabled', true);
@@ -230,6 +237,7 @@ $(function() {
         newNote.append(noteText);
         newNote.append(noteDelete);
         noteDelete.click(function() {
+            gradeChanged = true;
             newNote.remove();
         });
         $('div#notes').append(newNote);
@@ -239,6 +247,7 @@ $(function() {
     $('input[name=add]').click(function() {
         var newNoteText = ($('input[name=reason]').val());
         addNote(newNoteText);
+        gradeChanged = true;
         $('input[name=reason]').val('');
     });
 
@@ -256,7 +265,11 @@ $(function() {
 
     // Apply an existing fix's grade to this submission
     $('input[name=apply_grade]').click(function() {
+        // Remove all existing notes
+        $('div.note').remove();
         $('input[name=grade]').val($('input[name=fix_grade]').val());
+        gradeUsed = true;
+        gradeChanged = false;
         var noteTexts = JSON.parse($('input[name=fix_notes]').val());
         noteTexts.forEach(function (text) {
             addNote(text);
@@ -275,6 +288,12 @@ $(function() {
             notes: note_text,
             question_number: {{ question_number }},
             submission_id: {{ submission_id }},
+            fix_suggested: fixSuggested,
+            fix_used: fixUsed,
+            fix_changed: fixChanged,
+            grade_suggested: gradeSuggested,
+            grade_used: gradeUsed,
+            grade_changed: gradeChanged,
         }, function(result) {
 
             $('input[name=submit_grade]').prop('disabled', true);
@@ -462,10 +481,24 @@ $(function() {
     // If there is a synthesized fix, and a user chooses to apply it,
     // substitute the fixed code into the editor
     $('input[name=apply_fix]').click(function() {
+
+        // Update the contents of the editor
         var fixedCodeData = $('input[name=fixed_code]').val();
         var fixedCode = JSON.parse(fixedCodeData).code;
         editor.setValue(fixedCode);
+
+        fixUsed = true;
+        fixChanged = false;
+
+        // When the code is edited, set a dirty flag
+        var dirtyFlag = function() {
+            fixChanged = true;
+            editor.off(dirtyFlag);
+        };
+        editor.on('change', dirtyFlag);
+
         $('.submitCode').click();
+
     });
 
     // When the submit button is clicked, run the test cases.
@@ -484,7 +517,7 @@ $(function() {
         $.post('/evaluate', {
             code: editor.getValue(),
             before_id: {{ submission_id }},
-            question_number: {{question_number}}
+            question_number: {{question_number}},
         }, function(results) {
 
             thisButton.removeClass('loading');
