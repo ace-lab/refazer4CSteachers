@@ -725,6 +725,15 @@ def evaluate():
     code_text = request.form['code']
     results = run_code_evaluations(code_text, question_number)
 
+    # Save the code that the user has uploaded
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute('\n'.join([
+        "INSERT INTO codeedits(session_id, question_number, submission_id, code)",
+        "VALUES (?, ?, ?, ?)",
+    ]), (session['refazer_session_id'], question_number, before_id, code_text))
+    db.commit()
+
     return jsonify(results)
 
 
