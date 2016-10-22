@@ -131,6 +131,20 @@ def _enqueue_synthesis_job(session_id, question_number):
         })
 
 
+def _clear_synthesis_job_queue():
+
+    logger.info("Clearing job queue")
+
+    while len(refresh_jobs) > 0:
+
+        logger.info("Clearing job queue: requesting next job")
+        job = session_job_queue.get()
+        session_id = job['session_id']
+
+        del(refresh_jobs[refresh_jobs.index(session_id)])
+        logger.info("Clearing job queue: deleted job %d", session_id)
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
 
@@ -144,17 +158,9 @@ def login():
             login_user(user)
             question_number = int(request.form['question'])
 
-            # Re-load all existing synthesis jobs for this user
+            # See if any sessions have been created for this user for this question
             db = get_db()
             cursor = db.cursor()
-            cursor.execute('\n'.join([
-                "SELECT session_id, question_number FROM sessions",
-                "WHERE user_id = ?",
-            ]), (user.user_id,))
-            for (past_session_id, past_question_number) in cursor.fetchall():
-                _enqueue_synthesis_job(past_session_id, past_question_number)
-
-            # See if any sessions have been created for this user for this question
             cursor.execute('\n'.join([
                 "SELECT session_id FROM sessions WHERE",
                 "user_id = ? AND",
@@ -172,11 +178,11 @@ def login():
                     "VALUES (?, ?, ?)",
                 ]), (user.user_id, question_number, session_id))
                 db.commit()
-
-                # Start off a job to check for synthesis results
-                _enqueue_synthesis_job(session_id, question_number)
             else:
                 session_id = row[0]
+
+            # Start off a job to check for synthesis results
+            _enqueue_synthesis_job(session_id, question_number)
 
             # Save in the session whether this user will be seeing fixes, the question number,
             # and the ID of the Refazer session
@@ -203,6 +209,7 @@ def login():
 
 @app.route('/logout')
 def logout():
+    _clear_synthesis_job_queue()
     logout_user()
     return redirect('login')
 
@@ -227,7 +234,7 @@ def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
             'FixId': next_fix_id,
         })
         fixes = result.json()
-        logger.info("Retrived %d fixes", len(fixes))
+        logger.info("Retrieved %d fixes", len(fixes))
     except Exception as e:
         logger.error("Exception when fetching fixes: %s", e)
         fixes = []
@@ -796,7 +803,9 @@ def get_submissions(cursor, question_number):
 # track of which jobs we're currently checking.
 refresh_jobs = []
 REFRESH_TIMEOUT = 1
-thread_pool = ThreadPoolExecutor(max_workers=3)
+# 1 thread to fetch fixes for the current question;
+# 4 threads to submit new fixes to the server
+thread_pool = ThreadPoolExecutor(max_workers=5)
 session_job_queue = Queue()
 shutdown_event = threading.Event()
 thread_pool.submit(fetch_results, session_job_queue, app.config['DATABASE'], shutdown_event)
