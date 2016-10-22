@@ -78,6 +78,7 @@ TEST_CONDITIONS = {
             36,
             14400,
         ],
+        'pre_code': PREREQUISITE_CODE,
     },
     2: {
         'function_name': 'repeated',
