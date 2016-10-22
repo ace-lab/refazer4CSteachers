@@ -5,6 +5,7 @@ import sys
 import time
 import re
 import math
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 import threading
@@ -26,6 +27,15 @@ from util.conditions import get_test_case_groups_by_first_failure, get_perfect_t
 app = Flask(__name__)
 app.config.from_object(__name__)
 app.config.from_envvar('FLASKR_SETTINGS', silent=True)
+
+# Set up logger
+logger = logging.getLogger('refazer_local')
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s (%(levelname)s): %(message)s')
+logger.addHandler(handler)
+handler.setFormatter(formatter)
 
 # Configure the database endpoint
 database_path = os.environ.get('FLASK_DATABASE_PATH', os.path.join(app.root_path, 'flaskr.db'))
@@ -74,13 +84,13 @@ def _start_user_session(question_number):
         })
 
     # Upload the new submissions that need to be fixed
-    print("Launching new Refazer job")
+    logger.info("Launching new Refazer job")
     result = requests.post(REFAZER_ENDPOINT + "/Start", json={
         'Submissions': code_to_fix,
         'Question': question_number,
     })
     session_id = result.json()
-    print("Job has been started and has ID", session_id)
+    logger.info("Job has been started and has ID %d", session_id)
 
     return session_id
 
@@ -210,13 +220,17 @@ def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
     ''' Returns the ID of the last fix returned. '''
 
     # Request a set of new fixes from the server
-    print("Getting fixes for session:", session_id)
-    result = requests.get(REFAZER_ENDPOINT + "/GetFixes", params={
-        'SessionId': session_id,
-        'FixId': next_fix_id,
-    })
-    fixes = result.json()
-    print("Fixes:", fixes)
+    logger.info("Getting fixes for session: %d", session_id)
+    try:
+        result = requests.get(REFAZER_ENDPOINT + "/GetFixes", params={
+            'SessionId': session_id,
+            'FixId': next_fix_id,
+        })
+        fixes = result.json()
+        logger.info("Retrived %d fixes", len(fixes))
+    except Exception as e:
+        logger.error("Exception when fetching fixes: %s", e)
+        fixes = []
 
     # Insert records of this fix into the database
     for fix in fixes:
@@ -234,6 +248,7 @@ def fetch_new_fixes(cursor, session_id, question_id, next_fix_id):
             transformation_id = fix['Transformation']['ID']
             one_original_submission_id =\
                 int(re.search("'submission_id': (\d+),", original_submissions_string).group(1))
+            logger.info("Fix from %d to %d", one_original_submission_id, fix['SubmissionId'])
 
         # Refazer returns code with a different format than the one we upload.
         # To minimize diff size that's due purely to whitespace changes, prettify the
@@ -510,7 +525,6 @@ def show_grader_interface(question_number, submission_id):
         reverse=True,
     )
     fix_groups.append(unfixable_submissions)
-    print(fix_groups)
 
     # Filter all submissions to just those that don't pass all test cases
     # XXX commented out because this isn't necessary with the current data source
@@ -702,9 +716,12 @@ def upload_example(url, json_data):
             'SynthesizedTransformations': 3,
             'Ranking': ranking,
         })
-        print("Submitting fix suggestion to Refazer")
-        result = requests.post(REFAZER_ENDPOINT + "/ApplyFixFromExample", json=payload)
-        print("Refazer has accepted the job")
+        logger.info("Submitting fix suggestion to Refazer")
+        try:
+            result = requests.post(REFAZER_ENDPOINT + "/ApplyFixFromExample", json=payload)
+            logger.info("Job was submitted to Refazer: status code %d", result.status_code)
+        except Exception as e:
+            logger.error("Exception submitting fixes to Refazer: %s", e)
 
 
 @app.route('/synthesize', methods=['POST'])
@@ -778,7 +795,7 @@ def get_submissions(cursor, question_number):
 # new fixes for student submissions.  The list below lets us keep
 # track of which jobs we're currently checking.
 refresh_jobs = []
-REFRESH_TIMEOUT = 3
+REFRESH_TIMEOUT = 1
 thread_pool = ThreadPoolExecutor(max_workers=3)
 session_job_queue = Queue()
 shutdown_event = threading.Event()
