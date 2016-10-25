@@ -9,3 +9,7 @@ static/react/node_modules
 static/react/dist
 static/react/dist/*.hot-update.*
 anon_data
+
+# Databases and backups
+*.db
+*.db.bak
