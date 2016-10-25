@@ -38,6 +38,7 @@ create table if not exists sessions (
 );
 
 create table if not exists queries (
+  id integer primary key,
   session_id integer not null,
   submission_id integer not null,
   fix_suggested boolean not null,

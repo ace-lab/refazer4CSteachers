@@ -37,6 +37,11 @@ formatter = logging.Formatter('%(asctime)s (%(levelname)s): %(message)s')
 logger.addHandler(handler)
 handler.setFormatter(formatter)
 
+# Silence default request logger except for errors, to keep the command line clean for the
+# messages that we're logging for debugging purposes.
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 # Configure the database endpoint
 database_path = os.environ.get('FLASK_DATABASE_PATH', os.path.join(app.root_path, 'flaskr.db'))
 app.config.update(dict(
@@ -740,16 +745,26 @@ def synthesize():
     submission_id = request.form['submission_id']
     code_before = request.form['code_before']
     code_after = request.form['code_after']
+    fix_suggested = True if request.form['fix_suggested'] == 'true' else False
+    fix_used = True if request.form['fix_used'] == 'true' else False
+    fix_changed = True if request.form['fix_changed'] == 'true' else False
 
-    thread_pool.submit(
-        upload_example, 
-        REFAZER_ENDPOINT + "/ApplyFixFromExample", {
-            'CodeBefore': code_before,
-            'CodeAfter': code_after,
-            'SessionId': session_id,
-            'QuestionId': question_number,
-            'SubmissionId': submission_id,
-        })
+    # If a fix was used unchanged, then we expect we won't find a very useful
+    # new transformation from this fix (it might be very similar to what
+    # the fix suggested for this submission).  Only request Refazer
+    # to do new synthesis when the code has changed from the proposed fix.
+    if fix_suggested and fix_used and not fix_changed:
+        logger.info("Skipping call to Refazer.  This fix is similar to the recommended fix.")
+    else:
+        thread_pool.submit(
+            upload_example, 
+            REFAZER_ENDPOINT + "/ApplyFixFromExample", {
+                'CodeBefore': code_before,
+                'CodeAfter': code_after,
+                'SessionId': session_id,
+                'QuestionId': question_number,
+                'SubmissionId': submission_id,
+            })
 
     return jsonify({
         'success': True,
