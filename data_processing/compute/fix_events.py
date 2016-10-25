@@ -42,7 +42,7 @@ def compute_fix_events():
             timestamp=grade.timestamp,
             fix_suggested=fix_suggested,
             fix_used=fix_used,
-            fix_change=fix_changed,
+            fix_changed=fix_changed,
         )
 
     # Save fix events for the fixes that were found by the Refazer server
