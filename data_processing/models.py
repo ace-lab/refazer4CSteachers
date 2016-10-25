@@ -166,6 +166,17 @@ class FixEvent(ProxyModel):
     fixed_submission_id = IntegerField(null=True)
 
 
+class FirstFix(FixEvent):
+    '''
+    A fix event that was the first to fix the submission.
+    Note that in the case that a fix was synthesized for a submission before manual
+    feedback was given, the fix event will appear twice: once when it was synthesized,
+    and once when it was given feedback by hand.
+    In other cases, feedback by hand precludes a synthesized fix being reported.
+    '''
+    pass
+
+
 def init_database(db_type, config_filename=None):
 
     if db_type == 'postgres':
