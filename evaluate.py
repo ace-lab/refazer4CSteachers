@@ -1,9 +1,10 @@
 import sys
-import signal
 from multiprocessing import Manager, Process
 from io import StringIO
 import time
 import inspect
+import threading
+import traceback
 
 
 PROCESS_TIMEOUT = .5
@@ -129,22 +130,52 @@ TEST_CONDITIONS = {
 }
 
 
-class timeout(object):
+def timed(timeout, fn, args=(), kargs={}):
     ''' REUSE: Adapted from source code for UC Berkeley CS 61A auto-grader. '''
+    """For a nonzero timeout, evaluates a call expression in a separate thread.
+    If the timeout is 0, the expression is evaluated in the main thread.
+    PARAMETERS:
+    fn      -- function; Python function to be evaluated
+    args    -- tuple; positional arguments for fn
+    kargs   -- dict; keyword arguments for fn
+    timeout -- int; number of seconds before timer interrupt
+    RETURN:
+    Result of calling fn(*args, **kargs).
+    RAISES:
+    Timeout -- if thread takes longer than timeout to execute
+    Error   -- if calling fn raises an error, raise it
+    """
+    if timeout == 0:
+        return fn(*args, **kargs)
 
-    def __init__(self, seconds, error_message="Timeout"):
-        self.seconds = seconds
-        self.error_message = error_message
+    submission = __ReturningThread(fn, args, kargs)
+    submission.start()
+    submission.join(timeout)
+    if submission.is_alive():
+        raise TimeoutError(timeout)
+    if submission.error is not None:
+        raise submission.error
+    return submission.result
 
-    def handle_timeout(self, signum, frame):
-        raise TimeoutError(self.error_message)
 
-    def __enter__(self):
-        signal.signal(signal.SIGALRM, self.handle_timeout)
-        signal.setitimer(signal.ITIMER_REAL, self.seconds)
+class __ReturningThread(threading.Thread):
+    ''' REUSE: Adapted from source code for UC Berkeley CS 61A auto-grader. '''
+    """Creates a daemon Thread with a result variable."""
+    def __init__(self, fn, args, kargs):
+        super().__init__()
+        self.daemon = True
+        self.result = None
+        self.error = None
+        self.fn = fn
+        self.args = args
+        self.kargs = kargs
 
-    def __exit__(self, type, value, traceback):
-        signal.alarm(0)
+    def run(self):
+        try:
+            self.result = self.fn(*self.args, **self.kargs)
+        except Exception as e:
+            e._message = traceback.format_exc(limit=2)
+            self.error = e
 
 
 def stringify_input(input_values):
@@ -360,11 +391,14 @@ def evaluate_function_once(
 
         # Create a new process to run the test function, so we can terminate it if it loops
         try:
-            with timeout(seconds=.5):
-                run_function(
+            timed(
+                PROCESS_TIMEOUT,
+                run_function,
+                args=(
                     local_scope[function_name], function_name,
                     input_values, result, test_code, pre_code
                 )
+            )
         except TimeoutError:
             result['timeout'] = True
 
