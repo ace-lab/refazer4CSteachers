@@ -7,6 +7,17 @@ pytz
 
 # Autograder Interface
 requests==2.10
+
+# Calling Refazer
+
+# Data processing
+peewee==2.8.5
+
+# Code manipulation and formatting
+autopep8==1.2.4
+pyminifier==2.1
+
+# I don't know if we need any of this
 itsdangerous==0.24
 cssmin==0.2.0
 jsmin==2.2.0
@@ -14,4 +25,3 @@ hashids==1.1.0
 pygments==2.1.3
 humanize==0.5.1
 markdown==2.6.6
-peewee==2.8.5
