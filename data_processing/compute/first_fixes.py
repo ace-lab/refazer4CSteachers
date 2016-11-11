@@ -44,13 +44,15 @@ def compute_first_fixes(event_compute_index=None):
             submission_id = event.submission_id
             authoring_event = event_type.startswith('authored')
             propagation_event = event_type.startswith('applied')
+            if propagation_event:
+                print("Manual:", submission_id in manually_fixed_submissions, "Automatic:", submission_id in automatically_fixed_submissions)
 
             # Only mark this as a "first fix" if we haven't seen a fix for it before,
             # or if a fix was "propagated" to it but not yet checked by hand
-            if (authoring_event and submission_id not in manually_fixed_submissions or
-                propagation_event and (
-                    submission_id not in manually_fixed_submissions and
-                    submission_id not in automatically_fixed_submissions)):
+            if ((authoring_event and submission_id not in manually_fixed_submissions) or
+                (propagation_event and 
+                    (submission_id not in manually_fixed_submissions) and
+                    (submission_id not in automatically_fixed_submissions))):
 
                 FirstFix.create(
                     compute_index=compute_index,
@@ -75,7 +77,7 @@ def compute_first_fixes(event_compute_index=None):
 
 
 def main(event_compute_index, *args, **kwargs):
-    compute_fix_events(event_compute_index)
+    compute_first_fixes(event_compute_index)
 
 
 def configure_parser(parser):

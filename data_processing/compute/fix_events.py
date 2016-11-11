@@ -52,7 +52,7 @@ def compute_fix_events():
             username=fix.session.user.username,
             session=fix.session,
             question_number=fix.session.question_number,
-            submission_id=fix.session_id,
+            submission_id=fix.submission_id,
             event_type="applied",
             timestamp=fix.timestamp,
             transformation_id=fix.transformation_id,
