@@ -209,4 +209,5 @@ def create_tables():
     db_proxy.create_tables([
         Command,
         FixEvent,
+        FirstFix,
     ], safe=True)

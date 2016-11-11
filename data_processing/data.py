@@ -17,16 +17,16 @@ data_logger.addHandler(log_handler)
 data_logger.propagate = False
 
 from models import create_tables, init_database, Command
-from compute import fix_events
+from compute import fix_events, first_fixes
 from migrate import run_migration
-from dump import fix_events as dump_fix_events
+from dump import fix_events as dump_fix_events, first_fixes as dump_first_fixes
 
 
 COMMANDS = {
     'compute': {
         'description': "Compute derived fields from existing data.",
         'module_help': "Type of data to compute.",
-        'modules': [fix_events],
+        'modules': [fix_events, first_fixes],
     },
     'migrate': {
         'description':
@@ -38,7 +38,7 @@ COMMANDS = {
     'dump': {
         'description': "Dump data to a text file.",
         'module_help': "Type of data to dump.",
-        'modules': [dump_fix_events],
+        'modules': [dump_fix_events, dump_first_fixes],
     },
 }
 
