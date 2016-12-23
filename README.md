@@ -1,10 +1,10 @@
-#Writing Reusable Code Feedback at Scale with Mixed-Initiative Program Synthesis 
+# Writing Reusable Code Feedback at Scale with Mixed-Initiative Program Synthesis 
 by A Head, EL Glassman, G Soares, R Suzuki, L Figueredo, L D'Antoni and B Hartmann 
 Presented at *ACM Learning at Scale 2017*
 
-##Abstract
+## Abstract
 
-##Demo Video
+## Demo Video
 
 # Refazer Grading Application
 
