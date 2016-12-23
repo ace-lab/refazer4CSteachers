@@ -1,6 +1,0 @@
----
-- hosts: webservers
-  gather_facts: false
-  user: andrew
-  roles:
-    - { role: grader, tags: [ 'grader' ] }
