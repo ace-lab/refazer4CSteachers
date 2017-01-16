@@ -2,9 +2,11 @@
 
 Next Friday we are going to have a guest, Alex Polozov, presenting some of his work on program synthesis at UW and Microsoft.
 
-*Time*: Friday Jan 20, 1 PM.
-*Title*: PROSE: Inductive Program Synthesis for the Mass Markets
-*Speaker*: Alex Polozov, University of Washington / Microsoft.
+**Time**: Friday Jan 20, 1 PM.
+
+**Title**: PROSE: Inductive Program Synthesis for the Mass Markets
+
+**Speaker**: Alex Polozov, University of Washington / Microsoft.
 
 ## Talk details
 
