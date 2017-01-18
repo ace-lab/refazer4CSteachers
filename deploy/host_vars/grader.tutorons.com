@@ -1,13 +1,13 @@
 appname: grader
-groupname: grader
+groupname: ubuntu
 group_users:
-- andrew
+- ubuntu
 domain: grader.tutorons.com
 localport: 8030
-projectdir: /home/andrew/drive/{{ appname }}
-repo: https://github.com/lucasmf/refazer4education
-branch: grader-tab
-privatebucket: refazer-grader
+projectdir: /usr/local/{{ appname }}
+repo: https://github.com/andrewhead/refazer4grading
+branch: master
+privatebucket: refazer
 venv: "{{ projectdir }}/venv"
 src: "{{ projectdir }}/src"
 logdir: "{{ projectdir }}/logs"

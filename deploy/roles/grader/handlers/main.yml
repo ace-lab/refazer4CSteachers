@@ -1,0 +1,6 @@
+---
+- name: create data load stamp
+  file: path={{ code_data }}/.stamp_data_loaded state=touch owner={{ ansible_ssh_user }} group={{ ansible_ssh_user }}
+
+- name: create unit test stamp
+  file: path={{ code_data }}/.stamp_submissions_tested state=touch owner={{ ansible_ssh_user }} group={{ ansible_ssh_user }}

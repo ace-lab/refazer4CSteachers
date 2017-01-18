@@ -1,39 +1,16 @@
-# Refazer Grading Application
+# OverHint
 
-## Running the App Locally
+##Running the App Locally
+1. Install python3
+2. Clone https://github.com/lucasmf/HerokuUI
+3. Create virtualenvironment in cloned folder and run 
+  - ```pip3 install -r requirements.txt```
+  - ```python3 flaskr.py```
 
-First, install python3.
-
-Clone this repository.
-Create virtual environment in the cloned folder:
-
-    virtualenv venv
-    source venv/bin/activate  # initializes the virtual environment
-
-Install Python dependencies:
-
-    pip install -r requirements.txt
-
-Initialize the local database:
-
-    sqlite3 flaskr.db < db/init.sql
-
-Add data from student submissions to the local database:
-
-    PYTHONPATH=.:$PYTHONPATH python util/load_data.py file data/accumulate-mistakes.json 0 flaskr.db --prettify-code
-    PYTHONPATH=.:$PYTHONPATH python util/load_data.py file data/Product-mistakes.json 1 flaskr.db --prettify-code
-    PYTHONPATH=.:$PYTHONPATH python util/load_data.py file data/repeated-mistakes.json 2 flaskr.db --prettify-code
-
-Run unit tests to group the submissions:
-
-    PYTHONPATH=.:$PYTHONPATH python util/pretest_submissions.py flaskr.db
-
-## Deploying the app to a server
-
-See the `deploy` directory.
-The `deploy` script in the `deploy` directory calls Ansible scripts to provision a machine to run the grader application.
-
-## Running data processing scripts
-
-The `data_processing` directory includes scripts to process some of the data from the local database into the measurements we reported in the paper.
-Details about what commands to run are forthcoming.
+##Running the App on Heroku
+1. Create heroku login
+2. Create an app on the heroku site
+3. Install heroku toolbelt from https://toolbelt.heroku.com/
+4. Login at your own terminal by running heroku login
+5. Establish heroku as a new remote by running ```heroku git:remote -a [name of your app]```
+6. Push the app to heroku: ```git push heroku master```

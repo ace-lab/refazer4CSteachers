@@ -8,6 +8,7 @@
   - python3-dev
   - supervisor
   - nginx
+  - sqlite3
   tags: serverpkgs
   become: true
 
@@ -62,9 +63,38 @@
   tags: updatecode
 
 - name: Initialize the SQLite database
-  shell: sqlite3 {{ sqlite_database }} < {{ flask_dir }}/schema.sql
+  shell: sqlite3 {{ sqlite_database }} < {{ flask_dir }}/db/init.sql
   tags:
   - database
+
+- name: Load submissions into database
+  shell: PYTHONPATH=.:$PYTHONPATH {{ venv }}/bin/python util/load_data.py file {{ item.filename }}
+    {{ item.question_index }} {{ sqlite_database }} --prettify-code
+  with_items:
+  - { filename: "data/accumulate-mistakes.json", question_index: 0 }
+  - { filename: "data/Product-mistakes.json", question_index: 1 }
+  - { filename: "data/repeated-mistakes.json", question_index: 2 }
+  args:
+    chdir: "{{ src }}"
+    creates: "{{ code_data }}/.stamp_data_loaded"
+  notify: create data load stamp
+  tags:
+  - data
+
+# Create stamp right after loading the data
+- meta: flush_handlers
+
+- name: Run unit tests for grouping submissions
+  shell: PYTHONPATH=.:$PYTHONPATH {{ venv }}/bin/python util/pretest_submissions.py {{ sqlite_database }}
+  args:
+    chdir: "{{ src }}"
+    creates: "{{ code_data }}/.stamp_submissions_tested"
+  notify: create unit test stamp
+  tags:
+  - data
+
+# Create stamp right after running unit tests
+- meta: flush_handlers
 
 - name: Install uwsgi
   pip: name=uwsgi virtualenv="{{ venv }}"
@@ -98,6 +128,11 @@
   become: true
   tags: nginx
 
+- name: Start supervisor
+  service: name=supervisor state=started
+  become: true
+  tags: supervisor
+
 - name: Copy app to supervisor
   template: src=supervisor.j2 dest=/etc/supervisor/conf.d/{{ appname }}.conf
   become: true
@@ -122,4 +157,5 @@
 
 - name: Restart nginx
   service: name=nginx state=restarted
+  become: true
   tags: nginx
