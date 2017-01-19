@@ -51,7 +51,7 @@ app.config.update(dict(
     PASSWORD='default'
 ))
 
-REFAZER_ENDPOINT = "http://refazer2.azurewebsites.net/api/refazer"
+REFAZER_ENDPOINT = "http://refazer10.azurewebsites.net/api/refazer"
 
 ''' The following section enables having users and logins. '''
 login_manager = LoginManager()
