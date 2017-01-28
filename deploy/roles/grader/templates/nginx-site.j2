@@ -2,6 +2,15 @@ upstream {{ appname }}_server {
     server localhost:{{ localport }} fail_timeout=0;
 }
  
+# Redirect all HTTP requests to HTTPS to protect sensitive data
+server {
+
+    listen 80;
+    server_name {{ domain }} www.{{ domain }};
+    return 301 https://$server_name$request_uri;
+
+}
+
 server {
 
     # Only listen for HTTPS requests.
@@ -11,6 +20,11 @@ server {
     server_name {{ domain }} www.{{ domain }};
     ssl_certificate /etc/nginx/ssl/{{ appname }}/nginx.crt;
     ssl_certificate_key /etc/nginx/ssl/{{ appname }}/nginx.key;
+
+    # According to a Server Fault post, this line will prevent
+    # some man in the middle attacks.
+    # http://serverfault.com/questions/67316
+    add_header Strict-Transport-Security "max-age=31536000";
 
     keepalive_timeout 5;
  
