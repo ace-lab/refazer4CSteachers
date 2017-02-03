@@ -11,6 +11,7 @@ venv/
 # Data that shouldn't be tracked
 anon_data
 data/*.json
+data/olddata/*.json
 
 # Text editing
 .*.swp
