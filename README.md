@@ -4,13 +4,13 @@
 
 First, install python3.
 
-Clone this repository.
+Then clone this repository.
 Create virtual environment in the cloned folder:
 
     virtualenv venv
     source venv/bin/activate  # initializes the virtual environment
 
-Install Python dependencies:
+Install the Python dependencies:
 
     pip install -r requirements.txt
 
@@ -18,7 +18,11 @@ Initialize the local database:
 
     sqlite3 flaskr.db < db/init.sql
 
-Add data from student submissions to the local database:
+Then load student submission data into the database.
+This should be in the form of a `json` file.
+Contact the project maintainer if you need access to this data.
+
+Once you have downloaded the data as `json` files, you can load it into the database with the `load_data.py` script:
 
     PYTHONPATH=.:$PYTHONPATH python util/load_data.py file data/accumulate-mistakes.json 0 flaskr.db --prettify-code
     PYTHONPATH=.:$PYTHONPATH python util/load_data.py file data/Product-mistakes.json 1 flaskr.db --prettify-code
