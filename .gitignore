@@ -1,14 +1,25 @@
-flaskr.db
+# Python artifacts
 *.pyc
 .python-version
+
+# Virtual environment
 venv/
+
+# OS X artifacts
 .DS_Store
+
+# Data that shouldn't be tracked
+anon_data
+data/*.json
+
+# Text editing
 .*.swp
 .*.swo
+
+# Compiled static files
 static/react/node_modules
 static/react/dist
 static/react/dist/*.hot-update.*
-anon_data
 
 # Databases and backups
 *.db
