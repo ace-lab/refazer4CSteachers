@@ -67,6 +67,16 @@
   tags:
   - database
 
+- name: Fetch submission files
+  s3: bucket={{ privatebucket }} object={{ item }} dest={{ src }}/data/{{ item }} mode=get
+      aws_access_key={{ aws_access_key_id }} aws_secret_key={{ aws_secret_access_key }} region=us-west-2
+  with_items:
+  - Product-mistakes.json
+  - accumulate-mistakes.json
+  - repeated-mistakes.json
+  tags:
+  - data
+
 - name: Load submissions into database
   shell: PYTHONPATH=.:$PYTHONPATH {{ venv }}/bin/python util/load_data.py file {{ item.filename }}
     {{ item.question_index }} {{ sqlite_database }} --prettify-code
